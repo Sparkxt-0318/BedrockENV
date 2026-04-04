@@ -12,6 +12,7 @@ import { RecommendationList } from './RecommendationCard';
 import { ContaminationMap } from './ContaminationMap';
 import { ShareButtons } from './ShareButtons';
 import { DisclaimerBanner } from './DisclaimerBanner';
+import { ProUpsellBanner } from './ProUpsellBanner';
 import { Card, CardContent } from '@/components/ui';
 
 interface ExposureReportViewProps {
@@ -180,6 +181,9 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
             <RecommendationList recommendations={recommendations} />
           )}
         </div>
+
+        {/* Pro Upsell */}
+        <ProUpsellBanner assessmentId={assessment.id} />
 
         {/* Data source footer */}
         <div className="border-t border-border pt-6">
