@@ -2,6 +2,7 @@ import { ExposureAssessment } from '@/types/exposure';
 import { ExposureScoreGauge } from './ExposureScoreGauge';
 import { LayerCard } from './LayerCard';
 import { WaterLayerDetails } from './WaterLayerDetails';
+import { SoilLayerDetails } from './SoilLayerDetails';
 import { DisclaimerBanner } from './DisclaimerBanner';
 import { Card, CardContent } from '@/components/ui';
 
@@ -11,8 +12,9 @@ interface ExposureReportViewProps {
 }
 
 export function ExposureReportView({ assessment, warnings }: ExposureReportViewProps) {
-  const { address, compositeScore, waterData } = assessment;
+  const { address, compositeScore, waterData, soilData } = assessment;
   const waterScore = compositeScore.layerScores.water;
+  const soilScore = compositeScore.layerScores.soil;
 
   // Build water summary line
   let waterSummary = 'Water contamination data for your water system.';
@@ -30,6 +32,26 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
       parts.push(`${waterData.leadRisk.pctPre1986}% pre-1986 housing (lead risk)`);
     }
     if (parts.length > 0) waterSummary = parts.join(' | ');
+  }
+
+  // Build soil summary line
+  let soilSummary = 'Soil health and contamination data for your area.';
+  if (soilData) {
+    const parts: string[] = [];
+    if (soilData.ssurgo) {
+      parts.push(`${soilData.ssurgo.dominantTexture} soil, ${soilData.ssurgo.organicMatterPct}% OM`);
+    }
+    if (soilData.brownfields.length > 0) {
+      const nearest = soilData.brownfields[0];
+      parts.push(`${soilData.brownfields.length} brownfield site(s) within 2 mi (nearest: ${nearest.distance.toFixed(1)} mi)`);
+    }
+    if (soilData.floodZone) {
+      parts.push(`Flood Zone ${soilData.floodZone.zone}`);
+      if (soilData.floodZone.isSpecialFloodHazardArea) {
+        parts[parts.length - 1] += ' (SFHA)';
+      }
+    }
+    if (parts.length > 0) soilSummary = parts.join(' | ');
   }
 
   return (
@@ -88,21 +110,29 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
             </LayerCard>
           )}
 
-          {/* Soil layer placeholder — coming Week 3 */}
-          <div className="rounded-[var(--radius-lg)] border border-dashed border-border bg-bg-surface px-5 py-8 text-center">
-            <p className="text-sm text-text-tertiary">
-              Soil health &amp; contamination layer — coming soon
-            </p>
-          </div>
+          {soilScore && soilScore.available && soilData && (
+            <LayerCard
+              layer="soil"
+              layerScore={soilScore}
+              title="Soil Health & Contamination"
+              summary={soilSummary}
+            >
+              <SoilLayerDetails data={soilData} />
+            </LayerCard>
+          )}
         </div>
 
         {/* Data source footer */}
         <div className="border-t border-border pt-6">
           <h3 className="text-sm font-medium text-text-secondary mb-3">Data Sources</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-text-tertiary">
-            <div>EPA UCMR 5 — PFAS testing data (2023-2025)</div>
+            <div>EPA UCMR 5 — PFAS testing data (2023–2025)</div>
             <div>EPA SDWIS — Drinking water violation history</div>
             <div>U.S. Census ACS B25034 — Housing age (2022)</div>
+            <div>USDA SSURGO — Soil survey data</div>
+            <div>EPA Brownfields — Contaminated site proximity</div>
+            <div>FEMA NFHL — Flood zone designation</div>
+            <div>NASA POWER — Precipitation &amp; moisture data</div>
             <div>U.S. Census Bureau Geocoder</div>
           </div>
           <p className="text-xs text-text-tertiary mt-3">

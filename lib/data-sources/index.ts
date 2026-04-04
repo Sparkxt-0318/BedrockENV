@@ -1,9 +1,14 @@
-import { GeocodedAddress, WaterLayerData, ExposureAssessment } from '@/types/exposure';
+import { GeocodedAddress, WaterLayerData, SoilLayerData, ExposureAssessment } from '@/types/exposure';
 import { geocodeAddress, lookupWaterSystem } from './geocoding';
 import { fetchUcmr5PfasData } from './epa-ucmr5';
 import { fetchSdwisViolations } from './epa-sdwis';
 import { fetchLeadRiskData } from './epa-lead';
+import { fetchSsurgoData } from './usda-ssurgo';
+import { fetchBrownfieldSites } from './epa-brownfields';
+import { fetchFloodZone } from './fema-nfhl';
+import { fetchNasaPowerData } from './nasa-smap';
 import { scoreWaterLayer } from '@/lib/scoring/water-scorer';
+import { scoreSoilLayer } from '@/lib/scoring/soil-scorer';
 import { computeCompositeScore } from '@/lib/scoring/engine';
 
 /**
@@ -48,42 +53,72 @@ export async function fetchFullAssessment(
     errors.push('Could not identify the serving water system for this address.');
   }
 
-  // Step 3: Fetch all water layer data in parallel
-  const [pfasResult, violationsResult, leadResult] = await Promise.all([
+  // Step 3: Fetch ALL layer data in parallel (water + soil)
+  const noWaterSystem = { data: null, error: 'No water system identified', source: '', cached: false, fetchedAt: new Date().toISOString() };
+
+  const [
+    pfasResult,
+    violationsResult,
+    leadResult,
+    ssurgoResult,
+    brownfieldsResult,
+    floodResult,
+    moistureResult,
+  ] = await Promise.all([
+    // Water sources
     waterSystem
       ? fetchUcmr5PfasData(waterSystem.pwsid, waterSystem.name)
-      : Promise.resolve({ data: null, error: 'No water system identified', source: 'EPA UCMR 5', cached: false, fetchedAt: new Date().toISOString() }),
+      : Promise.resolve(noWaterSystem),
     waterSystem
       ? fetchSdwisViolations(waterSystem.pwsid)
-      : Promise.resolve({ data: null, error: 'No water system identified', source: 'EPA SDWIS', cached: false, fetchedAt: new Date().toISOString() }),
+      : Promise.resolve({ ...noWaterSystem, data: [] as never }),
     fetchLeadRiskData(
       geocoded.fipsState,
       geocoded.fipsCounty,
       geocoded.censusTract,
       geocoded.censusBlockGroup
     ),
+    // Soil sources
+    fetchSsurgoData(geocoded.latitude, geocoded.longitude),
+    fetchBrownfieldSites(geocoded.latitude, geocoded.longitude),
+    fetchFloodZone(geocoded.latitude, geocoded.longitude),
+    fetchNasaPowerData(geocoded.latitude, geocoded.longitude),
   ]);
 
-  // Collect errors (not fatal — just informational)
+  // Collect non-fatal errors
   if (pfasResult.error) errors.push(`PFAS: ${pfasResult.error}`);
   if (violationsResult.error) errors.push(`Violations: ${violationsResult.error}`);
   if (leadResult.error) errors.push(`Lead risk: ${leadResult.error}`);
+  if (ssurgoResult.error) errors.push(`Soil survey: ${ssurgoResult.error}`);
+  if (brownfieldsResult.error) errors.push(`Brownfields: ${brownfieldsResult.error}`);
+  if (floodResult.error) errors.push(`Flood zone: ${floodResult.error}`);
+  if (moistureResult.error) errors.push(`Soil moisture: ${moistureResult.error}`);
 
   // Build water layer data
   const waterData: WaterLayerData = {
     pfas: pfasResult.data,
-    violations: violationsResult.data ?? [],
+    violations: (violationsResult.data as never) ?? [],
     leadRisk: leadResult.data,
     systemName: waterSystem?.name ?? 'Unknown',
     systemId: waterSystem?.pwsid ?? '',
   };
 
-  // Step 4: Score water layer
-  const waterScore = scoreWaterLayer(waterData);
+  // Build soil layer data
+  const soilData: SoilLayerData = {
+    ssurgo: ssurgoResult.data,
+    brownfields: brownfieldsResult.data ?? [],
+    floodZone: floodResult.data,
+    moistureData: moistureResult.data,
+  };
 
-  // Step 5: Compute composite score (MVP: water only for now, soil in Week 3)
+  // Step 4: Score layers
+  const waterScore = scoreWaterLayer(waterData);
+  const soilScore = scoreSoilLayer(soilData);
+
+  // Step 5: Compute composite score (MVP: water + soil)
   const compositeScore = computeCompositeScore({
     water: waterScore,
+    soil: soilScore,
   });
 
   const assessment: ExposureAssessment = {
@@ -91,6 +126,7 @@ export async function fetchFullAssessment(
     address: geocoded,
     compositeScore,
     waterData,
+    soilData,
     dataFreshness: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
