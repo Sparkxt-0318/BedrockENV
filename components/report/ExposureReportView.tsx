@@ -10,6 +10,7 @@ import { SoilLayerDetails } from './SoilLayerDetails';
 import { NarrativeSummary } from './NarrativeSummary';
 import { RecommendationList } from './RecommendationCard';
 import { ContaminationMap } from './ContaminationMap';
+import { ShareButtons } from './ShareButtons';
 import { DisclaimerBanner } from './DisclaimerBanner';
 import { Card, CardContent } from '@/components/ui';
 
@@ -92,12 +93,15 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
           <h1 className="font-[family-name:var(--font-instrument-serif)] text-2xl sm:text-3xl text-text-primary">
             {address.normalized}
           </h1>
-          <p className="text-sm text-text-secondary mt-2">
-            {address.latitude.toFixed(4)}, {address.longitude.toFixed(4)}
-            {address.waterSystemName && (
-              <> &middot; Water system: {address.waterSystemName}</>
-            )}
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3">
+            <p className="text-sm text-text-secondary">
+              {address.latitude.toFixed(4)}, {address.longitude.toFixed(4)}
+              {address.waterSystemName && (
+                <> &middot; Water system: {address.waterSystemName}</>
+              )}
+            </p>
+            <ShareButtons address={address.normalized} score={compositeScore.score} />
+          </div>
         </div>
       </div>
 

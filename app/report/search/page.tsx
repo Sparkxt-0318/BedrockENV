@@ -6,6 +6,7 @@ import { useExposureAssessment } from '@/hooks/useExposureAssessment';
 import { Card, CardContent } from '@/components/ui';
 import { Skeleton } from '@/components/ui';
 import { ExposureReportView } from '@/components/report/ExposureReportView';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function ReportSearchContent() {
   const searchParams = useSearchParams();
@@ -91,8 +92,10 @@ function LoadingSkeleton({ address }: { address: string }) {
 
 export default function ReportSearchPage() {
   return (
-    <Suspense fallback={<LoadingSkeleton address="..." />}>
-      <ReportSearchContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingSkeleton address="..." />}>
+        <ReportSearchContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

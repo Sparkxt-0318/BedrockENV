@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui';
+import { useAuth } from '@/hooks/useAuth';
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-bg-surface/80 backdrop-blur-md">
@@ -33,12 +35,27 @@ export function Navbar() {
             About
           </Link>
           <div className="h-5 w-px bg-border" />
-          <Link href="/auth/login">
-            <Button variant="ghost" size="sm">Log in</Button>
-          </Link>
-          <Link href="/auth/signup">
-            <Button size="sm">Get started</Button>
-          </Link>
+          {!loading && (
+            user ? (
+              <>
+                <span className="text-sm text-text-secondary truncate max-w-[160px]">
+                  {user.email}
+                </span>
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="sm">Log in</Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm">Get started</Button>
+                </Link>
+              </>
+            )
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -75,12 +92,23 @@ export function Navbar() {
               About
             </Link>
             <div className="h-px bg-border my-1" />
-            <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-              <Button variant="secondary" size="sm" className="w-full">Log in</Button>
-            </Link>
-            <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
-              <Button size="sm" className="w-full">Get started</Button>
-            </Link>
+            {user ? (
+              <>
+                <p className="text-sm text-text-secondary py-1 truncate">{user.email}</p>
+                <Button variant="secondary" size="sm" className="w-full" onClick={() => { signOut(); setMobileOpen(false); }}>
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="secondary" size="sm" className="w-full">Log in</Button>
+                </Link>
+                <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
+                  <Button size="sm" className="w-full">Get started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
