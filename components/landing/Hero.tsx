@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
+import { RecentSearches } from '@/components/RecentSearches';
 
 export function Hero() {
   const [address, setAddress] = useState('');
@@ -71,6 +72,9 @@ export function Hero() {
           <p className="mt-4 text-sm text-text-tertiary">
             Free for any U.S. address. No account required.
           </p>
+
+          {/* Recent searches */}
+          <RecentSearches />
         </div>
       </div>
     </section>

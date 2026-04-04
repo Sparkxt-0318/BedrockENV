@@ -3,9 +3,28 @@ import { fetchWithRetry } from './types';
 
 /**
  * Geocode a U.S. address using the Census Bureau Geocoder API (free, no key).
+ * Falls back to Mapbox if Census fails and NEXT_PUBLIC_MAPBOX_TOKEN is set.
  * Returns lat/lng, FIPS codes, census tract, and block group.
  */
 export async function geocodeAddress(address: string): Promise<GeocodedAddress | null> {
+  // Try Census Bureau first (free, no key required)
+  const censusResult = await geocodeWithCensus(address);
+  if (censusResult) return censusResult;
+
+  // Fallback to Mapbox if token is available
+  const mapboxResult = await geocodeWithMapbox(address);
+  if (mapboxResult) {
+    console.info('Geocoded via Mapbox fallback for:', address);
+    return mapboxResult;
+  }
+
+  return null;
+}
+
+/**
+ * Primary geocoder: Census Bureau Geocoder API (free, no key).
+ */
+async function geocodeWithCensus(address: string): Promise<GeocodedAddress | null> {
   const encoded = encodeURIComponent(address);
   const url = `https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=${encoded}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`;
 
@@ -19,7 +38,7 @@ export async function geocodeAddress(address: string): Promise<GeocodedAddress |
     const data = await response.json();
     const matches = data?.result?.addressMatches;
     if (!matches || matches.length === 0) {
-      console.warn('No geocoding matches for:', address);
+      console.warn('No Census geocoding matches for:', address);
       return null;
     }
 
@@ -47,7 +66,62 @@ export async function geocodeAddress(address: string): Promise<GeocodedAddress |
       censusBlockGroup: blockGroup,
     };
   } catch (err) {
-    console.error('Geocoding error:', err);
+    console.error('Census geocoding error:', err);
+    return null;
+  }
+}
+
+/**
+ * Fallback geocoder: Mapbox Geocoding API.
+ * Requires NEXT_PUBLIC_MAPBOX_TOKEN. Returns coordinates with FIPS derived
+ * from Mapbox context. Census tract/block group unavailable via Mapbox.
+ */
+async function geocodeWithMapbox(address: string): Promise<GeocodedAddress | null> {
+  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  if (!token) return null;
+
+  const encoded = encodeURIComponent(address);
+  const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encoded}&country=us&limit=1&access_token=${token}`;
+
+  try {
+    const response = await fetchWithRetry(url, { timeoutMs: 15_000, retries: 1 });
+    if (!response.ok) {
+      console.error(`Mapbox geocoder HTTP ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const features = data?.features;
+    if (!features || features.length === 0) {
+      console.warn('No Mapbox geocoding matches for:', address);
+      return null;
+    }
+
+    const feature = features[0];
+    const [lng, lat] = feature.geometry.coordinates;
+    const props = feature.properties;
+    const context = props?.context || {};
+
+    // Extract FIPS from Mapbox context
+    // Mapbox provides region (state) and district (county) context objects
+    const regionCode = context?.region?.region_code || '';
+    const fipsState = STATE_ABBREV_TO_FIPS[regionCode] || '';
+    const fipsCounty = context?.district?.id
+      ? String(context.district.id).replace(/^district\./, '').slice(-3)
+      : '';
+
+    return {
+      raw: address,
+      normalized: props?.full_address || props?.name || address,
+      latitude: lat,
+      longitude: lng,
+      fipsState,
+      fipsCounty,
+      censusTract: '', // Not available from Mapbox
+      censusBlockGroup: '', // Not available from Mapbox
+    };
+  } catch (err) {
+    console.error('Mapbox geocoding error:', err);
     return null;
   }
 }
@@ -60,9 +134,6 @@ export async function lookupWaterSystem(
   fipsState: string,
   fipsCounty: string
 ): Promise<{ pwsid: string; name: string } | null> {
-  // Query EPA SDWIS for water systems serving this county
-  // State code in SDWIS is the 2-letter abbreviation; we have FIPS.
-  // We'll use the EPA Envirofacts WATER_SYSTEM table filtered by state + county FIPS.
   const url = `https://data.epa.gov/efservice/WATER_SYSTEM/STATE_CODE/${fipsState}/COUNTY_SERVED/${fipsCounty}/ROWS/0:5/JSON`;
 
   try {
@@ -110,3 +181,10 @@ export const FIPS_TO_STATE: Record<string, string> = {
   '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI',
   '56': 'WY',
 };
+
+/**
+ * Reverse mapping: state abbreviation to FIPS code (used by Mapbox fallback).
+ */
+const STATE_ABBREV_TO_FIPS: Record<string, string> = Object.fromEntries(
+  Object.entries(FIPS_TO_STATE).map(([fips, abbrev]) => [abbrev, fips])
+);

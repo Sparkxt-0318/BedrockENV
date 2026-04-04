@@ -13,6 +13,7 @@ import { ContaminationMap } from './ContaminationMap';
 import { ShareButtons } from './ShareButtons';
 import { DisclaimerBanner } from './DisclaimerBanner';
 import { ProUpsellBanner } from './ProUpsellBanner';
+import { ReportStructuredData } from './StructuredData';
 import { Card, CardContent } from '@/components/ui';
 
 interface ExposureReportViewProps {
@@ -87,6 +88,7 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
 
   return (
     <div className="pb-0">
+      <ReportStructuredData assessment={assessment} />
       {/* Header */}
       <div className="bg-bg-surface border-b border-border">
         <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">

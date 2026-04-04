@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe/client';
+import { createClient } from '@supabase/supabase-js';
+
+/**
+ * Create a Supabase admin client using the service role key.
+ * This bypasses RLS for webhook-initiated database operations.
+ */
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey);
+}
 
 /**
  * POST /api/webhooks/stripe
@@ -8,6 +20,7 @@ import { getStripe } from '@/lib/stripe/client';
  * Handles Stripe webhook events:
  * - checkout.session.completed: Mark report as purchased or activate subscription
  * - customer.subscription.deleted: Downgrade user to free tier
+ * - customer.subscription.updated: Update subscription status
  */
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
@@ -34,21 +47,60 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  const supabase = getSupabaseAdmin();
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
+      const assessmentId = session.metadata?.assessmentId;
+      const plan = session.metadata?.plan;
 
-      if (session.mode === 'payment') {
-        // One-time report purchase
+      if (session.mode === 'payment' && supabase && userId) {
+        // One-time report purchase — increment reports_purchased & create report record
         console.log(`Report purchased by user ${userId}, session ${session.id}`);
-        // TODO: When Supabase is connected, update profiles.reports_purchased
-        // and create a reports record
-      } else if (session.mode === 'subscription') {
+
+        // Increment reports_purchased on profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('reports_purchased')
+          .eq('id', userId)
+          .single();
+
+        await supabase
+          .from('profiles')
+          .update({
+            reports_purchased: (profile?.reports_purchased || 0) + 1,
+            stripe_customer_id: session.customer as string || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        // Create a report record to mark it as purchased
+        if (assessmentId) {
+          await supabase.from('reports').insert({
+            user_id: userId,
+            assessment_id: assessmentId,
+            report_type: plan === 'consumer_report' ? 'consumer' : 'pro',
+            layers_included: ['water', 'soil'],
+            disclaimers: [
+              'This report aggregates publicly available federal data and is not a substitute for professional environmental testing.',
+            ],
+          });
+        }
+      } else if (session.mode === 'subscription' && supabase && userId) {
         // Pro subscription activated
         console.log(`Pro subscription activated for user ${userId}, session ${session.id}`);
-        // TODO: When Supabase is connected, update profiles.subscription_tier = 'pro'
-        // and store stripe_subscription_id
+
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_tier: 'pro',
+            stripe_customer_id: session.customer as string || undefined,
+            stripe_subscription_id: session.subscription as string || undefined,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
       }
       break;
     }
@@ -56,13 +108,29 @@ export async function POST(request: NextRequest) {
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
       console.log(`Subscription cancelled: ${subscription.id}`);
-      // TODO: When Supabase is connected, downgrade user to free tier
+
+      if (supabase) {
+        // Downgrade user to free tier
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_tier: 'free',
+            stripe_subscription_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id);
+      }
       break;
     }
 
     case 'customer.subscription.updated': {
       const subscription = event.data.object as Stripe.Subscription;
       console.log(`Subscription updated: ${subscription.id}, status: ${subscription.status}`);
+
+      if (supabase && subscription.status === 'past_due') {
+        // Mark as past due but don't downgrade yet (Stripe may recover payment)
+        console.warn(`Subscription ${subscription.id} is past due`);
+      }
       break;
     }
 

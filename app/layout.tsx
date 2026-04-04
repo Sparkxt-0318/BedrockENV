@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://getbedrock.com'),
   title: {
     default: 'Bedrock — Environmental Exposure Intelligence',
     template: '%s | Bedrock',

@@ -9,12 +9,11 @@ import { createServerClient } from '@supabase/ssr';
  * Orchestrator endpoint: geocodes the address, fetches all data layers,
  * computes scores, and returns a complete ExposureAssessment.
  *
- * Rate limited:
- * - Anonymous: 3 searches/day
- * - Authenticated free: 10 searches/month
- * - Pro: unlimited
- *
- * Degrades gracefully — returns partial data when individual APIs fail.
+ * Features:
+ * - Supabase caching: reuses recent assessments for the same normalized address
+ * - Pro tier detection: checks user subscription_tier in profiles table
+ * - Rate limited: anonymous 3/day, authenticated free 10/month, pro unlimited
+ * - Graceful degradation: returns partial data when individual APIs fail
  */
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get('address');
@@ -28,27 +27,48 @@ export async function GET(request: NextRequest) {
 
   // Determine user tier for rate limiting
   let tier: UserTier = 'anonymous';
+  let userId: string | null = null;
   let identifier = hashIp(
     request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? '127.0.0.1'
   );
 
-  // Check if user is authenticated
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  // Helper to create Supabase server client for this request
+  function getSupabase() {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return null;
+    }
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll(); },
+          setAll() { /* read-only in route handlers */ },
+        },
+      }
+    );
+  }
+
+  // Check if user is authenticated + detect pro tier
+  const supabase = getSupabase();
+  if (supabase) {
     try {
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        {
-          cookies: {
-            getAll() { return request.cookies.getAll(); },
-            setAll() { /* read-only in route handlers */ },
-          },
-        }
-      );
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        userId = user.id;
         identifier = user.id;
-        tier = 'authenticated'; // TODO: check subscription_tier for 'pro'
+        tier = 'authenticated';
+
+        // Check subscription tier from profiles table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_tier')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.subscription_tier === 'pro') {
+          tier = 'pro';
+        }
       }
     } catch {
       // Auth check failed — fall through to anonymous
@@ -76,6 +96,78 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Check Supabase cache for recent assessment of same address (within 24h)
+  if (supabase) {
+    try {
+      const normalizedSearch = address.trim().toUpperCase();
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: cached } = await supabase
+        .from('exposure_assessments')
+        .select('*')
+        .eq('address_normalized', normalizedSearch)
+        .gte('created_at', oneDayAgo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cached) {
+        // Log the search
+        await logSearch(supabase, userId, address, cached.id, identifier);
+
+        // Reconstruct ExposureAssessment from cached row
+        return NextResponse.json({
+          data: {
+            id: cached.id,
+            address: {
+              raw: cached.address_raw,
+              normalized: cached.address_normalized,
+              latitude: cached.latitude,
+              longitude: cached.longitude,
+              fipsState: cached.fips_state || '',
+              fipsCounty: cached.fips_county || '',
+              censusTract: cached.census_tract || '',
+              censusBlockGroup: cached.census_block_group || '',
+              waterSystemId: cached.water_system_id || undefined,
+            },
+            compositeScore: {
+              score: Number(cached.composite_score) || 0,
+              confidence: cached.composite_confidence || 'low',
+              layersIncluded: cached.layers_available || [],
+              layerScores: {
+                water: cached.water_score != null ? {
+                  score: Number(cached.water_score),
+                  confidence: cached.water_confidence || 'area',
+                  available: true,
+                  subScores: {},
+                  rawData: {},
+                } : undefined,
+                soil: cached.soil_score != null ? {
+                  score: Number(cached.soil_score),
+                  confidence: cached.soil_confidence || 'area',
+                  available: true,
+                  subScores: {},
+                  rawData: {},
+                } : undefined,
+              },
+            },
+            waterData: cached.raw_water_data || undefined,
+            soilData: cached.raw_soil_data || undefined,
+            dataFreshness: cached.data_freshness,
+            createdAt: cached.created_at,
+          },
+          cached: true,
+          rateLimit: {
+            remaining: rateLimit.remaining,
+            tier,
+          },
+        });
+      }
+    } catch {
+      // Cache lookup failed — proceed with fresh fetch
+    }
+  }
+
+  // Fetch fresh assessment
   const result = await fetchFullAssessment(address);
 
   if (!result.assessment) {
@@ -88,6 +180,49 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Cache the result in Supabase
+  if (supabase && result.assessment) {
+    try {
+      const a = result.assessment;
+      const waterScore = a.compositeScore.layerScores.water;
+      const soilScore = a.compositeScore.layerScores.soil;
+
+      const { data: inserted } = await supabase
+        .from('exposure_assessments')
+        .upsert({
+          id: a.id,
+          address_raw: a.address.raw,
+          address_normalized: a.address.normalized,
+          latitude: a.address.latitude,
+          longitude: a.address.longitude,
+          fips_state: a.address.fipsState,
+          fips_county: a.address.fipsCounty,
+          census_tract: a.address.censusTract,
+          census_block_group: a.address.censusBlockGroup,
+          water_system_id: a.address.waterSystemId || null,
+          composite_score: a.compositeScore.score,
+          composite_confidence: a.compositeScore.confidence,
+          water_score: waterScore?.score ?? null,
+          water_confidence: waterScore?.confidence ?? null,
+          soil_score: soilScore?.score ?? null,
+          soil_confidence: soilScore?.confidence ?? null,
+          raw_water_data: a.waterData || null,
+          raw_soil_data: a.soilData || null,
+          layers_available: a.compositeScore.layersIncluded,
+          data_freshness: a.dataFreshness,
+        }, { onConflict: 'address_normalized' })
+        .select('id')
+        .single();
+
+      // Log the search
+      const assessmentId = inserted?.id || a.id;
+      await logSearch(supabase, userId, address, assessmentId, identifier);
+    } catch (err) {
+      console.error('Failed to cache assessment in Supabase:', err);
+      // Non-fatal — return the assessment anyway
+    }
+  }
+
   return NextResponse.json({
     data: result.assessment,
     warnings: result.errors.length > 0 ? result.errors : undefined,
@@ -96,4 +231,26 @@ export async function GET(request: NextRequest) {
       tier,
     },
   });
+}
+
+/**
+ * Log a search to the search_log table.
+ */
+async function logSearch(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string | null,
+  address: string,
+  assessmentId: string,
+  ipHash: string
+) {
+  try {
+    await supabase.from('search_log').insert({
+      user_id: userId,
+      address_searched: address,
+      assessment_id: assessmentId,
+      ip_hash: ipHash,
+    });
+  } catch {
+    // Non-fatal
+  }
 }
