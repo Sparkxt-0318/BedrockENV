@@ -1,8 +1,15 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { ExposureAssessment } from '@/types/exposure';
+import { TriggeredRecommendation } from '@/lib/recommendations/types';
 import { ExposureScoreGauge } from './ExposureScoreGauge';
 import { LayerCard } from './LayerCard';
 import { WaterLayerDetails } from './WaterLayerDetails';
 import { SoilLayerDetails } from './SoilLayerDetails';
+import { NarrativeSummary } from './NarrativeSummary';
+import { RecommendationList } from './RecommendationCard';
+import { ContaminationMap } from './ContaminationMap';
 import { DisclaimerBanner } from './DisclaimerBanner';
 import { Card, CardContent } from '@/components/ui';
 
@@ -15,6 +22,32 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
   const { address, compositeScore, waterData, soilData } = assessment;
   const waterScore = compositeScore.layerScores.water;
   const soilScore = compositeScore.layerScores.soil;
+
+  const [narrative, setNarrative] = useState<string>('');
+  const [recommendations, setRecommendations] = useState<TriggeredRecommendation[]>([]);
+  const [narrativeLoading, setNarrativeLoading] = useState(true);
+
+  // Fetch narrative + recommendations after mount
+  useEffect(() => {
+    async function fetchNarrative() {
+      try {
+        const res = await fetch('/api/generate-narrative', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assessment }),
+        });
+        const data = await res.json();
+        setNarrative(data.narrative || '');
+        setRecommendations(data.recommendations || []);
+      } catch {
+        setNarrative('');
+        setRecommendations([]);
+      } finally {
+        setNarrativeLoading(false);
+      }
+    }
+    fetchNarrative();
+  }, [assessment]);
 
   // Build water summary line
   let waterSummary = 'Water contamination data for your water system.';
@@ -42,14 +75,10 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
       parts.push(`${soilData.ssurgo.dominantTexture} soil, ${soilData.ssurgo.organicMatterPct}% OM`);
     }
     if (soilData.brownfields.length > 0) {
-      const nearest = soilData.brownfields[0];
-      parts.push(`${soilData.brownfields.length} brownfield site(s) within 2 mi (nearest: ${nearest.distance.toFixed(1)} mi)`);
+      parts.push(`${soilData.brownfields.length} brownfield site(s) within 2 mi`);
     }
     if (soilData.floodZone) {
-      parts.push(`Flood Zone ${soilData.floodZone.zone}`);
-      if (soilData.floodZone.isSpecialFloodHazardArea) {
-        parts[parts.length - 1] += ' (SFHA)';
-      }
+      parts.push(`Flood Zone ${soilData.floodZone.zone}${soilData.floodZone.isSpecialFloodHazardArea ? ' (SFHA)' : ''}`);
     }
     if (parts.length > 0) soilSummary = parts.join(' | ');
   }
@@ -90,10 +119,16 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
           </Card>
         )}
 
-        {/* Composite Score Gauge */}
-        <div className="flex justify-center">
-          <ExposureScoreGauge compositeScore={compositeScore} />
+        {/* Map + Score side by side on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <ContaminationMap assessment={assessment} />
+          <div className="flex justify-center lg:py-4">
+            <ExposureScoreGauge compositeScore={compositeScore} />
+          </div>
         </div>
+
+        {/* AI Narrative Summary */}
+        <NarrativeSummary narrative={narrative} loading={narrativeLoading} />
 
         {/* Layer Cards */}
         <div className="space-y-4">
@@ -119,6 +154,26 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
             >
               <SoilLayerDetails data={soilData} />
             </LayerCard>
+          )}
+        </div>
+
+        {/* Recommendations */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">
+              Action Recommendations
+            </h2>
+            <p className="text-sm text-text-secondary mt-1">
+              Expert-sourced recommendations based on your data. These are deterministic — not AI-generated.
+            </p>
+          </div>
+          {narrativeLoading ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="h-40 bg-bg-elevated rounded-[var(--radius-lg)]" />
+              <div className="h-32 bg-bg-elevated rounded-[var(--radius-lg)]" />
+            </div>
+          ) : (
+            <RecommendationList recommendations={recommendations} />
           )}
         </div>
 
