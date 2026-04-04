@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/* ===== Bedrock Design System ===== */
+
+:root {
+  /* Backgrounds */
+  --bg-primary: #FAFAF8;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F5F5F0;
+
+  /* Text */
+  --text-primary: #1A1A18;
+  --text-secondary: #6B6B63;
+  --text-tertiary: #9B9B92;
+
+  /* Borders */
+  --border: #E5E5DD;
+  --border-strong: #D0D0C8;
+
+  /* Brand accent — deep forest green */
+  --accent: #2D6A4F;
+  --accent-light: #D8F3DC;
+  --accent-hover: #245A42;
+
+  /* Exposure gradient */
+  --exposure-low: #40916C;
+  --exposure-moderate: #E9C46A;
+  --exposure-elevated: #F4A261;
+  --exposure-high: #E76F51;
+
+  /* Resolution badge colors */
+  --badge-property-bg: #2D6A4F;
+  --badge-property-text: #FFFFFF;
+  --badge-neighborhood-bg: #FDF6E3;
+  --badge-neighborhood-text: #7C6A0A;
+  --badge-area-bg: #DDD8CC;
+  --badge-area-text: #6B6B63;
+
+  /* Fonts */
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0F110F;
+    --bg-surface: #1A1C1A;
+    --bg-elevated: #242624;
+
+    --text-primary: #E8E8E2;
+    --text-secondary: #A0A098;
+    --text-tertiary: #6B6B63;
+
+    --border: #2E302E;
+    --border-strong: #3A3C3A;
+
+    --accent: #52B788;
+    --accent-light: #1B4332;
+    --accent-hover: #74C69D;
+
+    --badge-property-bg: #1B4332;
+    --badge-property-text: #D8F3DC;
+    --badge-neighborhood-bg: #3D3520;
+    --badge-neighborhood-text: #E9C46A;
+    --badge-area-bg: #2E302E;
+    --badge-area-text: #A0A098;
+  }
+}
+
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-hover: var(--accent-hover);
+  --color-exposure-low: var(--exposure-low);
+  --color-exposure-moderate: var(--exposure-moderate);
+  --color-exposure-elevated: var(--exposure-elevated);
+  --color-exposure-high: var(--exposure-high);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Smooth transitions for color scheme changes */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
