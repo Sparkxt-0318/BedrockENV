@@ -59,7 +59,11 @@ export function useRecentSearches(limit = 5) {
   }, [limit]);
 
   useEffect(() => {
-    fetchSearches();
+    // Defer to a microtask so we don't trigger setState synchronously
+    // inside the effect body (fetchSearches starts with setLoading(true)).
+    queueMicrotask(() => {
+      void fetchSearches();
+    });
   }, [fetchSearches]);
 
   const addSearch = useCallback((address: string, assessmentId?: string) => {

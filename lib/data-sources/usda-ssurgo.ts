@@ -113,7 +113,6 @@ export async function fetchSsurgoData(
       (h) => h.ph > 0 || h.organicMatter > 0
     );
 
-    const avgPh = average(surfaceHorizons.map((h) => h.ph).filter((v) => v > 0));
     const avgOm = average(surfaceHorizons.map((h) => h.organicMatter).filter((v) => v > 0));
     const avgCec = average(surfaceHorizons.map((h) => h.cec).filter((v) => v > 0));
     const avgKsat = average(surfaceHorizons.map((h) => h.ksat).filter((v) => v > 0));

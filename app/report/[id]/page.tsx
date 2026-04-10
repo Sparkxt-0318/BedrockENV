@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 interface ReportPageProps {
   params: Promise<{ id: string }>;
@@ -89,12 +90,12 @@ export default async function ReportPage({ params }: ReportPageProps) {
           This report may have expired or does not exist.
           Generate a new report by searching an address.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-flex items-center px-4 py-2 rounded-[var(--radius-md)] bg-accent text-white hover:bg-accent-hover transition-colors text-sm font-medium"
         >
           Search an address
-        </a>
+        </Link>
       </div>
     );
   }

@@ -3,6 +3,7 @@
  * Run with: pnpm test:smoke
  * Requires dev server running on localhost:3000 (or NEXT_PUBLIC_APP_URL).
  */
+export {};
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

@@ -11,7 +11,9 @@ export function useAuth() {
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) {
-      setLoading(false);
+      // Defer to a microtask so we don't call setState synchronously
+      // during the effect body.
+      queueMicrotask(() => setLoading(false));
       return;
     }
 

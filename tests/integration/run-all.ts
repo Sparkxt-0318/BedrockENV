@@ -6,6 +6,7 @@
  *
  * Requires the dev server to be running: pnpm dev
  */
+export {};
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
