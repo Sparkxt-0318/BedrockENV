@@ -1,0 +1,14 @@
+# Gitleaks configuration for Bedrock.
+# Extends the default ruleset with project-specific allowlists.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-wide allowlist"
+paths = [
+  '''\.env\.example$''',
+  '''pnpm-lock\.yaml$''',
+  '''package-lock\.json$''',
+  '''yarn\.lock$''',
+]

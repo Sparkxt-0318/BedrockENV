@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Scan staged changes for secrets before they hit git history.
+# Bypass with --no-verify only if you're absolutely sure.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks not found on PATH. Install it from https://github.com/gitleaks/gitleaks"
+  echo "  macOS:   brew install gitleaks"
+  echo "  Linux:   https://github.com/gitleaks/gitleaks/releases"
+  exit 1
+fi
+
+gitleaks git --pre-commit --staged --redact --no-banner
+status=$?
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "gitleaks detected secrets in staged changes. Commit blocked."
+  echo "If this is a false positive, add a rule to .gitleaks.toml or use git commit --no-verify (not recommended)."
+  exit $status
+fi
