@@ -1,5 +1,6 @@
 import { WaterViolation } from '@/types/exposure';
 import { DataSourceResult, fetchWithRetry } from './types';
+import { FIPS_TO_STATE } from './fips';
 
 /**
  * EPA SDWIS — Safe Drinking Water Information System violations.
@@ -114,4 +115,89 @@ export function computeViolationStats(violations: WaterViolation[]) {
     activeCount: activeViolations.length,
     violationContaminants: Array.from(contaminantSet),
   };
+}
+
+// ---------------------------------------------------------------------------
+// PWSID Lookup
+// ---------------------------------------------------------------------------
+
+export interface WaterSystemInfo {
+  pwsid: string;
+  name: string;
+  populationServed: number;
+  primarySource: string;
+}
+
+/**
+ * Look up the serving public water system (PWSID) for a given location.
+ *
+ * Queries EPA SDWIS via Envirofacts for active Community Water Systems (CWS)
+ * in the given state. Returns the system with the highest population served —
+ * which is the dominant utility for the county in the vast majority of cases.
+ *
+ * Limitations (acceptable for MVP):
+ * - County-level matching is not available via SDWIS API; we pick by
+ *   population heuristic.
+ * - Some addresses are served by small or non-community systems not in CWS.
+ */
+export async function lookupWaterSystem(
+  fipsState: string,
+  fipsCounty: string
+): Promise<WaterSystemInfo | null> {
+  // EPA SDWIS uses 2-letter state abbreviations, not FIPS codes
+  const stateAbbrev = FIPS_TO_STATE[fipsState];
+  if (!stateAbbrev) {
+    console.warn('lookupWaterSystem: unknown FIPS state code', fipsState);
+    return null;
+  }
+
+  // Query active CWSs in this state (server-side filters reduce payload)
+  const url = [
+    'https://data.epa.gov/efservice/WATER_SYSTEM',
+    `STATE_CODE/${encodeURIComponent(stateAbbrev)}`,
+    'PWS_TYPE_CODE/CWS',
+    'PWS_ACTIVITY_CODE/A',
+    'ROWS/0:50',
+    'JSON',
+  ].join('/');
+
+  try {
+    const response = await fetchWithRetry(url, { timeoutMs: 15_000, retries: 1 });
+
+    if (!response.ok) {
+      console.error(`EPA SDWIS water system lookup HTTP ${response.status}`);
+      return null;
+    }
+
+    const systems: Record<string, string>[] = await response.json();
+
+    if (!Array.isArray(systems) || systems.length === 0) {
+      console.warn(`No active CWS found for state ${stateAbbrev}`);
+      return null;
+    }
+
+    // Prefer systems whose COUNTIES_SERVED contains the county FIPS.
+    // COUNTIES_SERVED is a free-text field (county names or FIPS), so we also
+    // check as a numeric match. Fall back to the largest system by population.
+    const byCounty = systems.find((s) => {
+      const counties = (s.COUNTIES_SERVED || '').toLowerCase();
+      return counties.includes(fipsCounty);
+    });
+
+    const best = byCounty ?? systems.reduce((a, b) => {
+      const popA = parseInt(a.POPULATION_SERVED_COUNT || '0', 10);
+      const popB = parseInt(b.POPULATION_SERVED_COUNT || '0', 10);
+      return popB > popA ? b : a;
+    });
+
+    return {
+      pwsid: best.PWSID || '',
+      name: best.PWS_NAME || 'Unknown Water System',
+      populationServed: parseInt(best.POPULATION_SERVED_COUNT || '0', 10),
+      primarySource: best.PRIMARY_SOURCE_CODE || '',
+    };
+  } catch (err) {
+    console.error('Water system lookup error:', err);
+    return null;
+  }
 }

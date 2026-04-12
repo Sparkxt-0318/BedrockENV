@@ -76,6 +76,52 @@ export function checkRateLimit(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Per-minute rate limiter (used by lightweight endpoints like /api/geocode)
+// ---------------------------------------------------------------------------
+
+const perMinuteStore = new Map<string, RateLimitEntry>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of perMinuteStore) {
+    if (entry.resetAt < now) perMinuteStore.delete(key);
+  }
+}, 60_000);
+
+/**
+ * Sliding-window per-minute rate limit, independent of the tier-based limiter.
+ * Intended for endpoints that need a simple IP-level cap regardless of auth state.
+ *
+ * @param identifier  Opaque string key (e.g. hashed IP)
+ * @param maxPerMinute Maximum requests allowed per 60-second window
+ */
+export function checkPerMinuteLimit(
+  identifier: string,
+  maxPerMinute: number
+): { allowed: boolean; remaining: number; resetAt: number } {
+  const windowMs = 60_000;
+  const now = Date.now();
+  const key = `permin:${identifier}`;
+  const entry = perMinuteStore.get(key);
+
+  if (!entry || entry.resetAt < now) {
+    perMinuteStore.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: maxPerMinute - 1, resetAt: now + windowMs };
+  }
+
+  if (entry.count >= maxPerMinute) {
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+  }
+
+  entry.count++;
+  return {
+    allowed: true,
+    remaining: maxPerMinute - entry.count,
+    resetAt: entry.resetAt,
+  };
+}
+
 /**
  * Hash an IP address for anonymous rate limiting.
  * Simple non-reversible hash — not cryptographic, just for bucketing.

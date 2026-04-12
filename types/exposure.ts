@@ -28,6 +28,13 @@ export interface GeocodedAddress {
   fipsCounty: string;
   censusTract: string;
   censusBlockGroup: string;
+  /**
+   * Which geocoder produced this result.
+   * 'census' = Census Bureau (full FIPS + tract data available).
+   * 'mapbox' = Mapbox fallback (fipsCounty, censusTract, censusBlockGroup are empty).
+   * Undefined for legacy cached records that pre-date this field.
+   */
+  source?: 'census' | 'mapbox';
   waterSystemId?: string;
   waterSystemName?: string;
 }

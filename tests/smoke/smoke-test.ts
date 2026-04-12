@@ -50,6 +50,42 @@ const API_CHECKS: ApiCheck[] = [
     expect: 400,
     label: 'Exposure assessment API with empty address (should 400)',
   },
+
+  // ── Geocode endpoint ──────────────────────────────────────────────────────
+  {
+    path: '/api/geocode',
+    method: 'POST',
+    body: { address: '1600 Pennsylvania Ave NW, Washington, DC 20500' },
+    expect: 200,
+    label: 'Geocode API with valid White House address',
+    validateBody: (body) => {
+      const b = body as { data?: { latitude?: number; longitude?: number; source?: string } };
+      if (typeof b.data?.latitude !== 'number') throw new Error('Missing latitude');
+      if (typeof b.data?.longitude !== 'number') throw new Error('Missing longitude');
+      if (!b.data?.source) throw new Error('Missing source field');
+    },
+  },
+  {
+    path: '/api/geocode',
+    method: 'POST',
+    body: { address: 'zzzznotarealaddressxyz 00000' },
+    expect: 404,
+    label: 'Geocode API with nonsense address (should 404)',
+  },
+  {
+    path: '/api/geocode',
+    method: 'POST',
+    body: { address: '' },
+    expect: 400,
+    label: 'Geocode API with empty address (should 400)',
+  },
+  {
+    path: '/api/geocode',
+    method: 'POST',
+    body: {},
+    expect: 400,
+    label: 'Geocode API with missing address field (should 400)',
+  },
 ];
 
 async function runSmokeTests() {
