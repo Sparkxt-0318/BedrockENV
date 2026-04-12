@@ -4,22 +4,38 @@
  *
  * Run with: pnpm test:integration
  *
- * Requires the dev server to be running: pnpm dev
- * If the server is not reachable the runner exits 0 (skip, not fail),
- * so `pnpm qa` succeeds in environments without a running server.
+ * Requires:
+ *  - Dev server running: pnpm dev
+ *  - Outbound HTTPS from Node.js to Census, EPA, etc.
+ *
+ * If either prerequisite is unmet the runner exits 0 (skip, not fail),
+ * so `pnpm qa` succeeds in restricted environments.
  */
 export {};
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // ---------------------------------------------------------------------------
-// Server availability guard
+// Availability guards
 // ---------------------------------------------------------------------------
 
 async function isServerUp(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/`, { signal: AbortSignal.timeout(5_000) });
     return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+/** Check that Node.js fetch can reach an external HTTPS endpoint. */
+async function canReachExternalApis(): Promise<boolean> {
+  try {
+    const res = await fetch(
+      'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=test&benchmark=Public_AR_Current&vintage=Current_Current&format=json',
+      { signal: AbortSignal.timeout(10_000) }
+    );
+    return res.ok || res.status < 500;
   } catch {
     return false;
   }
@@ -111,11 +127,10 @@ async function runAssessmentTests(): Promise<{ passed: number; failed: number; f
     console.log(`Testing: ${test.label} (${test.address})`);
 
     try {
-      const assessRes = await fetch(`${BASE}/api/exposure-assessment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: test.address }),
-      });
+      const encoded = encodeURIComponent(test.address);
+      const assessRes = await fetch(
+        `${BASE}/api/exposure-assessment?address=${encoded}`
+      );
 
       if (!assessRes.ok) {
         const body = await assessRes.text();
@@ -287,6 +302,13 @@ async function runIntegrationTests() {
   if (!(await isServerUp())) {
     console.log('Dev server not reachable at', BASE);
     console.log('Skipping integration tests (start with: pnpm dev).');
+    process.exit(0);
+  }
+
+  // Bail out if Node.js can't reach external APIs (sandboxed environments)
+  if (!(await canReachExternalApis())) {
+    console.log('Cannot reach external APIs (Census, EPA) from Node.js fetch.');
+    console.log('Skipping integration tests — external HTTPS may be blocked.');
     process.exit(0);
   }
 

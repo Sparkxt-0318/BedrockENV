@@ -23,7 +23,7 @@ const ROUTES_TO_CHECK: RouteCheck[] = [
 interface ApiCheck {
   path: string;
   method: string;
-  body: unknown;
+  body?: unknown;
   expect: number;
   label: string;
   validateBody?: (body: unknown) => void;
@@ -31,22 +31,21 @@ interface ApiCheck {
 
 const API_CHECKS: ApiCheck[] = [
   {
-    path: '/api/exposure-assessment',
-    method: 'POST',
-    body: { address: '1600 Pennsylvania Ave NW, Washington, DC 20500' },
+    path: '/api/exposure-assessment?address=' +
+      encodeURIComponent('1600 Pennsylvania Ave NW, Washington, DC 20500'),
+    method: 'GET',
     expect: 200,
     label: 'Exposure assessment API with valid address',
     validateBody: (body) => {
-      const b = body as { compositeScore?: { score?: number } };
-      if (typeof b.compositeScore?.score !== 'number') {
+      const b = body as { data?: { compositeScore?: { score?: number } } };
+      if (typeof b.data?.compositeScore?.score !== 'number') {
         throw new Error('Missing composite score');
       }
     },
   },
   {
-    path: '/api/exposure-assessment',
-    method: 'POST',
-    body: { address: '' },
+    path: '/api/exposure-assessment?address=',
+    method: 'GET',
     expect: 400,
     label: 'Exposure assessment API with empty address (should 400)',
   },
@@ -119,11 +118,12 @@ async function runSmokeTests() {
 
   for (const check of API_CHECKS) {
     try {
-      const res = await fetch(`${BASE}${check.path}`, {
-        method: check.method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(check.body),
-      });
+      const fetchOpts: RequestInit = { method: check.method };
+      if (check.body !== undefined) {
+        fetchOpts.headers = { 'Content-Type': 'application/json' };
+        fetchOpts.body = JSON.stringify(check.body);
+      }
+      const res = await fetch(`${BASE}${check.path}`, fetchOpts);
       if (res.status !== check.expect) {
         throw new Error(`Expected ${check.expect}, got ${res.status}`);
       }
