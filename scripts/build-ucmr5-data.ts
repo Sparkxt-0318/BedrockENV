@@ -7,15 +7,24 @@
  *   https://www.epa.gov/dwucmr/occurrence-data-unregulated-contaminant-monitoring-rule
  *
  * Usage:
- *   pnpm tsx scripts/build-ucmr5-data.ts [path/to/UCMR5_All.txt]
+ *   pnpm tsx scripts/build-ucmr5-data.ts \
+ *     [path/to/UCMR5_All.txt] [--release-date YYYY-MM-DD]
  *
  * If no path is given the script looks for the tab-delimited dump at
  * /tmp/ucmr5_work/UCMR5_All.txt (the location used when bootstrapping).
+ *
+ * The release date is captured from the source ZIP's `Last-Modified` HTTP
+ * header (HEAD request) so the runtime client can warn when the bundle is
+ * more than one EPA quarterly cycle stale. Pass `--release-date` to override
+ * when the HEAD request is unavailable.
  *
  * Output: data/ucmr5-by-pwsid.json
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+const SOURCE_ZIP_URL =
+  'https://www.epa.gov/system/files/other-files/2023-08/ucmr5-occurrence-data.zip';
 
 // Only PFAS analytes are scored — lithium is a separate UCMR 5 contaminant
 // that we do not yet surface.
@@ -73,11 +82,30 @@ interface BundleEntry {
 
 interface Bundle {
   generatedAt: string;
+  /** ISO date (YYYY-MM-DD) the EPA published the source ZIP. */
+  epaReleaseDate: string;
   source: string;
   sourceUrl: string;
   rowCount: number;
   pwsidCount: number;
   systems: Record<string, BundleEntry>;
+}
+
+async function fetchEpaReleaseDate(): Promise<string | null> {
+  try {
+    const res = await fetch(SOURCE_ZIP_URL, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const lm = res.headers.get('last-modified');
+    if (!lm) return null;
+    const d = new Date(lm);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return null;
+  }
 }
 
 // Convert "9/27/2023" → "2023-09-27" for lexical sortability.
@@ -96,7 +124,7 @@ function toPpt(value: number, units: string): number {
   return value * 1000;
 }
 
-function parse(path: string): Bundle {
+function parse(path: string, epaReleaseDate: string): Bundle {
   console.log(`Reading ${path} …`);
   const txt = readFileSync(path, 'utf8');
   const lines = txt.split('\n');
@@ -214,18 +242,28 @@ function parse(path: string): Bundle {
 
   return {
     generatedAt: new Date().toISOString(),
+    epaReleaseDate,
     source: 'EPA UCMR 5 Occurrence Data',
-    sourceUrl: 'https://www.epa.gov/system/files/other-files/2023-08/ucmr5-occurrence-data.zip',
+    sourceUrl: SOURCE_ZIP_URL,
     rowCount: detectedRows,
     pwsidCount: pwsMap.size,
     systems,
   };
 }
 
-function main() {
+async function main() {
+  const args = process.argv.slice(2);
+  const releaseFlagIdx = args.indexOf('--release-date');
+  const explicitReleaseDate =
+    releaseFlagIdx !== -1 ? args[releaseFlagIdx + 1] : undefined;
+  const positional = args.filter((a, i) => {
+    if (a === '--release-date') return false;
+    if (i > 0 && args[i - 1] === '--release-date') return false;
+    return true;
+  });
+
   const defaultPath = '/tmp/ucmr5_work/UCMR5_All.txt';
-  const arg = process.argv[2] ?? defaultPath;
-  const path = resolve(arg);
+  const path = resolve(positional[0] ?? defaultPath);
   if (!existsSync(path)) {
     console.error(`UCMR5 source file not found: ${path}`);
     console.error(
@@ -235,10 +273,31 @@ function main() {
     process.exit(1);
   }
 
-  const bundle = parse(path);
+  let epaReleaseDate = explicitReleaseDate ?? '';
+  if (!epaReleaseDate) {
+    console.log(`HEAD ${SOURCE_ZIP_URL} for release date …`);
+    const fetched = await fetchEpaReleaseDate();
+    if (fetched) {
+      epaReleaseDate = fetched;
+      console.log(`EPA release date (from Last-Modified): ${epaReleaseDate}`);
+    } else {
+      epaReleaseDate = new Date().toISOString().slice(0, 10);
+      console.warn(
+        `Could not read EPA Last-Modified header. Falling back to today's date (${epaReleaseDate}).`
+      );
+      console.warn('Pass --release-date YYYY-MM-DD to override explicitly.');
+    }
+  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(epaReleaseDate)) {
+    console.error(`--release-date must be YYYY-MM-DD, got: ${epaReleaseDate}`);
+    process.exit(1);
+  }
+
+  const bundle = parse(path, epaReleaseDate);
   const out = resolve(process.cwd(), 'data/ucmr5-by-pwsid.json');
   writeFileSync(out, JSON.stringify(bundle));
-  console.log(`Wrote ${out} (${bundle.pwsidCount} systems, ${bundle.rowCount} detections).`);
+  console.log(
+    `Wrote ${out} (${bundle.pwsidCount} systems, ${bundle.rowCount} detections, EPA release ${bundle.epaReleaseDate}).`
+  );
 }
 
 main();

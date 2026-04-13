@@ -47,6 +47,8 @@ export interface UcmrBundleEntry {
 
 export interface UcmrBundle {
   generatedAt: string;
+  /** ISO date (YYYY-MM-DD) of the source EPA UCMR 5 release. */
+  epaReleaseDate?: string;
   source: string;
   sourceUrl: string;
   rowCount: number;
@@ -54,12 +56,53 @@ export interface UcmrBundle {
   systems: Record<string, UcmrBundleEntry>;
 }
 
+// EPA publishes UCMR 5 data on a quarterly cycle. We warn one full cycle
+// after the last release so an outdated bundle does not silently underreport.
+export const UCMR5_STALE_DAYS = 100;
+
 // ---------------------------------------------------------------------------
 // Lazy bundle loader (server-side only — Node fs).
 // ---------------------------------------------------------------------------
 
 let cachedBundle: UcmrBundle | null = null;
 let loadError: string | null = null;
+let stalenessWarned = false;
+
+/**
+ * Compute how stale the bundle is (in whole days) relative to the EPA
+ * release date. Returns null when no release date is recorded.
+ * Exported for testing.
+ */
+export function ucmr5BundleAgeDays(
+  bundle: Pick<UcmrBundle, 'epaReleaseDate'> | null,
+  now: Date = new Date()
+): number | null {
+  if (!bundle?.epaReleaseDate) return null;
+  const released = new Date(`${bundle.epaReleaseDate}T00:00:00Z`);
+  if (Number.isNaN(released.getTime())) return null;
+  const diffMs = now.getTime() - released.getTime();
+  return Math.floor(diffMs / 86_400_000);
+}
+
+function warnIfStale(bundle: UcmrBundle): void {
+  if (stalenessWarned) return;
+  const age = ucmr5BundleAgeDays(bundle);
+  if (age === null) {
+    console.warn(
+      '[ucmr5] bundle has no epaReleaseDate; cannot check staleness. ' +
+        'Rebuild with scripts/build-ucmr5-data.ts to record one.'
+    );
+    stalenessWarned = true;
+    return;
+  }
+  if (age > UCMR5_STALE_DAYS) {
+    console.warn(
+      `[ucmr5] data/ucmr5-by-pwsid.json is ${age} days old (EPA release ${bundle.epaReleaseDate}). ` +
+        `EPA publishes UCMR 5 quarterly — rebuild with \`pnpm tsx scripts/build-ucmr5-data.ts --release-date YYYY-MM-DD\`.`
+    );
+    stalenessWarned = true;
+  }
+}
 
 function resolveBundlePath(): string {
   // Resolved relative to process.cwd() so it works under `next dev`, `next
@@ -70,7 +113,10 @@ function resolveBundlePath(): string {
 }
 
 function loadBundle(): UcmrBundle | null {
-  if (cachedBundle) return cachedBundle;
+  if (cachedBundle) {
+    warnIfStale(cachedBundle);
+    return cachedBundle;
+  }
   if (loadError) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -82,6 +128,7 @@ function loadBundle(): UcmrBundle | null {
       return null;
     }
     cachedBundle = parsed;
+    warnIfStale(cachedBundle);
     return cachedBundle;
   } catch (err) {
     loadError = err instanceof Error ? err.message : 'Failed to load UCMR 5 bundle';
@@ -93,12 +140,14 @@ function loadBundle(): UcmrBundle | null {
 export function __setUcmr5BundleForTests(bundle: UcmrBundle | null): void {
   cachedBundle = bundle;
   loadError = bundle ? null : 'test: bundle unset';
+  stalenessWarned = false;
 }
 
 /** Test-only hook: reset both the cache and the error memo. */
 export function __resetUcmr5BundleCache(): void {
   cachedBundle = null;
   loadError = null;
+  stalenessWarned = false;
 }
 
 // ---------------------------------------------------------------------------
