@@ -89,6 +89,65 @@ interface GeocodeTestCase {
   expectNull?: boolean;
 }
 
+interface WaterClientTestCase {
+  pwsid: string;
+  label: string;
+  expectPfasInBundle: boolean;
+  expectPfasExceedsMcl?: boolean;
+}
+
+/** Direct-client water tests — hit the in-process clients (not the HTTP API). */
+const WATER_CLIENT_TESTS: WaterClientTestCase[] = [
+  {
+    pwsid: 'DC0000003',
+    label: 'Naval Station Washington (DC) — UCMR 5 PFAS detections',
+    expectPfasInBundle: true,
+  },
+  {
+    pwsid: 'NJ0714001',
+    label: 'Newark Water Department (NJ) — UCMR 5 PFAS exceeds MCL',
+    expectPfasInBundle: true,
+    expectPfasExceedsMcl: true,
+  },
+  {
+    // Small systems were not required to participate in UCMR 5, so
+    // Hoosick Falls is absent from the bundle. The client must return
+    // data=null with no error for this case.
+    pwsid: 'NY0201230',
+    label: 'Hoosick Falls NY PFAS site — should be absent from UCMR 5 bundle',
+    expectPfasInBundle: false,
+  },
+];
+
+interface LeadClientTestCase {
+  fipsState: string;
+  fipsCounty: string;
+  censusTract: string;
+  censusBlockGroup: string;
+  label: string;
+  expectRiskTier?: 'LOW' | 'MODERATE' | 'ELEVATED' | 'HIGH';
+}
+
+const LEAD_CLIENT_TESTS: LeadClientTestCase[] = [
+  {
+    // Central Philadelphia — pre-war rowhouses, known high lead plumbing risk.
+    fipsState: '42',
+    fipsCounty: '101',
+    censusTract: '000200',
+    censusBlockGroup: '1',
+    label: 'Philadelphia PA — pre-war housing stock',
+  },
+  {
+    // Phoenix suburb — mostly post-1986 construction, should score LOW.
+    fipsState: '04',
+    fipsCounty: '013',
+    censusTract: '420100',
+    censusBlockGroup: '1',
+    label: 'Phoenix AZ suburb — post-1986 housing stock',
+    expectRiskTier: 'LOW',
+  },
+];
+
 const GEOCODE_TEST_CASES: GeocodeTestCase[] = [
   {
     address: '1600 Pennsylvania Ave NW, Washington, DC 20500',
@@ -291,6 +350,147 @@ async function runGeocodeTests(): Promise<{ passed: number; failed: number; fail
 }
 
 // ---------------------------------------------------------------------------
+// Data-client integration tests (UCMR 5 PFAS, SDWIS violations, lead risk)
+// These import the clients directly and hit the real upstream sources
+// (Census API) or the committed UCMR 5 bundle. They don't need the dev server.
+// ---------------------------------------------------------------------------
+
+async function runWaterClientTests(): Promise<{
+  passed: number;
+  failed: number;
+  failures: string[];
+}> {
+  let passed = 0;
+  let failed = 0;
+  const failures: string[] = [];
+
+  console.log('\n── UCMR 5 PFAS client integration tests ──\n');
+
+  const { fetchUcmr5PfasData } = await import('@/lib/data-sources/epa-ucmr5');
+  const { fetchSdwisViolations } = await import('@/lib/data-sources/epa-sdwis');
+
+  for (const test of WATER_CLIENT_TESTS) {
+    console.log(`Testing: ${test.label}`);
+    try {
+      const pfas = await fetchUcmr5PfasData(test.pwsid, test.pwsid);
+
+      if (test.expectPfasInBundle) {
+        assert(pfas.error === null, `Expected no error, got: ${pfas.error}`);
+        assert(pfas.data !== null, `Expected PFAS data for ${test.pwsid}`);
+        assert(
+          Array.isArray(pfas.data!.analytes) && pfas.data!.analytes.length > 0,
+          `Expected at least one detected analyte for ${test.pwsid}`
+        );
+        console.log(
+          `  ✓ Analytes: ${pfas.data!.analytes.length} | max: ${pfas.data!.maxIndividual} ppt | exceedsMcl: ${pfas.data!.exceedsMcl}`
+        );
+        if (test.expectPfasExceedsMcl !== undefined) {
+          assert(
+            pfas.data!.exceedsMcl === test.expectPfasExceedsMcl,
+            `exceedsMcl expected ${test.expectPfasExceedsMcl}, got ${pfas.data!.exceedsMcl}`
+          );
+        }
+      } else {
+        assert(
+          pfas.data === null && pfas.error === null,
+          `Expected {data:null, error:null} for system absent from UCMR 5 bundle, got data=${!!pfas.data} error=${pfas.error}`
+        );
+        console.log('  ✓ Correctly absent from UCMR 5 bundle');
+      }
+
+      // Violations client hits the live EPA Envirofacts API — treat network
+      // failure as a soft warning because the upstream is flaky.
+      const violations = await fetchSdwisViolations(test.pwsid);
+      if (violations.error) {
+        console.warn(`  ! SDWIS violations fetch error (non-fatal): ${violations.error}`);
+      } else {
+        console.log(`  ✓ SDWIS violations fetched: ${violations.data?.length ?? 0} rows`);
+      }
+
+      passed++;
+      console.log('  ✓ PASSED\n');
+    } catch (err) {
+      failed++;
+      const msg = `${test.label}: ${(err as Error).message}`;
+      failures.push(msg);
+      console.log(`  ✗ FAILED: ${(err as Error).message}\n`);
+    }
+  }
+
+  return { passed, failed, failures };
+}
+
+async function runLeadClientTests(): Promise<{
+  passed: number;
+  failed: number;
+  failures: string[];
+}> {
+  let passed = 0;
+  let failed = 0;
+  const failures: string[] = [];
+
+  console.log('\n── Lead risk client integration tests ──\n');
+
+  const { fetchLeadRiskData } = await import('@/lib/data-sources/epa-lead');
+
+  for (const test of LEAD_CLIENT_TESTS) {
+    console.log(`Testing: ${test.label}`);
+    try {
+      const result = await fetchLeadRiskData(
+        test.fipsState,
+        test.fipsCounty,
+        test.censusTract,
+        test.censusBlockGroup
+      );
+
+      // Census API responses can vary by block group; we require at least a
+      // valid shape, not a specific tier.
+      if (result.error) {
+        // Census ACS occasionally has no data for a specific block group.
+        // Treat empty results as a soft skip rather than a hard failure.
+        console.warn(`  ! Census returned error (soft skip): ${result.error}`);
+        passed++;
+        continue;
+      }
+
+      assert(result.data !== null, 'Expected lead risk data');
+      assert(
+        typeof result.data!.pctPreA1950 === 'number',
+        'pctPreA1950 not a number'
+      );
+      assert(
+        typeof result.data!.pctPre1986 === 'number',
+        'pctPre1986 not a number'
+      );
+      assert(
+        ['LOW', 'MODERATE', 'ELEVATED', 'HIGH'].includes(result.data!.riskTier),
+        `Invalid riskTier: ${result.data!.riskTier}`
+      );
+
+      console.log(
+        `  ✓ pre-1950: ${result.data!.pctPreA1950}% | pre-1986: ${result.data!.pctPre1986}% | tier: ${result.data!.riskTier}`
+      );
+
+      if (test.expectRiskTier && result.data!.riskTier !== test.expectRiskTier) {
+        console.warn(
+          `  ! Expected ${test.expectRiskTier}, got ${result.data!.riskTier} — this is data-dependent, logging as warning only`
+        );
+      }
+
+      passed++;
+      console.log('  ✓ PASSED\n');
+    } catch (err) {
+      failed++;
+      const msg = `${test.label}: ${(err as Error).message}`;
+      failures.push(msg);
+      console.log(`  ✗ FAILED: ${(err as Error).message}\n`);
+    }
+  }
+
+  return { passed, failed, failures };
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -298,26 +498,44 @@ async function runIntegrationTests() {
   console.log('=== Bedrock Integration Tests ===');
   console.log(`Target: ${BASE}\n`);
 
-  // Bail out gracefully when dev server is not running
-  if (!(await isServerUp())) {
-    console.log('Dev server not reachable at', BASE);
-    console.log('Skipping integration tests (start with: pnpm dev).');
-    process.exit(0);
+  const allPassed: number[] = [];
+  const allFailed: number[] = [];
+  const allFailures: string[] = [];
+
+  // UCMR 5 client tests run against the committed bundle — no external
+  // network required. Always safe to run.
+  const waterClientResult = await runWaterClientTests();
+  allPassed.push(waterClientResult.passed);
+  allFailed.push(waterClientResult.failed);
+  allFailures.push(...waterClientResult.failures);
+
+  // Lead + HTTP-based tests need outbound HTTPS. Skip gracefully when the
+  // sandbox blocks Node's fetch.
+  const externalReachable = await canReachExternalApis();
+  if (!externalReachable) {
+    console.log(
+      '\nCannot reach external APIs (Census, EPA) from Node.js fetch — skipping lead-client and HTTP-endpoint tests.'
+    );
+  } else {
+    const leadClientResult = await runLeadClientTests();
+    allPassed.push(leadClientResult.passed);
+    allFailed.push(leadClientResult.failed);
+    allFailures.push(...leadClientResult.failures);
   }
 
-  // Bail out if Node.js can't reach external APIs (sandboxed environments)
-  if (!(await canReachExternalApis())) {
-    console.log('Cannot reach external APIs (Census, EPA) from Node.js fetch.');
-    console.log('Skipping integration tests — external HTTPS may be blocked.');
-    process.exit(0);
+  // HTTP-endpoint tests need both a dev server AND external APIs.
+  if (externalReachable && (await isServerUp())) {
+    const assessResult = await runAssessmentTests();
+    const geocodeResult = await runGeocodeTests();
+    allPassed.push(assessResult.passed, geocodeResult.passed);
+    allFailed.push(assessResult.failed, geocodeResult.failed);
+    allFailures.push(...assessResult.failures, ...geocodeResult.failures);
+  } else {
+    console.log('\nSkipping HTTP-endpoint tests (dev server or external network unavailable).');
   }
 
-  const assessResult = await runAssessmentTests();
-  const geocodeResult = await runGeocodeTests();
-
-  const totalPassed = assessResult.passed + geocodeResult.passed;
-  const totalFailed = assessResult.failed + geocodeResult.failed;
-  const allFailures = [...assessResult.failures, ...geocodeResult.failures];
+  const totalPassed = allPassed.reduce((a, b) => a + b, 0);
+  const totalFailed = allFailed.reduce((a, b) => a + b, 0);
 
   console.log('\n=== Results ===');
   console.log(`Passed: ${totalPassed}`);

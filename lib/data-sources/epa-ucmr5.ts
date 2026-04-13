@@ -1,151 +1,168 @@
 import { PfasData, PfasAnalyte } from '@/types/exposure';
-import { DataSourceResult, fetchWithRetry } from './types';
+import { DataSourceResult } from './types';
 
 /**
- * EPA UCMR 5 — PFAS in drinking water.
+ * EPA UCMR 5 — PFAS occurrence in public drinking-water systems.
  *
- * Queries EPA Envirofacts for UCMR 5 analytical results for a given PWSID.
- * Returns all 29 PFAS analytes tested and whether any exceed EPA MCLs.
+ * UCMR 5 results are NOT exposed through the Envirofacts REST API. EPA only
+ * publishes them as quarterly ZIP bundles on
+ *   https://www.epa.gov/dwucmr/occurrence-data-unregulated-contaminant-monitoring-rule
+ *
+ * We preprocess the latest bundle (UCMR5_All.txt, ~300 MB, ~1.9 M rows) into
+ * a compact PWSID → PFAS-analytes lookup file checked into the repo at
+ * `data/ucmr5-by-pwsid.json`. See `scripts/build-ucmr5-data.ts`.
+ *
+ * The JSON bundle keeps max concentrations per analyte (ppt), the first and
+ * last detection dates, and a precomputed `exceedsMcl` flag. The client reads
+ * the bundle once per process and then answers queries in O(1).
  *
  * Data resolution: AREA-LEVEL (water system, not tap-level)
- * Cache: 90 days (updates quarterly)
+ * Cache: baked into build — rebuilt whenever EPA publishes a new quarterly
+ *        release (currently Jan 2026).
  */
 
-// EPA MCLs established April 2024 (89 FR 32532)
-const PFAS_MCLS: Record<string, number> = {
-  PFOS: 4,      // ppt
-  PFOA: 4,      // ppt
-  PFHxS: 10,    // ppt
-  PFNA: 10,     // ppt
-  'HFPO-DA': 10, // GenX
-  PFBS: 2000,   // Health advisory (no enforceable MCL yet, but listed)
+// EPA final PFAS MCLs (April 2024, 89 FR 32532) in ppt (ng/L). These match
+// the values precomputed into the bundle by scripts/build-ucmr5-data.ts —
+// re-exported here so callers (e.g. the water scorer) can reason about them.
+export const PFAS_MCLS: Record<string, number> = {
+  PFOA: 4,
+  PFOS: 4,
+  PFHxS: 10,
+  PFNA: 10,
+  'HFPO-DA': 10,
 };
 
-// UCMR 5 contaminant codes to readable names
-const UCMR5_CONTAMINANT_MAP: Record<string, string> = {
-  '7550': 'PFOS',
-  '7551': 'PFOA',
-  '7552': 'PFHxS',
-  '7553': 'PFNA',
-  '7554': 'HFPO-DA',
-  '7555': 'PFBS',
-  '7556': 'ADONA',
-  '7557': '9Cl-PF3ONS',
-  '7558': '11Cl-PF3OUdS',
-  '7559': 'NEtFOSAA',
-  '7560': 'NMeFOSAA',
-  '7561': 'PFDA',
-  '7562': 'PFDoA',
-  '7563': 'PFDS',
-  '7564': 'PFHpA',
-  '7565': 'PFHxA',
-  '7566': 'PFMBA',
-  '7567': 'PFMPA',
-  '7568': 'PFO2HxA',
-  '7569': 'PFO3OA',
-  '7570': 'PFO4DA',
-  '7571': 'PFO5DoA',
-  '7572': 'PFTA',
-  '7573': 'PFTrDA',
-  '7574': 'PFUnA',
-  '7575': 'PEPA',
-  '7576': '4:2 FTS',
-  '7577': '6:2 FTS',
-  '7578': '8:2 FTS',
-};
+// Bundle entry shape (mirrors scripts/build-ucmr5-data.ts).
+export interface UcmrBundleEntry {
+  systemName: string;
+  state: string;
+  size: string;
+  analytes: PfasAnalyte[];
+  maxIndividual: number;
+  totalPfas: number;
+  exceedsMcl: boolean;
+  firstSampleDate: string;
+  lastSampleDate: string;
+}
+
+export interface UcmrBundle {
+  generatedAt: string;
+  source: string;
+  sourceUrl: string;
+  rowCount: number;
+  pwsidCount: number;
+  systems: Record<string, UcmrBundleEntry>;
+}
+
+// ---------------------------------------------------------------------------
+// Lazy bundle loader (server-side only — Node fs).
+// ---------------------------------------------------------------------------
+
+let cachedBundle: UcmrBundle | null = null;
+let loadError: string | null = null;
+
+function resolveBundlePath(): string {
+  // Resolved relative to process.cwd() so it works under `next dev`, `next
+  // start`, and standalone tsx runs.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('node:path') as typeof import('node:path');
+  return path.resolve(process.cwd(), 'data/ucmr5-by-pwsid.json');
+}
+
+function loadBundle(): UcmrBundle | null {
+  if (cachedBundle) return cachedBundle;
+  if (loadError) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('node:fs') as typeof import('node:fs');
+    const raw = fs.readFileSync(resolveBundlePath(), 'utf8');
+    const parsed = JSON.parse(raw) as UcmrBundle;
+    if (!parsed || typeof parsed !== 'object' || !parsed.systems) {
+      loadError = 'UCMR 5 bundle is malformed';
+      return null;
+    }
+    cachedBundle = parsed;
+    return cachedBundle;
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : 'Failed to load UCMR 5 bundle';
+    return null;
+  }
+}
+
+/** Test-only hook: override the cached bundle without touching the filesystem. */
+export function __setUcmr5BundleForTests(bundle: UcmrBundle | null): void {
+  cachedBundle = bundle;
+  loadError = bundle ? null : 'test: bundle unset';
+}
+
+/** Test-only hook: reset both the cache and the error memo. */
+export function __resetUcmr5BundleCache(): void {
+  cachedBundle = null;
+  loadError = null;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 export async function fetchUcmr5PfasData(
   pwsid: string,
   systemName: string
 ): Promise<DataSourceResult<PfasData>> {
-  const url = `https://data.epa.gov/efservice/UCM_RESULTS/PWSID/${pwsid}/JSON`;
+  const fetchedAt = new Date().toISOString();
 
-  try {
-    const response = await fetchWithRetry(url, { timeoutMs: 20_000 });
-
-    if (!response.ok) {
-      return {
-        data: null,
-        error: `EPA UCMR 5 API returned HTTP ${response.status}`,
-        source: 'EPA UCMR 5',
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-      };
-    }
-
-    const results = await response.json();
-
-    if (!Array.isArray(results) || results.length === 0) {
-      return {
-        data: null,
-        error: null, // Not an error — system simply wasn't in UCMR 5
-        source: 'EPA UCMR 5',
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-      };
-    }
-
-    // Parse analyte results
-    const analytes: PfasAnalyte[] = [];
-    let maxIndividual = 0;
-    let totalPfas = 0;
-    let exceedsMcl = false;
-    let testingPeriod = '';
-
-    for (const result of results) {
-      const contaminantCode = String(result.CONTAMINANT_CODE || '');
-      const analyteName =
-        UCMR5_CONTAMINANT_MAP[contaminantCode] || result.CONTAMINANT || contaminantCode;
-      const concentration = parseFloat(result.ANALYTICAL_RESULT_VALUE || '0');
-
-      // Skip non-detects or invalid values
-      if (isNaN(concentration) || concentration <= 0) continue;
-
-      const mcl = PFAS_MCLS[analyteName] ?? Infinity;
-      const exceeds = concentration > mcl;
-
-      if (exceeds) exceedsMcl = true;
-      if (concentration > maxIndividual) maxIndividual = concentration;
-      totalPfas += concentration;
-
-      analytes.push({
-        name: analyteName,
-        concentration,
-        mcl: mcl === Infinity ? 0 : mcl,
-        exceedsMcl: exceeds,
-      });
-
-      // Track testing period from the first result with a date
-      if (!testingPeriod && result.SAMPLE_COLLECTION_DATE) {
-        testingPeriod = result.SAMPLE_COLLECTION_DATE;
-      }
-    }
-
-    // Sort by concentration descending
-    analytes.sort((a, b) => b.concentration - a.concentration);
-
-    return {
-      data: {
-        systemId: pwsid,
-        systemName,
-        analytes,
-        maxIndividual,
-        totalPfas,
-        exceedsMcl,
-        testingPeriod: testingPeriod || 'UCMR 5 testing period (2023-2025)',
-      },
-      error: null,
-      source: 'EPA UCMR 5',
-      cached: false,
-      fetchedAt: new Date().toISOString(),
-    };
-  } catch (err) {
+  if (!pwsid) {
     return {
       data: null,
-      error: err instanceof Error ? err.message : 'Unknown error fetching UCMR 5 data',
+      error: 'PWSID is required',
       source: 'EPA UCMR 5',
       cached: false,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
     };
   }
+
+  const bundle = loadBundle();
+  if (!bundle) {
+    return {
+      data: null,
+      error: loadError ?? 'UCMR 5 bundle is not available',
+      source: 'EPA UCMR 5',
+      cached: false,
+      fetchedAt,
+    };
+  }
+
+  const entry = bundle.systems[pwsid];
+  if (!entry) {
+    // Not an error — plenty of small systems were never required to test
+    // under UCMR 5.
+    return {
+      data: null,
+      error: null,
+      source: `EPA UCMR 5 (${bundle.source})`,
+      cached: true,
+      fetchedAt,
+    };
+  }
+
+  const data: PfasData = {
+    systemId: pwsid,
+    systemName: entry.systemName || systemName,
+    analytes: entry.analytes,
+    maxIndividual: entry.maxIndividual,
+    totalPfas: entry.totalPfas,
+    exceedsMcl: entry.exceedsMcl,
+    testingPeriod:
+      entry.firstSampleDate && entry.lastSampleDate
+        ? `${entry.firstSampleDate} – ${entry.lastSampleDate}`
+        : 'UCMR 5 (2023–2025)',
+  };
+
+  return {
+    data,
+    error: null,
+    source: `EPA UCMR 5 (${bundle.source})`,
+    cached: true,
+    fetchedAt,
+  };
 }
