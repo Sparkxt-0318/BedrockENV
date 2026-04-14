@@ -111,6 +111,9 @@ describe('Recommendation Engine', () => {
             zoneDescription: '1% annual chance flood',
             isSpecialFloodHazardArea: true,
             riskLevel: 'HIGH',
+            staticBfe: 12.5,
+            features: [],
+            coverage: 'mapped',
           },
         },
       })
@@ -232,6 +235,7 @@ describe('Recommendation Engine', () => {
             drainageClass: 'Well drained',
             cec: 15,
             ksat: 10,
+            coverage: 'mapped',
           },
           brownfields: [],
           floodZone: {
@@ -239,6 +243,9 @@ describe('Recommendation Engine', () => {
             zoneDescription: 'Minimal',
             isSpecialFloodHazardArea: false,
             riskLevel: 'LOW',
+            staticBfe: null,
+            features: [],
+            coverage: 'mapped',
           },
           moistureData: null,
         },

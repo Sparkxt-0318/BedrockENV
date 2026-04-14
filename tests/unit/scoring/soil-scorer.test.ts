@@ -13,6 +13,7 @@ function buildSsurgo(overrides: Partial<SsurgoData> = {}): SsurgoData {
     drainageClass: 'Well drained',
     cec: 15,
     ksat: 10,
+    coverage: 'mapped',
     ...overrides,
   };
 }
@@ -25,6 +26,9 @@ function buildFloodZone(
     zoneDescription: 'Minimal flood hazard',
     isSpecialFloodHazardArea: false,
     riskLevel: 'LOW',
+    staticBfe: null,
+    features: [],
+    coverage: 'mapped',
     ...overrides,
   };
 }

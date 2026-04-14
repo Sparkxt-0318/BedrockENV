@@ -107,6 +107,14 @@ export interface SsurgoData {
   drainageClass: string;
   cec: number; // cation exchange capacity
   ksat: number; // saturated hydraulic conductivity
+  /**
+   * Coverage classification:
+   *  - 'mapped'   — survey returned usable soil chemistry
+   *  - 'partial'  — mapunit intersected but chemistry fields mostly null
+   *                (e.g. 'Urban land' or 'Water' component types)
+   *  - 'unmapped' — point falls outside any SSURGO survey polygon
+   */
+  coverage: 'mapped' | 'partial' | 'unmapped';
 }
 
 export interface SoilComponent {
@@ -138,15 +146,53 @@ export interface BrownfieldSite {
 }
 
 export interface FloodZoneData {
+  /** Highest-hazard zone among all intersecting features (the "headline"). */
   zone: string;
   zoneDescription: string;
   isSpecialFloodHazardArea: boolean;
+  riskLevel: RiskTier;
+  /** Base flood elevation in feet (NAVD88); null when not established. */
+  staticBfe: number | null;
+  /**
+   * Every flood-hazard feature that intersects the query point. A single
+   * parcel can sit in overlapping zones (e.g. coastal VE + AE) and the
+   * scorer/recommendation engine may need the full list.
+   */
+  features: FloodZoneFeature[];
+  /**
+   * 'mapped'   — at least one NFHL feature intersected the point
+   * 'unmapped' — no feature at this location (county not digitized yet
+   *              or outside NFHL coverage). This is distinct from a
+   *              genuine Zone X (minimal flood hazard).
+   */
+  coverage: 'mapped' | 'unmapped';
+}
+
+export interface FloodZoneFeature {
+  /** Raw FLD_ZONE from NFHL (e.g. "X", "AE", "VE"). */
+  zone: string;
+  subtype: string | null;
+  sfha: boolean;
+  staticBfe: number | null;
+  description: string;
   riskLevel: RiskTier;
 }
 
 export interface SoilMoistureData {
   surfaceMoisture: number;
   trend: 'increasing' | 'decreasing' | 'stable';
+  /** Mean annual precipitation in mm (sum of monthly means × 12). */
   precipitationAvgMm: number;
+  /** Mean annual temperature in °C (averaged across the requested window). */
+  meanAnnualTempC: number;
+  /**
+   * De Martonne aridity index = P / (T + 10). Diagnostic only — POWER is a
+   * ~50 km reanalysis cell so this is not a property-level signal.
+   * < 10 arid, 10–20 semi-arid, 20–24 dry subhumid, 24–28 humid, > 28 very humid.
+   * null when the temperature floor would produce a non-physical divisor.
+   */
+  aridityIndex: number | null;
+  /** Fraction of requested months that came back as fill values (-999). */
+  fillFraction: number;
   resolution: DataResolution;
 }

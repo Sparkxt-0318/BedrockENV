@@ -3,168 +3,198 @@ import { DataSourceResult, fetchWithRetry } from './types';
 import { haversineDistance, cardinalDirection } from '@/lib/utils';
 
 /**
- * EPA Brownfields — Contaminated land sites within a search radius.
+ * EPA Brownfields — contaminated / formerly contaminated land within a
+ * search radius of a query point.
  *
- * Queries EPA Envirofacts for brownfield assessment sites near a given lat/lng.
+ * Queries the EPA Envirofacts `FRS_PROGRAM_FACILITY` view filtered to the
+ * BROWNFIELDS program acronym, within a lat/lon bounding box, then filters
+ * to the exact haversine radius and sorts nearest-first.
  *
- * Data resolution: PROPERTY-LEVEL (distance computed from exact coordinates)
- * Cache: 30 days
+ * Bounding-box math: a degree of latitude ≈ 69 miles. A degree of longitude
+ * is `69 * cos(lat)` miles, so we shrink the longitude span by `cos(lat)` to
+ * avoid pulling in facilities that are far east/west of a high-latitude
+ * query point. `cos` is clamped to 0.05 to keep the math finite near the
+ * poles — brownfield programs are effectively US-only so this is defensive.
+ *
+ * Null/error convention:
+ *  - Successful query with zero hits → `{ data: [], error: null }`.
+ *  - Transport / HTTP / JSON failure → `{ data: null, error: <msg> }`.
+ *
+ * Data resolution: PROPERTY-LEVEL (distance from exact coordinates).
+ * Cache: 30 days.
  */
 
-const SEARCH_RADIUS_MILES = 2;
+export const DEFAULT_BROWNFIELD_RADIUS_MILES = 2;
+export const MAX_BROWNFIELD_RESULTS = 50;
+
+interface FrsRow {
+  PRIMARY_NAME?: string;
+  REGISTRY_ID?: string;
+  PGM_SYS_ID?: string;
+  PGM_SYS_ACRNM?: string;
+  LATITUDE83?: string | number;
+  LONGITUDE83?: string | number;
+  INTEREST_TYPES?: string;
+  FEDERAL_AGENCY_NAME?: string;
+}
 
 export async function fetchBrownfieldSites(
   latitude: number,
-  longitude: number
+  longitude: number,
+  radiusMiles: number = DEFAULT_BROWNFIELD_RADIUS_MILES
 ): Promise<DataSourceResult<BrownfieldSite[]>> {
-  // EPA FRS (Facility Registry Service) is more reliable for proximity searches.
-  // Query brownfield program facilities within a bounding box.
-  const degreeOffset = SEARCH_RADIUS_MILES / 69; // rough degrees per mile
-  const minLat = latitude - degreeOffset;
-  const maxLat = latitude + degreeOffset;
-  const minLng = longitude - degreeOffset;
-  const maxLng = longitude + degreeOffset;
+  const fetchedAt = new Date().toISOString();
 
-  const url = `https://data.epa.gov/efservice/FRS_PROGRAM_FACILITY/LATITUDE83/${minLat.toFixed(4)}/${maxLat.toFixed(4)}/LONGITUDE83/${minLng.toFixed(4)}/${maxLng.toFixed(4)}/PGM_SYS_ACRNM/BROWNFIELDS/ROWS/0:50/JSON`;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return {
+      data: null,
+      error: 'latitude/longitude must be finite numbers',
+      source: 'EPA Brownfields (FRS)',
+      cached: false,
+      fetchedAt,
+    };
+  }
+  if (!Number.isFinite(radiusMiles) || radiusMiles <= 0) {
+    return {
+      data: null,
+      error: 'radiusMiles must be a positive number',
+      source: 'EPA Brownfields (FRS)',
+      cached: false,
+      fetchedAt,
+    };
+  }
+
+  const { minLat, maxLat, minLon, maxLon } = boundingBox(
+    latitude,
+    longitude,
+    radiusMiles
+  );
+
+  const url =
+    `https://data.epa.gov/efservice/FRS_PROGRAM_FACILITY/` +
+    `LATITUDE83/${minLat.toFixed(4)}/${maxLat.toFixed(4)}/` +
+    `LONGITUDE83/${minLon.toFixed(4)}/${maxLon.toFixed(4)}/` +
+    `PGM_SYS_ACRNM/BROWNFIELDS/ROWS/0:${MAX_BROWNFIELD_RESULTS}/JSON`;
 
   try {
     const response = await fetchWithRetry(url, { timeoutMs: 20_000 });
 
     if (!response.ok) {
-      // Try the alternative brownfields endpoint
-      return await fetchBrownfieldsAlternate(latitude, longitude);
+      return {
+        data: null,
+        error: `EPA Envirofacts returned HTTP ${response.status}`,
+        source: 'EPA Brownfields (FRS)',
+        cached: false,
+        fetchedAt,
+      };
     }
 
-    const results = await response.json();
-
-    if (!Array.isArray(results) || results.length === 0) {
-      // Try alternate endpoint
-      return await fetchBrownfieldsAlternate(latitude, longitude);
+    const body = (await response.json()) as unknown;
+    if (!Array.isArray(body)) {
+      return {
+        data: null,
+        error: 'EPA Envirofacts returned a malformed response',
+        source: 'EPA Brownfields (FRS)',
+        cached: false,
+        fetchedAt,
+      };
     }
 
-    const sites: BrownfieldSite[] = results
-      .map((r: Record<string, string>) => {
-        const siteLat = parseFloat(r.LATITUDE83 || '0');
-        const siteLng = parseFloat(r.LONGITUDE83 || '0');
-        const dist = haversineDistance(latitude, longitude, siteLat, siteLng);
-        const dir = cardinalDirection(latitude, longitude, siteLat, siteLng);
-
-        return {
-          name: r.PRIMARY_NAME || r.PGM_SYS_ID || 'Unknown Site',
-          siteId: r.REGISTRY_ID || r.PGM_SYS_ID || '',
-          distance: Math.round(dist * 100) / 100,
-          direction: dir,
-          contaminantTypes: parseContaminants(r.INTEREST_TYPES || ''),
-          cleanupStatus: r.FEDERAL_AGENCY_NAME || 'Status unknown',
-          latitude: siteLat,
-          longitude: siteLng,
-        };
-      })
-      .filter((s: BrownfieldSite) => s.distance <= SEARCH_RADIUS_MILES)
-      .sort((a: BrownfieldSite, b: BrownfieldSite) => a.distance - b.distance);
+    // Empty array is a valid "no brownfields in this radius" result.
+    const rows = body as FrsRow[];
+    const sites = parseRows(rows, latitude, longitude, radiusMiles);
 
     return {
       data: sites,
       error: null,
-      source: 'EPA Brownfields (via FRS)',
+      source: 'EPA Brownfields (FRS)',
       cached: false,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
     };
   } catch (err) {
     return {
       data: null,
-      error: err instanceof Error ? err.message : 'Unknown error fetching brownfield data',
-      source: 'EPA Brownfields',
+      error:
+        err instanceof Error
+          ? err.message
+          : 'Unknown error fetching brownfield data',
+      source: 'EPA Brownfields (FRS)',
       cached: false,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
     };
   }
 }
 
 /**
- * Alternative brownfields query using the direct brownfields assessments table.
+ * Exported for unit testing. A rectangular box that contains the given
+ * radius circle. At latitude φ:
+ *   dLat = radius / 69
+ *   dLon = radius / (69 * max(cos(φ), 0.05))
  */
-async function fetchBrownfieldsAlternate(
+export function boundingBox(
   latitude: number,
-  longitude: number
-): Promise<DataSourceResult<BrownfieldSite[]>> {
-  const degreeOffset = SEARCH_RADIUS_MILES / 69;
-  const minLat = latitude - degreeOffset;
-  const maxLat = latitude + degreeOffset;
-  const minLng = longitude - degreeOffset;
-  const maxLng = longitude + degreeOffset;
-
-  const url = `https://data.epa.gov/efservice/BROWNFIELDS_PROPERTY_LOCATIONS/LATITUDE/${minLat.toFixed(4)}/${maxLat.toFixed(4)}/LONGITUDE/${minLng.toFixed(4)}/${maxLng.toFixed(4)}/ROWS/0:50/JSON`;
-
-  try {
-    const response = await fetchWithRetry(url, { timeoutMs: 15_000 });
-
-    if (!response.ok) {
-      return {
-        data: [],
-        error: null, // No brownfields found is not an error
-        source: 'EPA Brownfields',
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-      };
-    }
-
-    const results = await response.json();
-
-    if (!Array.isArray(results) || results.length === 0) {
-      return {
-        data: [],
-        error: null,
-        source: 'EPA Brownfields',
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-      };
-    }
-
-    const sites: BrownfieldSite[] = results
-      .map((r: Record<string, string>) => {
-        const siteLat = parseFloat(r.LATITUDE || '0');
-        const siteLng = parseFloat(r.LONGITUDE || '0');
-        const dist = haversineDistance(latitude, longitude, siteLat, siteLng);
-        const dir = cardinalDirection(latitude, longitude, siteLat, siteLng);
-
-        return {
-          name: r.PROPERTY_NAME || 'Unknown Site',
-          siteId: r.PROPERTY_ID || '',
-          distance: Math.round(dist * 100) / 100,
-          direction: dir,
-          contaminantTypes: parseContaminants(r.CONTAMINANT_NAME || r.MEDIA || ''),
-          cleanupStatus: r.ASSESSMENT_TYPE || 'Status unknown',
-          latitude: siteLat,
-          longitude: siteLng,
-        };
-      })
-      .filter((s: BrownfieldSite) => s.distance <= SEARCH_RADIUS_MILES)
-      .sort((a: BrownfieldSite, b: BrownfieldSite) => a.distance - b.distance);
-
-    return {
-      data: sites,
-      error: null,
-      source: 'EPA Brownfields',
-      cached: false,
-      fetchedAt: new Date().toISOString(),
-    };
-  } catch {
-    return {
-      data: [],
-      error: null,
-      source: 'EPA Brownfields',
-      cached: false,
-      fetchedAt: new Date().toISOString(),
-    };
-  }
+  longitude: number,
+  radiusMiles: number
+): { minLat: number; maxLat: number; minLon: number; maxLon: number } {
+  const MILES_PER_DEGREE_LAT = 69;
+  const latRad = (latitude * Math.PI) / 180;
+  const cosLat = Math.max(Math.cos(latRad), 0.05);
+  const dLat = radiusMiles / MILES_PER_DEGREE_LAT;
+  const dLon = radiusMiles / (MILES_PER_DEGREE_LAT * cosLat);
+  return {
+    minLat: latitude - dLat,
+    maxLat: latitude + dLat,
+    minLon: longitude - dLon,
+    maxLon: longitude + dLon,
+  };
 }
 
-function parseContaminants(raw: string): string[] {
+function parseRows(
+  rows: FrsRow[],
+  originLat: number,
+  originLon: number,
+  radiusMiles: number
+): BrownfieldSite[] {
+  const sites: BrownfieldSite[] = [];
+  for (const r of rows) {
+    const siteLat = toNum(r.LATITUDE83);
+    const siteLon = toNum(r.LONGITUDE83);
+    // FRS occasionally records (0, 0) or null-ish coordinates for un-geocoded
+    // sites. Drop those — a 0,0 coordinate in the Gulf of Guinea is never a
+    // legitimate US brownfield.
+    if (!Number.isFinite(siteLat) || !Number.isFinite(siteLon)) continue;
+    if (siteLat === 0 && siteLon === 0) continue;
+
+    const dist = haversineDistance(originLat, originLon, siteLat, siteLon);
+    if (dist > radiusMiles) continue;
+
+    const dir = cardinalDirection(originLat, originLon, siteLat, siteLon);
+    sites.push({
+      name: r.PRIMARY_NAME || r.PGM_SYS_ID || 'Unknown Site',
+      siteId: r.REGISTRY_ID || r.PGM_SYS_ID || '',
+      distance: Math.round(dist * 100) / 100,
+      direction: dir,
+      contaminantTypes: parseContaminants(r.INTEREST_TYPES),
+      cleanupStatus: r.FEDERAL_AGENCY_NAME || 'Status unknown',
+      latitude: siteLat,
+      longitude: siteLon,
+    });
+  }
+  return sites.sort((a, b) => a.distance - b.distance);
+}
+
+function toNum(v: unknown): number {
+  if (v === null || v === undefined || v === '') return NaN;
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function parseContaminants(raw: string | undefined): string[] {
   if (!raw) return ['Unknown'];
-  return raw
+  const parts = raw
     .split(/[,;|]/)
     .map((s) => s.trim())
     .filter(Boolean)
     .slice(0, 5);
+  return parts.length > 0 ? parts : ['Unknown'];
 }

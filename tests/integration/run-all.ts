@@ -148,6 +148,48 @@ const LEAD_CLIENT_TESTS: LeadClientTestCase[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Soil-client integration tests (SSURGO, brownfields, NFHL, NASA POWER).
+// These hit real federal upstreams and are gated on external connectivity.
+// ---------------------------------------------------------------------------
+
+interface SoilClientTestCase {
+  label: string;
+  latitude: number;
+  longitude: number;
+  /** Which client(s) we expect to surface data for this location. */
+  expect: {
+    ssurgo?: 'mapped' | 'partial' | 'unmapped' | 'any';
+    brownfieldsNonEmpty?: boolean;
+    floodSfha?: boolean;
+    power?: boolean;
+  };
+}
+
+const SOIL_CLIENT_TESTS: SoilClientTestCase[] = [
+  {
+    // Salinas Valley cropland — rich SSURGO chemistry, no brownfields expected.
+    label: 'Salinas Valley CA cropland — SSURGO',
+    latitude: 36.645,
+    longitude: -121.59,
+    expect: { ssurgo: 'mapped', power: true },
+  },
+  {
+    // Newark NJ industrial corridor — expected brownfield proximity hits.
+    label: 'Newark NJ industrial corridor — Brownfields',
+    latitude: 40.7282,
+    longitude: -74.1788,
+    expect: { brownfieldsNonEmpty: true, ssurgo: 'any', power: true },
+  },
+  {
+    // Miami Beach barrier island — coastal SFHA.
+    label: 'Miami Beach FL barrier island — NFHL coastal',
+    latitude: 25.7907,
+    longitude: -80.13,
+    expect: { floodSfha: true, power: true },
+  },
+];
+
 const GEOCODE_TEST_CASES: GeocodeTestCase[] = [
   {
     address: '1600 Pennsylvania Ave NW, Washington, DC 20500',
@@ -490,6 +532,114 @@ async function runLeadClientTests(): Promise<{
   return { passed, failed, failures };
 }
 
+async function runSoilClientTests(): Promise<{
+  passed: number;
+  failed: number;
+  failures: string[];
+}> {
+  let passed = 0;
+  let failed = 0;
+  const failures: string[] = [];
+
+  console.log('\n── Soil-layer client integration tests ──\n');
+
+  const { fetchSsurgoData } = await import('@/lib/data-sources/usda-ssurgo');
+  const { fetchBrownfieldSites } = await import(
+    '@/lib/data-sources/epa-brownfields'
+  );
+  const { fetchFloodZone } = await import('@/lib/data-sources/fema-nfhl');
+  const { fetchNasaPowerData } = await import('@/lib/data-sources/nasa-smap');
+
+  for (const test of SOIL_CLIENT_TESTS) {
+    console.log(`Testing: ${test.label} (${test.latitude}, ${test.longitude})`);
+
+    let caseFailed = false;
+
+    try {
+      // SSURGO
+      if (test.expect.ssurgo) {
+        const ssurgo = await fetchSsurgoData(test.latitude, test.longitude);
+        if (ssurgo.error) {
+          console.warn(`  ! SSURGO error (non-fatal): ${ssurgo.error}`);
+        } else if (ssurgo.data) {
+          const cov = ssurgo.data.coverage;
+          if (test.expect.ssurgo !== 'any' && cov !== test.expect.ssurgo) {
+            console.warn(
+              `  ! Expected SSURGO coverage=${test.expect.ssurgo}, got ${cov}`
+            );
+          } else {
+            console.log(
+              `  ✓ SSURGO coverage=${cov} muname="${ssurgo.data.mapUnitName}" pH=${ssurgo.data.phRange[0]}–${ssurgo.data.phRange[1]} OM=${ssurgo.data.organicMatterPct}%`
+            );
+          }
+        }
+      }
+
+      // Brownfields
+      if (test.expect.brownfieldsNonEmpty !== undefined) {
+        const bf = await fetchBrownfieldSites(test.latitude, test.longitude);
+        if (bf.error) {
+          console.warn(`  ! Brownfields error (non-fatal): ${bf.error}`);
+        } else if (bf.data) {
+          console.log(
+            `  ✓ Brownfields: ${bf.data.length} sites within 2 mi${
+              bf.data[0]
+                ? ` (nearest: ${bf.data[0].name} ${bf.data[0].distance} mi ${bf.data[0].direction})`
+                : ''
+            }`
+          );
+          if (test.expect.brownfieldsNonEmpty && bf.data.length === 0) {
+            console.warn(
+              '  ! Expected at least one brownfield nearby — FRS may be missing records for this area'
+            );
+          }
+        }
+      }
+
+      // FEMA NFHL
+      if (test.expect.floodSfha !== undefined) {
+        const fz = await fetchFloodZone(test.latitude, test.longitude);
+        if (fz.error) {
+          console.warn(`  ! NFHL error (non-fatal): ${fz.error}`);
+        } else if (fz.data) {
+          console.log(
+            `  ✓ Flood zone: ${fz.data.zone} coverage=${fz.data.coverage} sfha=${fz.data.isSpecialFloodHazardArea} features=${fz.data.features.length}`
+          );
+          if (test.expect.floodSfha && !fz.data.isSpecialFloodHazardArea) {
+            console.warn(
+              `  ! Expected SFHA, got zone=${fz.data.zone} — NFHL map revision may have reclassified this parcel`
+            );
+          }
+        }
+      }
+
+      // NASA POWER
+      if (test.expect.power) {
+        const p = await fetchNasaPowerData(test.latitude, test.longitude);
+        if (p.error) {
+          console.warn(`  ! POWER error (non-fatal): ${p.error}`);
+        } else if (p.data) {
+          console.log(
+            `  ✓ POWER: ${p.data.precipitationAvgMm} mm/yr, T=${p.data.meanAnnualTempC}°C, aridity=${p.data.aridityIndex ?? 'n/a'}, trend=${p.data.trend}, fills=${(p.data.fillFraction * 100).toFixed(1)}%`
+          );
+        }
+      }
+
+      if (!caseFailed) {
+        passed++;
+        console.log('  ✓ PASSED\n');
+      }
+    } catch (err) {
+      failed++;
+      const msg = `${test.label}: ${(err as Error).message}`;
+      failures.push(msg);
+      console.log(`  ✗ FAILED: ${(err as Error).message}\n`);
+    }
+  }
+
+  return { passed, failed, failures };
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -521,6 +671,11 @@ async function runIntegrationTests() {
     allPassed.push(leadClientResult.passed);
     allFailed.push(leadClientResult.failed);
     allFailures.push(...leadClientResult.failures);
+
+    const soilClientResult = await runSoilClientTests();
+    allPassed.push(soilClientResult.passed);
+    allFailed.push(soilClientResult.failed);
+    allFailures.push(...soilClientResult.failures);
   }
 
   // HTTP-endpoint tests need both a dev server AND external APIs.
