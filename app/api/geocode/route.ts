@@ -27,7 +27,18 @@ export async function POST(request: NextRequest) {
     request.headers.get('x-real-ip') ??
     '127.0.0.1';
   const ipKey = hashIp(ip);
-  const rateLimit = checkPerMinuteLimit(ipKey, GEOCODE_RATE_LIMIT);
+
+  // Integration tests bypass: dev-only, gated by a shared secret header.
+  const bypassToken = process.env.BEDROCK_TEST_BYPASS_TOKEN;
+  const bypassHeader = request.headers.get('x-bedrock-test-bypass');
+  const isTestBypass =
+    process.env.NODE_ENV !== 'production' &&
+    !!bypassToken &&
+    bypassHeader === bypassToken;
+
+  const rateLimit = isTestBypass
+    ? { allowed: true, remaining: Infinity, resetAt: 0 }
+    : checkPerMinuteLimit(ipKey, GEOCODE_RATE_LIMIT);
 
   if (!rateLimit.allowed) {
     return NextResponse.json(

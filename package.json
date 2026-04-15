@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:integration": "tsx tests/integration/run-all.ts",
-    "test:smoke": "tsx tests/smoke/smoke-test.ts",
+    "test:integration": "tsx --env-file-if-exists=.env.local tests/integration/run-all.ts",
+    "test:smoke": "tsx --env-file-if-exists=.env.local tests/smoke/smoke-test.ts",
     "qa": "pnpm build && pnpm tsc --noEmit && pnpm lint && pnpm test && pnpm test:integration",
     "prepare": "husky"
   },
@@ -40,6 +40,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "undici": "^8.1.0",
     "vitest": "^4.1.4"
   }
 }

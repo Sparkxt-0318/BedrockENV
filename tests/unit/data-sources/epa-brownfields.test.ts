@@ -18,6 +18,13 @@ function mockFetchJson(body: unknown, status = 200) {
   } as unknown as Response);
 }
 
+/** Shape a NEPAssist-style ArcGIS feature body. */
+function arcgis(features: Record<string, unknown>[]) {
+  return {
+    features: features.map((attrs) => ({ attributes: attrs })),
+  };
+}
+
 // Newark, NJ (40.7282, -74.1788) — origin for most fixtures.
 const NEWARK = { lat: 40.7282, lon: -74.1788 };
 
@@ -64,32 +71,34 @@ describe('fetchBrownfieldSites', () => {
     vi.unstubAllGlobals();
   });
 
-  it('parses FRS rows, sorts by distance, and enriches with direction', async () => {
+  it('parses ArcGIS features, sorts by distance, and enriches with direction', async () => {
     // Two sites near Newark: one ~0.5 mi north, one ~1 mi east.
     const north = { lat: NEWARK.lat + 0.5 / 69, lon: NEWARK.lon };
     const east = {
       lat: NEWARK.lat,
       lon: NEWARK.lon + 1 / (69 * Math.cos((NEWARK.lat * Math.PI) / 180)),
     };
-    const body = [
-      {
-        PRIMARY_NAME: 'Old Factory',
-        REGISTRY_ID: 'FRS-1',
-        LATITUDE83: east.lat,
-        LONGITUDE83: east.lon,
-        INTEREST_TYPES: 'Lead; PCBs',
-        FEDERAL_AGENCY_NAME: 'Active',
-      },
-      {
-        PRIMARY_NAME: 'Closer Site',
-        REGISTRY_ID: 'FRS-2',
-        LATITUDE83: north.lat,
-        LONGITUDE83: north.lon,
-        INTEREST_TYPES: 'Petroleum',
-        FEDERAL_AGENCY_NAME: 'Complete',
-      },
-    ];
-    vi.stubGlobal('fetch', mockFetchJson(body));
+    vi.stubGlobal(
+      'fetch',
+      mockFetchJson(
+        arcgis([
+          {
+            primary_name: 'Old Factory',
+            registry_id: 'FRS-1',
+            latitude: east.lat,
+            longitude: east.lon,
+            pgm_sys_acrnm: 'ACRES',
+          },
+          {
+            primary_name: 'Closer Site',
+            registry_id: 'FRS-2',
+            latitude: north.lat,
+            longitude: north.lon,
+            pgm_sys_acrnm: 'ACRES',
+          },
+        ])
+      )
+    );
 
     const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);
 
@@ -101,26 +110,29 @@ describe('fetchBrownfieldSites', () => {
     expect(result.data![0].distance).toBeLessThan(result.data![1].distance);
     expect(result.data![0].direction).toBe('N');
     expect(result.data![1].direction).toBe('E');
-    expect(result.data![0].contaminantTypes).toEqual(['Petroleum']);
-    expect(result.data![1].contaminantTypes).toEqual(['Lead', 'PCBs']);
+    expect(result.data![0].contaminantTypes).toEqual(['ACRES']);
   });
 
   it('filters out (0, 0) sentinel coordinates', async () => {
-    const body = [
-      {
-        PRIMARY_NAME: 'Un-geocoded',
-        REGISTRY_ID: 'FRS-X',
-        LATITUDE83: 0,
-        LONGITUDE83: 0,
-      },
-      {
-        PRIMARY_NAME: 'Real Site',
-        REGISTRY_ID: 'FRS-R',
-        LATITUDE83: NEWARK.lat + 0.3 / 69,
-        LONGITUDE83: NEWARK.lon,
-      },
-    ];
-    vi.stubGlobal('fetch', mockFetchJson(body));
+    vi.stubGlobal(
+      'fetch',
+      mockFetchJson(
+        arcgis([
+          {
+            primary_name: 'Un-geocoded',
+            registry_id: 'FRS-X',
+            latitude: 0,
+            longitude: 0,
+          },
+          {
+            primary_name: 'Real Site',
+            registry_id: 'FRS-R',
+            latitude: NEWARK.lat + 0.3 / 69,
+            longitude: NEWARK.lon,
+          },
+        ])
+      )
+    );
 
     const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);
     expect(result.data).toHaveLength(1);
@@ -128,16 +140,20 @@ describe('fetchBrownfieldSites', () => {
   });
 
   it('filters out sites outside the requested radius', async () => {
-    const body = [
-      {
-        PRIMARY_NAME: 'Far Site',
-        REGISTRY_ID: 'FRS-FAR',
-        // 10 miles north — well outside the 2-mile default.
-        LATITUDE83: NEWARK.lat + 10 / 69,
-        LONGITUDE83: NEWARK.lon,
-      },
-    ];
-    vi.stubGlobal('fetch', mockFetchJson(body));
+    vi.stubGlobal(
+      'fetch',
+      mockFetchJson(
+        arcgis([
+          {
+            primary_name: 'Far Site',
+            registry_id: 'FRS-FAR',
+            // 10 miles north — well outside the 2-mile default.
+            latitude: NEWARK.lat + 10 / 69,
+            longitude: NEWARK.lon,
+          },
+        ])
+      )
+    );
 
     const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);
     expect(result.data).toEqual([]);
@@ -145,16 +161,14 @@ describe('fetchBrownfieldSites', () => {
 
   it('accepts a custom radiusMiles parameter', async () => {
     // Site 3 miles north — outside default 2 mi but inside 5 mi.
-    const body = [
-      {
-        PRIMARY_NAME: 'Mid-range Site',
-        REGISTRY_ID: 'FRS-M',
-        LATITUDE83: NEWARK.lat + 3 / 69,
-        LONGITUDE83: NEWARK.lon,
-      },
-    ];
-    vi.stubGlobal('fetch', mockFetchJson(body));
+    const feature = {
+      primary_name: 'Mid-range Site',
+      registry_id: 'FRS-M',
+      latitude: NEWARK.lat + 3 / 69,
+      longitude: NEWARK.lon,
+    };
 
+    vi.stubGlobal('fetch', mockFetchJson(arcgis([feature])));
     const tight = await fetchBrownfieldSites(
       NEWARK.lat,
       NEWARK.lon,
@@ -162,7 +176,7 @@ describe('fetchBrownfieldSites', () => {
     );
     expect(tight.data).toEqual([]);
 
-    vi.stubGlobal('fetch', mockFetchJson(body));
+    vi.stubGlobal('fetch', mockFetchJson(arcgis([feature])));
     const wide = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon, 5);
     expect(wide.data).toHaveLength(1);
     expect(wide.data![0].distance).toBeGreaterThan(
@@ -171,8 +185,8 @@ describe('fetchBrownfieldSites', () => {
     expect(wide.data![0].distance).toBeLessThanOrEqual(5);
   });
 
-  it('returns an empty array (not an error) when no rows match', async () => {
-    vi.stubGlobal('fetch', mockFetchJson([]));
+  it('returns an empty array (not an error) when features is empty', async () => {
+    vi.stubGlobal('fetch', mockFetchJson({ features: [] }));
 
     const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);
     expect(result.error).toBeNull();
@@ -187,7 +201,19 @@ describe('fetchBrownfieldSites', () => {
     expect(result.error).toMatch(/503/);
   });
 
-  it('returns an error on malformed (non-array) response body', async () => {
+  it('surfaces ArcGIS error envelopes returned with HTTP 200', async () => {
+    vi.stubGlobal(
+      'fetch',
+      mockFetchJson({ error: { code: 400, message: 'Invalid geometry' } })
+    );
+
+    const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);
+    expect(result.data).toBeNull();
+    expect(result.error).toMatch(/400/);
+    expect(result.error).toMatch(/Invalid geometry/);
+  });
+
+  it('returns an error on malformed (missing features array) response', async () => {
     vi.stubGlobal('fetch', mockFetchJson({ message: 'oops' }));
 
     const result = await fetchBrownfieldSites(NEWARK.lat, NEWARK.lon);

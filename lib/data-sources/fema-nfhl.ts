@@ -25,8 +25,10 @@ import { DataSourceResult, fetchWithRetry } from './types';
  * Cache: 90 days.
  */
 
+// NB: FEMA's ArcGIS services live under /arcgis/rest — not /gis/nfhl/rest.
+// The /gis/nfhl path returns an IBM WebSEAL 404 HTML page.
 const NFHL_URL =
-  'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query';
+  'https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query';
 
 /**
  * Hazard ranking — higher = worse. Used to pick the headline zone when a

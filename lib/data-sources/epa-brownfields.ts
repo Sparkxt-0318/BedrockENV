@@ -6,19 +6,20 @@ import { haversineDistance, cardinalDirection } from '@/lib/utils';
  * EPA Brownfields — contaminated / formerly contaminated land within a
  * search radius of a query point.
  *
- * Queries the EPA Envirofacts `FRS_PROGRAM_FACILITY` view filtered to the
- * BROWNFIELDS program acronym, within a lat/lon bounding box, then filters
- * to the exact haversine radius and sorts nearest-first.
- *
- * Bounding-box math: a degree of latitude ≈ 69 miles. A degree of longitude
- * is `69 * cos(lat)` miles, so we shrink the longitude span by `cos(lat)` to
- * avoid pulling in facilities that are far east/west of a high-latitude
- * query point. `cos` is clamped to 0.05 to keep the math finite near the
- * poles — brownfield programs are effectively US-only so this is defensive.
+ * Uses the EPA NEPAssist ArcGIS REST service (`NEPAVELayersPublic_fgdb`
+ * layer 13 — "Brownfields") rather than the Envirofacts efservice REST
+ * endpoint. The Envirofacts FRS_PROGRAM_FACILITY table no longer carries
+ * latitude/longitude columns (confirmed 2026-04 — the schema was trimmed
+ * and the bounding-box filter returns rows from unrelated states /
+ * countries), so it cannot be used for proximity queries. ArcGIS gives us
+ * a proper spatial envelope query and returns rows with `latitude` /
+ * `longitude` fields already populated.
  *
  * Null/error convention:
  *  - Successful query with zero hits → `{ data: [], error: null }`.
  *  - Transport / HTTP / JSON failure → `{ data: null, error: <msg> }`.
+ *  - ArcGIS error envelopes (`{error:{code,message}}`) are treated as
+ *    failures even when the HTTP status is 200.
  *
  * Data resolution: PROPERTY-LEVEL (distance from exact coordinates).
  * Cache: 30 days.
@@ -27,15 +28,26 @@ import { haversineDistance, cardinalDirection } from '@/lib/utils';
 export const DEFAULT_BROWNFIELD_RADIUS_MILES = 2;
 export const MAX_BROWNFIELD_RESULTS = 50;
 
-interface FrsRow {
-  PRIMARY_NAME?: string;
-  REGISTRY_ID?: string;
-  PGM_SYS_ID?: string;
-  PGM_SYS_ACRNM?: string;
-  LATITUDE83?: string | number;
-  LONGITUDE83?: string | number;
-  INTEREST_TYPES?: string;
-  FEDERAL_AGENCY_NAME?: string;
+const BROWNFIELDS_URL =
+  'https://geopub.epa.gov/arcgis/rest/services/NEPAssist/NEPAVELayersPublic_fgdb/MapServer/13/query';
+
+interface ArcgisFeature {
+  attributes?: {
+    registry_id?: string | null;
+    primary_name?: string | null;
+    location_address?: string | null;
+    city_name?: string | null;
+    state_code?: string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+    pgm_sys_id?: string | null;
+    pgm_sys_acrnm?: string | null;
+  };
+}
+
+interface ArcgisResponse {
+  features?: ArcgisFeature[];
+  error?: { code?: number; message?: string };
 }
 
 export async function fetchBrownfieldSites(
@@ -49,7 +61,7 @@ export async function fetchBrownfieldSites(
     return {
       data: null,
       error: 'latitude/longitude must be finite numbers',
-      source: 'EPA Brownfields (FRS)',
+      source: 'EPA Brownfields (NEPAssist)',
       cached: false,
       fetchedAt,
     };
@@ -58,7 +70,7 @@ export async function fetchBrownfieldSites(
     return {
       data: null,
       error: 'radiusMiles must be a positive number',
-      source: 'EPA Brownfields (FRS)',
+      source: 'EPA Brownfields (NEPAssist)',
       cached: false,
       fetchedAt,
     };
@@ -70,11 +82,27 @@ export async function fetchBrownfieldSites(
     radiusMiles
   );
 
-  const url =
-    `https://data.epa.gov/efservice/FRS_PROGRAM_FACILITY/` +
-    `LATITUDE83/${minLat.toFixed(4)}/${maxLat.toFixed(4)}/` +
-    `LONGITUDE83/${minLon.toFixed(4)}/${maxLon.toFixed(4)}/` +
-    `PGM_SYS_ACRNM/BROWNFIELDS/ROWS/0:${MAX_BROWNFIELD_RESULTS}/JSON`;
+  const envelope = {
+    xmin: minLon,
+    ymin: minLat,
+    xmax: maxLon,
+    ymax: maxLat,
+    spatialReference: { wkid: 4326 },
+  };
+
+  const params = new URLSearchParams({
+    geometry: JSON.stringify(envelope),
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields:
+      'registry_id,primary_name,location_address,city_name,state_code,latitude,longitude,pgm_sys_id,pgm_sys_acrnm',
+    returnGeometry: 'false',
+    resultRecordCount: String(MAX_BROWNFIELD_RESULTS),
+    f: 'json',
+  });
+
+  const url = `${BROWNFIELDS_URL}?${params.toString()}`;
 
   try {
     const response = await fetchWithRetry(url, { timeoutMs: 20_000 });
@@ -82,32 +110,43 @@ export async function fetchBrownfieldSites(
     if (!response.ok) {
       return {
         data: null,
-        error: `EPA Envirofacts returned HTTP ${response.status}`,
-        source: 'EPA Brownfields (FRS)',
+        error: `EPA NEPAssist returned HTTP ${response.status}`,
+        source: 'EPA Brownfields (NEPAssist)',
         cached: false,
         fetchedAt,
       };
     }
 
-    const body = (await response.json()) as unknown;
-    if (!Array.isArray(body)) {
+    const json = (await response.json()) as ArcgisResponse;
+
+    // ArcGIS returns HTTP 200 with an error envelope for invalid params.
+    if (json && json.error) {
       return {
         data: null,
-        error: 'EPA Envirofacts returned a malformed response',
-        source: 'EPA Brownfields (FRS)',
+        error: `EPA NEPAssist error ${json.error.code ?? '?'}: ${json.error.message ?? 'unknown'}`,
+        source: 'EPA Brownfields (NEPAssist)',
         cached: false,
         fetchedAt,
       };
     }
 
-    // Empty array is a valid "no brownfields in this radius" result.
-    const rows = body as FrsRow[];
-    const sites = parseRows(rows, latitude, longitude, radiusMiles);
+    const features = Array.isArray(json?.features) ? json!.features! : null;
+    if (features === null) {
+      return {
+        data: null,
+        error: 'EPA NEPAssist returned a malformed response (no features array)',
+        source: 'EPA Brownfields (NEPAssist)',
+        cached: false,
+        fetchedAt,
+      };
+    }
+
+    const sites = parseFeatures(features, latitude, longitude, radiusMiles);
 
     return {
       data: sites,
       error: null,
-      source: 'EPA Brownfields (FRS)',
+      source: 'EPA Brownfields (NEPAssist)',
       cached: false,
       fetchedAt,
     };
@@ -118,7 +157,7 @@ export async function fetchBrownfieldSites(
         err instanceof Error
           ? err.message
           : 'Unknown error fetching brownfield data',
-      source: 'EPA Brownfields (FRS)',
+      source: 'EPA Brownfields (NEPAssist)',
       cached: false,
       fetchedAt,
     };
@@ -149,19 +188,20 @@ export function boundingBox(
   };
 }
 
-function parseRows(
-  rows: FrsRow[],
+function parseFeatures(
+  features: ArcgisFeature[],
   originLat: number,
   originLon: number,
   radiusMiles: number
 ): BrownfieldSite[] {
   const sites: BrownfieldSite[] = [];
-  for (const r of rows) {
-    const siteLat = toNum(r.LATITUDE83);
-    const siteLon = toNum(r.LONGITUDE83);
-    // FRS occasionally records (0, 0) or null-ish coordinates for un-geocoded
-    // sites. Drop those — a 0,0 coordinate in the Gulf of Guinea is never a
-    // legitimate US brownfield.
+  for (const f of features) {
+    const attrs = f.attributes;
+    if (!attrs) continue;
+
+    const siteLat = toNum(attrs.latitude);
+    const siteLon = toNum(attrs.longitude);
+    // Drop null-islands and un-geocoded records.
     if (!Number.isFinite(siteLat) || !Number.isFinite(siteLon)) continue;
     if (siteLat === 0 && siteLon === 0) continue;
 
@@ -170,12 +210,22 @@ function parseRows(
 
     const dir = cardinalDirection(originLat, originLon, siteLat, siteLon);
     sites.push({
-      name: r.PRIMARY_NAME || r.PGM_SYS_ID || 'Unknown Site',
-      siteId: r.REGISTRY_ID || r.PGM_SYS_ID || '',
+      name:
+        attrs.primary_name ||
+        attrs.pgm_sys_id ||
+        attrs.registry_id ||
+        'Unknown Site',
+      siteId: attrs.registry_id || attrs.pgm_sys_id || '',
       distance: Math.round(dist * 100) / 100,
       direction: dir,
-      contaminantTypes: parseContaminants(r.INTEREST_TYPES),
-      cleanupStatus: r.FEDERAL_AGENCY_NAME || 'Status unknown',
+      // NEPAssist does not expose contaminant-type metadata — that lives in
+      // ACRES, which is not publicly queryable. Record the EPA program
+      // acronym so downstream consumers can at least identify which database
+      // this site came from (typically 'ACRES').
+      contaminantTypes: attrs.pgm_sys_acrnm
+        ? [attrs.pgm_sys_acrnm]
+        : ['Unknown'],
+      cleanupStatus: 'Status unknown',
       latitude: siteLat,
       longitude: siteLon,
     });
@@ -187,14 +237,4 @@ function toNum(v: unknown): number {
   if (v === null || v === undefined || v === '') return NaN;
   const n = typeof v === 'number' ? v : parseFloat(String(v));
   return Number.isFinite(n) ? n : NaN;
-}
-
-function parseContaminants(raw: string | undefined): string[] {
-  if (!raw) return ['Unknown'];
-  const parts = raw
-    .split(/[,;|]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-  return parts.length > 0 ? parts : ['Unknown'];
 }

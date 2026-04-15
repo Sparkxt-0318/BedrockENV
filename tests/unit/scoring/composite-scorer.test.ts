@@ -17,37 +17,37 @@ function layer(
 }
 
 describe('Composite Scorer', () => {
-  it('weights water 0.55 and soil 0.45 in MVP mode', () => {
+  it('weights water 0.55 and soil 0.45 when both layers are present', () => {
     const result = computeCompositeScore({
-      water: layer(80, 'area'),
+      water: layer(80, 'neighborhood'),
       soil: layer(20, 'neighborhood'),
     });
-    // 80*0.55 + 20*0.45 = 44 + 9 = 53
+    // 80 * 0.55 + 20 * 0.45 = 44 + 9 = 53
     expect(result.score).toBe(53);
     expect(result.layersIncluded).toEqual(['water', 'soil']);
   });
 
-  it('re-weights when only one layer has data', () => {
+  it('passes through water-only when soil is unavailable (no artificial penalty)', () => {
     const result = computeCompositeScore({
-      water: layer(60, 'area'),
+      water: layer(60, 'property'),
       soil: layer(0, 'neighborhood', false),
     });
     expect(result.score).toBe(60);
     expect(result.layersIncluded).toEqual(['water']);
+    expect(result.confidence).toBe('high'); // property → high
   });
 
-  it('composite confidence degrades with lowest layer resolution and small layer count', () => {
+  it('passes through soil-only when water is unavailable', () => {
     const result = computeCompositeScore({
-      water: layer(50, 'area'),
-      soil: layer(30, 'neighborhood'),
+      water: layer(0, 'area', false),
+      soil: layer(42, 'neighborhood'),
     });
-    // 2 layers -> layer-count confidence is "moderate"
-    // Lowest resolution is "area" -> "low"
-    // Final is min(moderate, low) = low
-    expect(result.confidence).toBe('low');
+    expect(result.score).toBe(42);
+    expect(result.layersIncluded).toEqual(['soil']);
+    expect(result.confidence).toBe('moderate'); // neighborhood → moderate
   });
 
-  it('returns zero with low confidence when no layers have data', () => {
+  it('returns empty result with low confidence when both layers are unavailable', () => {
     const result = computeCompositeScore({
       water: layer(0, 'area', false),
       soil: layer(0, 'neighborhood', false),
@@ -55,5 +55,28 @@ describe('Composite Scorer', () => {
     expect(result.score).toBe(0);
     expect(result.confidence).toBe('low');
     expect(result.layersIncluded).toEqual([]);
+  });
+
+  it('composite confidence inherits the lowest resolution among included layers', () => {
+    // property + area → area → low
+    const mixed = computeCompositeScore({
+      water: layer(50, 'property'),
+      soil: layer(30, 'area'),
+    });
+    expect(mixed.confidence).toBe('low');
+
+    // neighborhood + property → neighborhood → moderate
+    const neighborhoodPlusProperty = computeCompositeScore({
+      water: layer(50, 'property'),
+      soil: layer(30, 'neighborhood'),
+    });
+    expect(neighborhoodPlusProperty.confidence).toBe('moderate');
+
+    // property + property → property → high
+    const allProperty = computeCompositeScore({
+      water: layer(50, 'property'),
+      soil: layer(30, 'property'),
+    });
+    expect(allProperty.confidence).toBe('high');
   });
 });

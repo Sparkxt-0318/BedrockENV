@@ -75,8 +75,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Rate limit check
-  const rateLimit = checkRateLimit(identifier, tier);
+  // Rate limit check.
+  //
+  // Integration tests need to issue several assessment requests against a
+  // local dev server in one run. When NODE_ENV !== 'production' and the
+  // request includes `x-bedrock-test-bypass: <token>` matching the
+  // `BEDROCK_TEST_BYPASS_TOKEN` env var, skip the rate limiter entirely.
+  // The bypass is guarded so it is impossible to trip in production even
+  // if the env var leaks.
+  const bypassToken = process.env.BEDROCK_TEST_BYPASS_TOKEN;
+  const bypassHeader = request.headers.get('x-bedrock-test-bypass');
+  const isTestBypass =
+    process.env.NODE_ENV !== 'production' &&
+    !!bypassToken &&
+    bypassHeader === bypassToken;
+
+  const rateLimit = isTestBypass
+    ? { allowed: true, remaining: Infinity, resetAt: 0 }
+    : checkRateLimit(identifier, tier);
   if (!rateLimit.allowed) {
     const resetDate = new Date(rateLimit.resetAt).toLocaleDateString();
     return NextResponse.json(
@@ -96,8 +112,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Check Supabase cache for recent assessment of same address (within 24h)
-  if (supabase) {
+  // Check Supabase cache for recent assessment of same address (within 24h).
+  // The integration test bypass header also skips the read cache so runs
+  // exercise the current scoring pipeline instead of stale rows.
+  if (supabase && !isTestBypass) {
     try {
       const normalizedSearch = address.trim().toUpperCase();
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
