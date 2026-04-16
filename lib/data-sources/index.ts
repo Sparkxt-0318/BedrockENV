@@ -86,8 +86,8 @@ export async function fetchFullAssessment(
     fetchSsurgoData(geocoded.latitude, geocoded.longitude),
     // [5] Brownfields (soil)
     fetchBrownfieldSites(geocoded.latitude, geocoded.longitude),
-    // [6] ECHO facilities (soil/proximity)
-    fetchEchoFacilities(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT }),
+    // [6] ECHO facilities (soil/proximity) — two sequential API calls, needs 2× timeout
+    fetchEchoFacilities(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT * 2 }),
     // [7] Flood zone (soil)
     fetchFloodZone(geocoded.latitude, geocoded.longitude),
     // [8] Soil moisture / climate (soil)
