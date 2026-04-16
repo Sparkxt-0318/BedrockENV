@@ -20,10 +20,68 @@ export async function geocodeAddress(address: string): Promise<GeocodedAddress |
   const mapboxResult = await geocodeWithMapbox(address);
   if (mapboxResult) {
     console.info('Geocoded via Mapbox fallback for:', address);
+
+    // Mapbox doesn't provide county FIPS. Use the FCC Census API to fill
+    // in county FIPS from lat/lng so downstream water system lookup works.
+    if (!mapboxResult.fipsCounty && mapboxResult.latitude && mapboxResult.longitude) {
+      const fcc = await enrichWithFccCensus(mapboxResult.latitude, mapboxResult.longitude);
+      if (fcc) {
+        if (fcc.fipsCounty) mapboxResult.fipsCounty = fcc.fipsCounty;
+        if (fcc.fipsState && !mapboxResult.fipsState) mapboxResult.fipsState = fcc.fipsState;
+      }
+    }
+
     return mapboxResult;
   }
 
   return null;
+}
+
+/**
+ * Extract a city name from a geocoded address for PWSID lookup.
+ *
+ * Supports two address formats:
+ *   Census: "1000 OCEAN DR, MIAMI BEACH, FL, 33139"
+ *   Mapbox: "Newark, New Jersey 07105, United States"
+ *           "Water Street, Hoosick Falls, New York 12090, United States"
+ */
+export function extractCityHint(geocoded: GeocodedAddress): string | null {
+  const normalized = geocoded.normalized || geocoded.raw;
+  const parts = normalized.split(',').map((p) => p.trim());
+
+  // Drop trailing "United States" / "US" if present
+  if (parts.length > 2) {
+    const last = parts[parts.length - 1].toUpperCase();
+    if (last === 'UNITED STATES' || last === 'US' || last === 'USA') {
+      parts.pop();
+    }
+  }
+
+  if (parts.length >= 3) {
+    // Census format: "street, city, state, zip" or "street, city, state zip"
+    // City is second element (index 1)
+    const candidate = parts[1].replace(/\d+/g, '').trim();
+    if (candidate) return candidate;
+  }
+
+  if (parts.length === 2) {
+    // Mapbox short format: "City, State Zip" — take the first part
+    // Only if it doesn't start with a digit (street number)
+    const candidate = parts[0].replace(/\d+/g, '').trim();
+    if (candidate && !/^\d/.test(parts[0])) return candidate;
+  }
+
+  return null;
+}
+
+/**
+ * Extract a ZIP code from a geocoded address for PWSID lookup.
+ * Looks for a 5-digit number in the normalized address.
+ */
+export function extractZipHint(geocoded: GeocodedAddress): string | null {
+  const text = geocoded.normalized || geocoded.raw;
+  const match = text.match(/\b(\d{5})(?:-\d{4})?\b/);
+  return match ? match[1] : null;
 }
 
 /**
@@ -85,8 +143,7 @@ async function geocodeWithCensus(address: string): Promise<GeocodedAddress | nul
  * Returns source: 'mapbox'. Census tract / block group are not available
  * via Mapbox — those fields are set to empty strings.
  *
- * County FIPS (fipsCounty) is also unavailable; Mapbox returns an opaque
- * internal district ID, not a FIPS code. Set to empty string.
+ * County FIPS is enriched post-hoc via `enrichWithFccCensus()`.
  */
 async function geocodeWithMapbox(address: string): Promise<GeocodedAddress | null> {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -121,7 +178,7 @@ async function geocodeWithMapbox(address: string): Promise<GeocodedAddress | nul
       : rawRegionCode.toUpperCase();
     const fipsState = STATE_ABBREV_TO_FIPS[abbrev] || '';
 
-    // County FIPS not reliably available from Mapbox context IDs
+    // County FIPS not reliably available from Mapbox — enriched post-hoc
     const fipsCounty = '';
 
     return {
@@ -141,3 +198,43 @@ async function geocodeWithMapbox(address: string): Promise<GeocodedAddress | nul
   }
 }
 
+/**
+ * FCC Census Block API — converts lat/lng to county FIPS.
+ *
+ * This is a free, no-auth API run by the FCC. The response includes
+ * state and county FIPS codes, which Mapbox doesn't provide.
+ *
+ * URL: https://geo.fcc.gov/api/census/area?lat={lat}&lon={lon}&format=json
+ *
+ * Non-fatal: returns null if the API fails or returns unexpected data.
+ */
+async function enrichWithFccCensus(
+  lat: number,
+  lng: number
+): Promise<{ fipsState: string; fipsCounty: string } | null> {
+  const url = `https://geo.fcc.gov/api/census/area?lat=${lat}&lon=${lng}&format=json`;
+
+  try {
+    const response = await fetchWithRetry(url, { timeoutMs: 8_000, retries: 1 });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const results = data?.results;
+    if (!Array.isArray(results) || results.length === 0) return null;
+
+    const block = results[0];
+    const fips: string = block?.county_fips || '';
+
+    if (fips.length >= 5) {
+      return {
+        fipsState: fips.substring(0, 2),
+        fipsCounty: fips.substring(2, 5),
+      };
+    }
+
+    return null;
+  } catch {
+    // Non-fatal — county FIPS enrichment is best-effort
+    return null;
+  }
+}

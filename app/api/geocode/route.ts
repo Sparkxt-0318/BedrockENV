@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { geocodeAddress, lookupWaterSystem } from '@/lib/data-sources/geocoding';
+import { geocodeAddress, lookupWaterSystem, extractCityHint, extractZipHint } from '@/lib/data-sources/geocoding';
 import { checkPerMinuteLimit, hashIp } from '@/lib/rate-limit';
 
 const GEOCODE_RATE_LIMIT = 10; // requests per minute per IP
@@ -110,11 +110,15 @@ export async function POST(request: NextRequest) {
 
   // ── PWSID lookup ──────────────────────────────────────────────────────────
   // Non-fatal: PWSID lookup failure doesn't block the geocode response.
-  if (geocoded.fipsState && geocoded.fipsCounty) {
+  if (geocoded.fipsState) {
     try {
+      const cityHint = extractCityHint(geocoded) ?? undefined;
+      const zipHint = extractZipHint(geocoded) ?? undefined;
       const waterSystem = await lookupWaterSystem(
         geocoded.fipsState,
-        geocoded.fipsCounty
+        geocoded.fipsCounty,
+        cityHint,
+        zipHint
       );
       if (waterSystem) {
         geocoded.waterSystemId = waterSystem.pwsid;

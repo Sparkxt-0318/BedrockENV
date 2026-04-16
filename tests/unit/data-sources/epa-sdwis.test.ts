@@ -23,26 +23,29 @@ function makeFetchError(status: number) {
   } as unknown as Response);
 }
 
-const SAMPLE_SYSTEMS = [
+// Sample data in **lowercase** field names (as the real API returns).
+const SAMPLE_SYSTEM_ROW = [
   {
-    PWSID: 'DC0000001',
-    PWS_NAME: 'DC WATER AND SEWER AUTHORITY',
-    STATE_CODE: 'DC',
-    PWS_TYPE_CODE: 'CWS',
-    PWS_ACTIVITY_CODE: 'A',
-    POPULATION_SERVED_COUNT: '650000',
-    PRIMARY_SOURCE_CODE: 'SW',
-    COUNTIES_SERVED: 'District of Columbia',
+    pwsid: 'FL1260005',
+    pws_name: 'MIAMI-DADE WATER AND SEWER',
+    state_code: 'FL',
+    pws_type_code: 'CWS',
+    pws_activity_code: 'A',
+    population_served_count: '2700000',
+    primary_source_code: 'GW',
   },
+];
+
+const SAMPLE_CITY_SYSTEMS = [
   {
-    PWSID: 'DC0000099',
-    PWS_NAME: 'SMALL DC SYSTEM',
-    STATE_CODE: 'DC',
-    PWS_TYPE_CODE: 'CWS',
-    PWS_ACTIVITY_CODE: 'A',
-    POPULATION_SERVED_COUNT: '500',
-    PRIMARY_SOURCE_CODE: 'GW',
-    COUNTIES_SERVED: '',
+    pwsid: 'NJ0714001',
+    pws_name: 'NEWARK DEPT OF WATER & SEWER',
+    city_name: 'NEWARK',
+    state_code: 'NJ',
+    pws_type_code: 'CWS',
+    pws_activity_code: 'A',
+    population_served_count: '280000',
+    primary_source_code: 'SW',
   },
 ];
 
@@ -53,29 +56,51 @@ const SAMPLE_SYSTEMS = [
 describe('lookupWaterSystem', () => {
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it('returns the largest CWS when no county match exists', async () => {
-    vi.stubGlobal('fetch', makeFetchOk(SAMPLE_SYSTEMS));
+  it('resolves PWSID via city name lookup', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => SAMPLE_SYSTEM_ROW } as Response);
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await lookupWaterSystem('11', '001');
+    const result = await lookupWaterSystem('12', '086', 'MIAMI BEACH');
 
     expect(result).not.toBeNull();
-    expect(result!.pwsid).toBe('DC0000001');
-    expect(result!.name).toBe('DC WATER AND SEWER AUTHORITY');
-    expect(result!.populationServed).toBe(650000);
-    expect(result!.primarySource).toBe('SW');
+    expect(result!.pwsid).toBe('FL1260005');
+    expect(result!.name).toBe('MIAMI-DADE WATER AND SEWER');
+    expect(result!.populationServed).toBe(2700000);
+
+    // Call should be WATER_SYSTEM with CITY_NAME
+    const calledUrl: string = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toContain('WATER_SYSTEM');
+    expect(calledUrl).toContain('CITY_NAME/MIAMI%20BEACH');
   });
 
-  it('prefers county-matching system over larger one', async () => {
-    const systems = [
-      { ...SAMPLE_SYSTEMS[0], COUNTIES_SERVED: 'Fairfax', POPULATION_SERVED_COUNT: '1000000' },
-      { ...SAMPLE_SYSTEMS[1], COUNTIES_SERVED: '001', POPULATION_SERVED_COUNT: '500' },
-    ];
-    vi.stubGlobal('fetch', makeFetchOk(systems));
+  it('falls back to zip lookup when city returns empty', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response) // city empty
+      .mockResolvedValueOnce({ ok: true, json: async () => SAMPLE_CITY_SYSTEMS } as Response); // zip
+    vi.stubGlobal('fetch', fetchMock);
 
-    // fipsCounty '001' matches the second system's COUNTIES_SERVED
-    const result = await lookupWaterSystem('11', '001');
+    const result = await lookupWaterSystem('34', '013', 'NoMatch', '07105');
 
-    expect(result!.pwsid).toBe('DC0000099');
+    expect(result).not.toBeNull();
+    expect(result!.pwsid).toBe('NJ0714001');
+
+    // Second call should use ZIP_CODE
+    const secondUrl: string = fetchMock.mock.calls[1][0] as string;
+    expect(secondUrl).toContain('ZIP_CODE/07105');
+  });
+
+  it('falls back to largest-in-state when city and zip both fail', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response) // city empty
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response) // zip empty
+      .mockResolvedValueOnce({ ok: true, json: async () => SAMPLE_SYSTEM_ROW } as Response); // state fallback
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await lookupWaterSystem('12', '999', 'Nonexistent', '99999');
+
+    expect(result).not.toBeNull();
+    expect(result!.pwsid).toBe('FL1260005');
   });
 
   it('returns null for unknown FIPS state code', async () => {
@@ -83,10 +108,10 @@ describe('lookupWaterSystem', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when API returns empty array', async () => {
+  it('returns null when all strategies fail', async () => {
     vi.stubGlobal('fetch', makeFetchOk([]));
 
-    const result = await lookupWaterSystem('06', '037');
+    const result = await lookupWaterSystem('06', '037', 'NoCity', '00000');
     expect(result).toBeNull();
   });
 
@@ -104,16 +129,28 @@ describe('lookupWaterSystem', () => {
     expect(result).toBeNull();
   });
 
-  it('converts FIPS state to abbreviation before querying', async () => {
-    const fetchMock = makeFetchOk(SAMPLE_SYSTEMS);
+  it('handles both uppercase and lowercase field names from API', async () => {
+    // Uppercase fields (unit test legacy format) — no city/zip hint, so
+    // only 1 fetch call: largest-in-state fallback.
+    const upperSystems = [
+      {
+        PWSID: 'DC0000001',
+        PWS_NAME: 'DC WATER',
+        PWS_TYPE_CODE: 'CWS',
+        PWS_ACTIVITY_CODE: 'A',
+        POPULATION_SERVED_COUNT: '650000',
+        PRIMARY_SOURCE_CODE: 'SW',
+      },
+    ];
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => upperSystems } as Response);
     vi.stubGlobal('fetch', fetchMock);
 
-    await lookupWaterSystem('48', '201'); // TX, Harris County
-
-    const calledUrl: string = fetchMock.mock.calls[0][0] as string;
-    expect(calledUrl).toContain('STATE_CODE/TX');
-    expect(calledUrl).toContain('PWS_TYPE_CODE/CWS');
-    expect(calledUrl).toContain('PWS_ACTIVITY_CODE/A');
+    // No city/zip hint → straight to largest-in-state
+    const result = await lookupWaterSystem('11', '001');
+    expect(result).not.toBeNull();
+    expect(result!.pwsid).toBe('DC0000001');
+    expect(result!.populationServed).toBe(650000);
   });
 });
 
@@ -124,21 +161,21 @@ describe('lookupWaterSystem', () => {
 describe('fetchSdwisViolations', () => {
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it('maps API rows to WaterViolation shape', async () => {
+  it('maps lowercase API field names to WaterViolation shape', async () => {
     const rows = [
       {
-        VIOLATION_TYPE_CODE: 'MCL',
-        CONTAMINANT_NAME: 'ARSENIC',
-        COMPL_PER_BEGIN_DATE: '2020-01-01',
-        COMPL_PER_END_DATE: '2020-06-01',
-        COMPLIANCE_STATUS_CODE: 'R',
+        violation_type_code: 'MCL',
+        contaminant_name: 'ARSENIC',
+        compl_per_begin_date: '2020-01-01',
+        compl_per_end_date: '2020-06-01',
+        compliance_status_code: 'R',
       },
       {
-        VIOLATION_TYPE_CODE: 'MR',
-        CONTAMINANT_NAME: 'TOTAL COLIFORM',
-        COMPL_PER_BEGIN_DATE: '2019-03-15',
-        COMPL_PER_END_DATE: '',
-        COMPLIANCE_STATUS_CODE: 'O',
+        violation_type_code: 'MR',
+        contaminant_name: 'TOTAL COLIFORM',
+        compl_per_begin_date: '2019-03-15',
+        compl_per_end_date: '',
+        compliance_status_code: 'O',
       },
     ];
     vi.stubGlobal('fetch', makeFetchOk(rows));
@@ -155,6 +192,24 @@ describe('fetchSdwisViolations', () => {
 
     const coliform = result.data!.find((v) => v.contaminant === 'TOTAL COLIFORM')!;
     expect(coliform.isHealthBased).toBe(false);
+  });
+
+  it('also handles uppercase field names (backward compat)', async () => {
+    const rows = [
+      {
+        VIOLATION_TYPE_CODE: 'MCL',
+        CONTAMINANT_NAME: 'ARSENIC',
+        COMPL_PER_BEGIN_DATE: '2020-01-01',
+        COMPL_PER_END_DATE: '2020-06-01',
+        COMPLIANCE_STATUS_CODE: 'R',
+      },
+    ];
+    vi.stubGlobal('fetch', makeFetchOk(rows));
+
+    const result = await fetchSdwisViolations('DC0000001');
+    expect(result.data).toHaveLength(1);
+    expect(result.data![0].type).toBe('MCL');
+    expect(result.data![0].contaminant).toBe('ARSENIC');
   });
 
   it('returns empty array when API returns empty results', async () => {
@@ -183,8 +238,8 @@ describe('fetchSdwisViolations', () => {
 
   it('sorts violations newest-first', async () => {
     const rows = [
-      { VIOLATION_TYPE_CODE: 'MCL', CONTAMINANT_NAME: 'A', COMPL_PER_BEGIN_DATE: '2015-01-01', COMPL_PER_END_DATE: '', COMPLIANCE_STATUS_CODE: 'R' },
-      { VIOLATION_TYPE_CODE: 'MCL', CONTAMINANT_NAME: 'B', COMPL_PER_BEGIN_DATE: '2022-06-01', COMPL_PER_END_DATE: '', COMPLIANCE_STATUS_CODE: 'R' },
+      { violation_type_code: 'MCL', contaminant_name: 'A', compl_per_begin_date: '2015-01-01', compl_per_end_date: '', compliance_status_code: 'R' },
+      { violation_type_code: 'MCL', contaminant_name: 'B', compl_per_begin_date: '2022-06-01', compl_per_end_date: '', compliance_status_code: 'R' },
     ];
     vi.stubGlobal('fetch', makeFetchOk(rows));
 

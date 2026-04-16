@@ -1,5 +1,5 @@
 import { GeocodedAddress, WaterLayerData, SoilLayerData, ExposureAssessment } from '@/types/exposure';
-import { geocodeAddress, lookupWaterSystem } from './geocoding';
+import { geocodeAddress, lookupWaterSystem, extractCityHint, extractZipHint } from './geocoding';
 import { fetchUcmr5PfasData } from './epa-ucmr5';
 import { fetchSdwisViolations } from './epa-sdwis';
 import { fetchLeadRiskData } from './epa-lead';
@@ -42,9 +42,13 @@ export async function fetchFullAssessment(
   }
 
   // Step 2: Look up water system
+  const cityHint = extractCityHint(geocoded) ?? undefined;
+  const zipHint = extractZipHint(geocoded) ?? undefined;
   const waterSystem = await lookupWaterSystem(
     geocoded.fipsState,
-    geocoded.fipsCounty
+    geocoded.fipsCounty,
+    cityHint,
+    zipHint
   );
   if (waterSystem) {
     geocoded.waterSystemId = waterSystem.pwsid;
