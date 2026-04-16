@@ -1,4 +1,4 @@
-import { GeocodedAddress, WaterLayerData, SoilLayerData, ExposureAssessment } from '@/types/exposure';
+import { GeocodedAddress, WaterLayerData, SoilLayerData, AirLayerData, ExposureAssessment } from '@/types/exposure';
 import { geocodeAddress, lookupWaterSystem, extractCityHint, extractZipHint } from './geocoding';
 import { fetchUcmr5PfasData } from './epa-ucmr5';
 import { fetchSdwisViolations } from './epa-sdwis';
@@ -10,8 +10,11 @@ import { fetchNasaPowerData } from './nasa-smap';
 import { fetchWqpPfasData } from './usgs-wqp';
 import { fetchEchoFacilities } from './epa-echo';
 import { fetchAirQualityData } from './openaq';
+import { fetchAqsData } from './epa-aqs';
+import { lookupNonattainment } from './nonattainment';
 import { scoreWaterLayer } from '@/lib/scoring/water-scorer';
 import { scoreSoilLayer } from '@/lib/scoring/soil-scorer';
+import { scoreAirLayer } from '@/lib/scoring/air-scorer';
 import { computeCompositeScore } from '@/lib/scoring/engine';
 
 /**
@@ -92,8 +95,10 @@ export async function fetchFullAssessment(
     fetchFloodZone(geocoded.latitude, geocoded.longitude),
     // [8] Soil moisture / climate (soil)
     fetchNasaPowerData(geocoded.latitude, geocoded.longitude),
-    // [9] Air quality (air)
+    // [9] Air quality — OpenAQ (air)
     fetchAirQualityData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT }),
+    // [10] Air quality — EPA AQS historical (air)
+    fetchAqsData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT * 2 }),
   ]);
 
   // Unwrap settled results — rejected promises become error results
@@ -113,6 +118,7 @@ export async function fetchFullAssessment(
   const floodResult = unwrap(settled[7], 'Flood zone');
   const moistureResult = unwrap(settled[8], 'Soil moisture');
   const airResult = unwrap(settled[9], 'Air quality');
+  const aqsResult = unwrap(settled[10], 'EPA AQS');
 
   // Collect non-fatal errors from successful-but-errored results
   if (pfasResult?.error) errors.push(`PFAS: ${pfasResult.error}`);
@@ -125,6 +131,7 @@ export async function fetchFullAssessment(
   if (floodResult?.error) errors.push(`Flood zone: ${floodResult.error}`);
   if (moistureResult?.error) errors.push(`Soil moisture: ${moistureResult.error}`);
   if (airResult?.error) errors.push(`Air quality: ${airResult.error}`);
+  if (aqsResult?.error) errors.push(`EPA AQS: ${aqsResult.error}`);
 
   // Build water layer data
   const waterData: WaterLayerData = {
@@ -145,18 +152,32 @@ export async function fetchFullAssessment(
     moistureData: moistureResult?.data ?? null,
   };
 
-  // Air data (standalone layer)
-  const airData = airResult?.data ?? null;
+  // Build air layer data — TRI emitter count comes from ECHO facilities
+  const echoFacilities = echoResult?.data?.facilities ?? [];
+  const triEmitterCount = echoFacilities.filter(f => f.programs.includes('TRI')).length;
+
+  const nonattainment = lookupNonattainment(geocoded.fipsState, geocoded.fipsCounty);
+
+  const airData: AirLayerData = {
+    openaq: airResult?.data ?? null,
+    aqs: aqsResult?.data ?? null,
+    nonattainment,
+    triEmitters: triEmitterCount,
+  };
 
   // Step 4: Score layers
   const waterScore = scoreWaterLayer(waterData);
   const soilScore = scoreSoilLayer(soilData);
+  const airScore = scoreAirLayer(airData);
 
-  // Step 5: Compute composite score (MVP: water + soil)
+  // Step 5: Compute composite score (MVP: water + soil only — air scored but not in composite yet)
   const compositeScore = computeCompositeScore({
     water: waterScore,
     soil: soilScore,
   });
+
+  // Attach air score for visibility even though it's not weighted in MVP composite
+  compositeScore.layerScores.air = airScore;
 
   const assessment: ExposureAssessment = {
     id: crypto.randomUUID(),

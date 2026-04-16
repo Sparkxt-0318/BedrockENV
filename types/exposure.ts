@@ -65,7 +65,7 @@ export interface ExposureAssessment {
   compositeScore: CompositeScore;
   waterData?: WaterLayerData;
   soilData?: SoilLayerData;
-  airData?: AirQualityData | null;
+  airData?: AirLayerData;
   dataFreshness: string; // ISO date
   createdAt: string;
 }
@@ -313,4 +313,52 @@ export interface AirQualityData {
   measurements: AirQualityMeasurement[];
   /** Whether any PM2.5 reading exceeds WHO guideline (15 µg/m³ annual). */
   exceedsWhoGuideline: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Air Layer — composite air quality data for scoring
+// ---------------------------------------------------------------------------
+
+export interface AirLayerData {
+  openaq: AirQualityData | null;
+  aqs: AqsData | null;
+  nonattainment: NonattainmentStatus | null;
+  /** ECHO facilities with TRI flag, extracted from soil layer ECHO data. */
+  triEmitters: number;
+}
+
+// ---------------------------------------------------------------------------
+// EPA AQS — Air Quality System historical data
+// ---------------------------------------------------------------------------
+
+export interface AqsAnnualSummary {
+  parameter: string;
+  parameterCode: string;
+  arithmeticMean: number;
+  firstMaxValue: number;
+  unit: string;
+  year: number;
+  observationCount: number;
+  monitorSiteName: string;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
+export interface AqsData {
+  summaries: AqsAnnualSummary[];
+  pm25Annual: number | null;
+  ozoneMax: number | null;
+  year: number;
+}
+
+// ---------------------------------------------------------------------------
+// EPA Green Book — Nonattainment area designations
+// ---------------------------------------------------------------------------
+
+export interface NonattainmentStatus {
+  isNonattainment: boolean;
+  pollutants: string[];
+  classification: string;
+  countyFips: string;
 }
