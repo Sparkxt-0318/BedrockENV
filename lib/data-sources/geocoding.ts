@@ -110,14 +110,16 @@ async function geocodeWithCensus(address: string): Promise<GeocodedAddress | nul
     const coords = match.coordinates;
     const geo = match.geographies;
 
-    // Extract census geography — some addresses lack tract data
+    // Extract census geography — some addresses lack tract data.
+    // BLKGRP lives on the "2020 Census Blocks" layer, not "Census Tracts".
     const censusTract = geo?.['Census Tracts']?.[0];
+    const censusBlock = geo?.['2020 Census Blocks']?.[0];
     const countyData = geo?.['Counties']?.[0];
 
-    const fipsState = censusTract?.STATE || countyData?.STATE || '';
-    const fipsCounty = censusTract?.COUNTY || countyData?.COUNTY || '';
-    const tract = censusTract?.TRACT || '';
-    const blockGroup = censusTract?.BLKGRP || '';
+    const fipsState = censusTract?.STATE || censusBlock?.STATE || countyData?.STATE || '';
+    const fipsCounty = censusTract?.COUNTY || censusBlock?.COUNTY || countyData?.COUNTY || '';
+    const tract = censusTract?.TRACT || censusBlock?.TRACT || '';
+    const blockGroup = censusBlock?.BLKGRP || '';
 
     return {
       raw: address,

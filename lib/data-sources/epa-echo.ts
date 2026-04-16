@@ -1,59 +1,68 @@
 import { EchoFacility, EchoData } from '@/types/exposure';
 import { DataSourceResult, fetchWithTimeout } from './types';
-import { haversineDistance, cardinalDirection } from '@/lib/utils';
 
 /**
  * EPA ECHO — Enforcement and Compliance History Online.
  *
- * Queries the ECHO Facility Search REST API for regulated facilities
- * near a given point. Returns facilities regulated under CWA (water),
- * RCRA (hazardous waste), CAA (air), and other programs, along with
- * their compliance status.
+ * Two-step API flow:
+ *   1. `get_facilities` with lat/lng/radius → returns a QueryID and summary stats
+ *   2. `get_qid` with the QueryID → returns paginated facility rows
  *
- * Significant non-compliance (SNC) flags nearby indicate active
- * environmental enforcement issues — a proximity risk signal.
+ * The API does NOT return longitude in facility rows, so we cannot compute
+ * haversine distances. Instead, we rely on ECHO's radius filter and report
+ * distance as 0 (within the search radius).
  *
- * API: https://echodata.epa.gov/echo/echo_rest_services.get_facilities
+ * API: https://echodata.epa.gov/echo/echo_rest_services
  *
- * Data resolution: PROPERTY-LEVEL (distance from exact coordinates)
+ * Data resolution: PROPERTY-LEVEL (within specified radius)
  */
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const ECHO_FACILITIES_URL =
-  'https://echodata.epa.gov/echo/echo_rest_services.get_facilities';
-
-/** Search radius in miles. */
+const ECHO_BASE = 'https://echodata.epa.gov/echo/echo_rest_services';
 const DEFAULT_RADIUS_MILES = 3;
-
-/** Max facilities to return. */
 const MAX_RESULTS = 25;
 
 // ---------------------------------------------------------------------------
-// ECHO API response types (subset)
+// ECHO API response types
 // ---------------------------------------------------------------------------
 
-interface EchoApiRow {
+interface EchoSearchResponse {
+  Results?: {
+    Message?: string;
+    QueryID?: string;
+    QueryRows?: string;
+    SVRows?: string;
+    CAARows?: string;
+    CWARows?: string;
+    RCRRows?: string;
+    TRIRows?: string;
+  };
+}
+
+interface EchoFacilityRow {
   RegistryID?: string;
   FacName?: string;
   FacLat?: string;
-  FacLong?: string;
-  CWAPermitStatusFlag?: string;
-  RCRAPermitStatusFlag?: string;
-  CAAPermitStatusFlag?: string;
-  SDWISFlag?: string;
+  FacCity?: string;
+  FacState?: string;
+  FacSNCFlg?: string;  // Significant Non-Compliance flag (Y/N)
+  FacComplianceStatus?: string;
+  FacActiveFlag?: string;
+  CAAComplianceStatus?: string;
+  CWAComplianceStatus?: string;
+  RCRAComplianceStatus?: string;
+  SDWAComplianceStatus?: string;
+  AIRFlag?: string;
   TRIFlag?: string;
-  CurrSvFlag?: string; // Current Significant Violation flag (Y/N)
-  CurrVioFlag?: string; // Current Violation flag (Y/N)
-  CurrComplianceStatus?: string;
+  CAAHpvFlag?: string;
 }
 
-interface EchoApiResponse {
+interface EchoQidResponse {
   Results?: {
-    Facilities?: EchoApiRow[];
-    Message?: string;
+    Facilities?: EchoFacilityRow[];
     QueryRows?: string;
   };
 }
@@ -77,33 +86,34 @@ export async function fetchEchoFacilities(
   const radiusMiles = options.radiusMiles ?? DEFAULT_RADIUS_MILES;
   const timeoutMs = options.timeoutMs ?? 4000;
 
-  const params = new URLSearchParams({
+  // Step 1: Get QueryID
+  const searchParams = new URLSearchParams({
     output: 'JSON',
     p_lat: String(latitude),
     p_long: String(longitude),
     p_radius: String(radiusMiles),
-    responseset: String(MAX_RESULTS),
   });
 
-  const url = `${ECHO_FACILITIES_URL}?${params.toString()}`;
+  const searchUrl = `${ECHO_BASE}.get_facilities?${searchParams.toString()}`;
 
   try {
-    const response = await fetchWithTimeout(url, { timeoutMs });
-
-    if (!response.ok) {
+    const searchResp = await fetchWithTimeout(searchUrl, { timeoutMs });
+    if (!searchResp.ok) {
       return {
         data: null,
-        error: `ECHO API returned HTTP ${response.status}`,
+        error: `ECHO search returned HTTP ${searchResp.status}`,
         source,
         cached: false,
         fetchedAt,
       };
     }
 
-    const json = (await response.json()) as EchoApiResponse;
-    const rows = json?.Results?.Facilities;
+    const searchJson = (await searchResp.json()) as EchoSearchResponse;
+    const qid = searchJson?.Results?.QueryID;
+    const totalRows = parseInt(searchJson?.Results?.QueryRows ?? '0', 10);
+    const sncTotal = parseInt(searchJson?.Results?.SVRows ?? '0', 10);
 
-    if (!Array.isArray(rows) || rows.length === 0) {
+    if (!qid || totalRows === 0) {
       return {
         data: { facilities: [], significantViolationCount: 0, totalCount: 0 },
         error: null,
@@ -113,48 +123,74 @@ export async function fetchEchoFacilities(
       };
     }
 
+    // Step 2: Fetch facility details using QueryID
+    const qidParams = new URLSearchParams({
+      output: 'JSON',
+      qid,
+      pageno: '1',
+      pagesize: String(MAX_RESULTS),
+    });
+
+    const qidUrl = `${ECHO_BASE}.get_qid?${qidParams.toString()}`;
+    const qidResp = await fetchWithTimeout(qidUrl, { timeoutMs });
+
+    if (!qidResp.ok) {
+      // Still return summary data from step 1 even if step 2 fails
+      return {
+        data: {
+          facilities: [],
+          significantViolationCount: sncTotal,
+          totalCount: totalRows,
+        },
+        error: `ECHO facility fetch returned HTTP ${qidResp.status}`,
+        source,
+        cached: false,
+        fetchedAt,
+      };
+    }
+
+    const qidJson = (await qidResp.json()) as EchoQidResponse;
+    const rows = qidJson?.Results?.Facilities ?? [];
+
     const facilities: EchoFacility[] = [];
     let sncCount = 0;
 
     for (const row of rows) {
-      const facLat = parseFloat(row.FacLat ?? '');
-      const facLon = parseFloat(row.FacLong ?? '');
-      if (!Number.isFinite(facLat) || !Number.isFinite(facLon)) continue;
-
-      const dist = haversineDistance(latitude, longitude, facLat, facLon);
-      if (dist > radiusMiles) continue;
+      if (row.FacActiveFlag === 'N') continue;
 
       const programs: string[] = [];
-      if (row.CWAPermitStatusFlag === 'Y') programs.push('CWA');
-      if (row.RCRAPermitStatusFlag === 'Y') programs.push('RCRA');
-      if (row.CAAPermitStatusFlag === 'Y') programs.push('CAA');
-      if (row.SDWISFlag === 'Y') programs.push('SDWIS');
+      if (row.CWAComplianceStatus && row.CWAComplianceStatus !== 'None') programs.push('CWA');
+      if (row.RCRAComplianceStatus && row.RCRAComplianceStatus !== 'None') programs.push('RCRA');
+      if (row.CAAComplianceStatus && row.CAAComplianceStatus !== 'None') programs.push('CAA');
+      if (row.SDWAComplianceStatus && row.SDWAComplianceStatus !== 'None') programs.push('SDWIS');
+      if (row.AIRFlag === 'Y') programs.push('AIR');
       if (row.TRIFlag === 'Y') programs.push('TRI');
 
-      const isSNC = row.CurrSvFlag === 'Y';
+      const isSNC = row.FacSNCFlg === 'Y';
       if (isSNC) sncCount++;
+
+      const facLat = parseFloat(row.FacLat ?? '');
 
       facilities.push({
         registryId: row.RegistryID ?? '',
         name: row.FacName ?? 'Unknown Facility',
-        distance: Math.round(dist * 100) / 100,
-        direction: cardinalDirection(latitude, longitude, facLat, facLon),
-        latitude: facLat,
-        longitude: facLon,
+        // ECHO API doesn't return longitude in paginated results — we report 0
+        // since all results are within the search radius.
+        distance: 0,
+        direction: '',
+        latitude: Number.isFinite(facLat) ? facLat : 0,
+        longitude: 0,
         programs,
-        complianceStatus: row.CurrComplianceStatus ?? 'Unknown',
+        complianceStatus: row.FacComplianceStatus ?? 'Unknown',
         significantViolation: isSNC,
       });
     }
-
-    // Sort by distance
-    facilities.sort((a, b) => a.distance - b.distance);
 
     return {
       data: {
         facilities,
         significantViolationCount: sncCount,
-        totalCount: facilities.length,
+        totalCount: totalRows,
       },
       error: null,
       source,

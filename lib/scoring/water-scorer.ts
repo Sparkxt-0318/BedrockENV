@@ -35,15 +35,30 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
   const components: SubComponent[] = [];
 
   // ── 1. PFAS ────────────────────────────────────────────────────────────
+  // Primary source: UCMR 5 (utility-reported, system-level).
+  // Fallback: WQP ambient PFAS monitoring (bbox-based, area-level).
   if (data.pfas) {
     // Log normalize: 0 ppt → 0, 4 ppt (MCL) ≈ 50, 50+ ppt → 100.
     const pfasScore = logNormalize(data.pfas.maxIndividual, 50);
     subScores.pfas = pfasScore;
     activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
     components.push({ score: pfasScore, weight: WATER_SUB_WEIGHTS.pfas, reason: 'present' });
+  } else if (data.wqpPfas && data.wqpPfas.detections.length > 0) {
+    // WQP ambient monitoring — less precise than UCMR 5 (area-level bbox,
+    // not system-specific) but still real measured PFAS concentrations.
+    const pfasScore = logNormalize(data.wqpPfas.maxDetectionPpt, 50);
+    subScores.pfas = pfasScore;
+    activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
+    // Partial coverage — WQP is area-level ambient, not utility-specific.
+    components.push({ score: pfasScore, weight: WATER_SUB_WEIGHTS.pfas, reason: 'partial' });
+  } else if (data.wqpPfas && data.wqpPfas.detections.length === 0) {
+    // WQP was queried successfully but found no PFAS detections nearby.
+    // Score 0 (no PFAS detected) with partial coverage.
+    subScores.pfas = 0;
+    activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
+    components.push({ score: 0, weight: WATER_SUB_WEIGHTS.pfas, reason: 'partial' });
   } else {
-    // No UCMR 5 record for this system. In Step 2 we'll replace this with
-    // USGS WQP lookups; for now the component is simply missing.
+    // Neither UCMR 5 nor WQP returned data.
     components.push({ score: null, weight: WATER_SUB_WEIGHTS.pfas, reason: 'fetch-failed' });
   }
 
@@ -131,9 +146,12 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
     coverage,
     subScores,
     rawData: {
-      pfasMaxPpt: data.pfas?.maxIndividual ?? null,
-      pfasExceedsMcl: data.pfas?.exceedsMcl ?? null,
+      pfasMaxPpt: data.pfas?.maxIndividual ?? data.wqpPfas?.maxDetectionPpt ?? null,
+      pfasExceedsMcl: data.pfas?.exceedsMcl ?? data.wqpPfas?.exceedsMcl ?? null,
       pfasAnalyteCount: data.pfas?.analytes.length ?? 0,
+      pfasSource: data.pfas ? 'ucmr5' : (data.wqpPfas ? 'wqp' : null),
+      wqpDetections: data.wqpPfas?.detections.length ?? 0,
+      wqpMonitoringLocations: data.wqpPfas?.monitoringLocationCount ?? 0,
       violationCount: data.violations.length,
       leadPctPre1986: data.leadRisk?.pctPre1986 ?? null,
       leadPctPre1950: data.leadRisk?.pctPreA1950 ?? null,

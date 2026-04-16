@@ -39,6 +39,19 @@ export async function fetchLeadRiskData(
   censusTract: string,
   censusBlockGroup: string
 ): Promise<DataSourceResult<LeadRiskData>> {
+  // Guard: Census ACS requires state, county, tract, and block group.
+  // Mapbox-geocoded addresses lack tract/block group — skip rather than
+  // sending a malformed request that returns HTTP 400.
+  if (!fipsState || !fipsCounty || !censusTract || !censusBlockGroup) {
+    return {
+      data: null,
+      error: 'Census tract/block group not available (Mapbox geocoded)',
+      source: 'U.S. Census ACS B25034',
+      cached: false,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
   const apiKey = process.env.CENSUS_API_KEY;
   const keyParam = apiKey ? `&key=${apiKey}` : '';
 

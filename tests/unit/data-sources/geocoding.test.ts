@@ -39,6 +39,13 @@ function makeCensusResponse(overrides: {
                 STATE: overrides.STATE ?? '11',
                 COUNTY: overrides.COUNTY ?? '001',
                 TRACT: overrides.TRACT ?? '010100',
+              },
+            ],
+            '2020 Census Blocks': [
+              {
+                STATE: overrides.STATE ?? '11',
+                COUNTY: overrides.COUNTY ?? '001',
+                TRACT: overrides.TRACT ?? '010100',
                 BLKGRP: overrides.BLKGRP ?? '1',
               },
             ],
