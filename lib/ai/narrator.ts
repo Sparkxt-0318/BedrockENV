@@ -135,12 +135,19 @@ function buildFallbackNarrative(assessment: ExposureAssessment): string {
   const { address, compositeScore, waterData, soilData } = assessment;
   const paragraphs: string[] = [];
 
-  // Paragraph 1: Lead finding
-  const score = compositeScore.score;
-  const level = score <= 25 ? 'low' : score <= 50 ? 'moderate' : score <= 75 ? 'elevated' : 'high';
-  paragraphs.push(
-    `The environmental exposure assessment for ${address.normalized} shows a composite score of ${score} out of 100, indicating ${level} cumulative environmental exposure burden based on ${compositeScore.layersIncluded.length} data layer(s) analyzed.`
-  );
+  // Paragraph 1: Lead finding — handle insufficient-data case
+  if (compositeScore.sufficient === false) {
+    const pct = Math.round((compositeScore.coverage ?? 0) * 100);
+    paragraphs.push(
+      `The environmental exposure assessment for ${address.normalized} has insufficient data coverage (${pct}%) to produce a reliable composite score. The score of ${compositeScore.score} out of 100 is based on ${compositeScore.layersIncluded.length} data layer(s), but key sub-components could not be populated for this location. The per-layer scores below may still be useful.`
+    );
+  } else {
+    const score = compositeScore.score;
+    const level = score <= 25 ? 'low' : score <= 50 ? 'moderate' : score <= 75 ? 'elevated' : 'high';
+    paragraphs.push(
+      `The environmental exposure assessment for ${address.normalized} shows a composite score of ${score} out of 100, indicating ${level} cumulative environmental exposure burden based on ${compositeScore.layersIncluded.length} data layer(s) analyzed.`
+    );
+  }
 
   // Paragraph 2: Layer details
   if (waterData) {
@@ -175,9 +182,15 @@ function buildFallbackNarrative(assessment: ExposureAssessment): string {
   }
 
   // Paragraph 3: Confidence
-  paragraphs.push(
-    `This assessment is based on ${compositeScore.confidence} confidence data. Water data is reported at the water system level (area-level resolution), while soil and flood zone data ranges from neighborhood to property-level precision.`
-  );
+  if (compositeScore.confidence === 'insufficient') {
+    paragraphs.push(
+      `Data coverage for this location is limited. Some data sources did not return results, which reduces the reliability of the overall score. Per-layer details above reflect only the data that was available.`
+    );
+  } else {
+    paragraphs.push(
+      `This assessment is based on ${compositeScore.confidence} confidence data. Water data is reported at the water system level (area-level resolution), while soil and flood zone data ranges from neighborhood to property-level precision.`
+    );
+  }
 
   return paragraphs.join('\n\n');
 }

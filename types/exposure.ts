@@ -8,13 +8,33 @@ export interface LayerScore {
   score: number; // 0–100
   confidence: DataResolution;
   available: boolean;
+  /**
+   * Fraction (0..1) of this layer's scoring model that was actually
+   * populated for this location. 1.0 means every sub-component we care
+   * about returned real data; 0.0 means nothing useful landed and the
+   * layer is effectively empty.
+   */
+  coverage: number;
   subScores: Record<string, number>;
   rawData: Record<string, unknown>;
 }
 
+export type CompositeConfidence = 'high' | 'moderate' | 'low' | 'insufficient';
+
 export interface CompositeScore {
-  score: number; // 0–100
-  confidence: 'high' | 'moderate' | 'low';
+  score: number; // 0–100 (still emitted when insufficient — gated by `sufficient`)
+  confidence: CompositeConfidence;
+  /**
+   * Whether the composite has enough coverage to publish a number as
+   * the headline. When `false`, the UI should show "Insufficient data
+   * for full scoring" and surface only the per-layer sub-scores we do
+   * have, alongside the `coverage` fraction.
+   */
+  sufficient: boolean;
+  /** 0..1 — reweighted-weighted mean of included layers' coverages. */
+  coverage: number;
+  /** Snapshot of the scoring pipeline version this composite was built with. */
+  scoringVersion: number;
   layersIncluded: ExposureLayer[];
   layerScores: Partial<Record<ExposureLayer, LayerScore>>;
 }

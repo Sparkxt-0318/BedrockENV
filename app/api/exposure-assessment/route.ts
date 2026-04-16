@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullAssessment } from '@/lib/data-sources';
 import { checkRateLimit, hashIp, UserTier } from '@/lib/rate-limit';
 import { createServerClient } from '@supabase/ssr';
+import { SCORING_VERSION } from '@/lib/scoring/version';
 
 /**
  * GET /api/exposure-assessment?address=...
@@ -128,11 +129,15 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .single();
 
-      if (cached) {
+      // Skip rows whose scoring_version doesn't match the current pipeline.
+      // NULL scoring_version (pre-Step-1 rows) is treated as version 0 → stale.
+      if (cached && (cached.scoring_version ?? 0) === SCORING_VERSION) {
         // Log the search
         await logSearch(supabase, userId, address, cached.id, identifier);
 
         // Reconstruct ExposureAssessment from cached row
+        const cachedCoverage = cached.coverage != null ? Number(cached.coverage) : 0;
+        const cachedSufficient = cached.sufficient ?? false;
         return NextResponse.json({
           data: {
             id: cached.id,
@@ -150,12 +155,16 @@ export async function GET(request: NextRequest) {
             compositeScore: {
               score: Number(cached.composite_score) || 0,
               confidence: cached.composite_confidence || 'low',
+              sufficient: cachedSufficient,
+              coverage: cachedCoverage,
+              scoringVersion: cached.scoring_version ?? 0,
               layersIncluded: cached.layers_available || [],
               layerScores: {
                 water: cached.water_score != null ? {
                   score: Number(cached.water_score),
                   confidence: cached.water_confidence || 'area',
                   available: true,
+                  coverage: 1,
                   subScores: {},
                   rawData: {},
                 } : undefined,
@@ -163,6 +172,7 @@ export async function GET(request: NextRequest) {
                   score: Number(cached.soil_score),
                   confidence: cached.soil_confidence || 'area',
                   available: true,
+                  coverage: 1,
                   subScores: {},
                   rawData: {},
                 } : undefined,
@@ -220,6 +230,9 @@ export async function GET(request: NextRequest) {
           water_system_id: a.address.waterSystemId || null,
           composite_score: a.compositeScore.score,
           composite_confidence: a.compositeScore.confidence,
+          scoring_version: a.compositeScore.scoringVersion,
+          coverage: a.compositeScore.coverage,
+          sufficient: a.compositeScore.sufficient,
           water_score: waterScore?.score ?? null,
           water_confidence: waterScore?.confidence ?? null,
           soil_score: soilScore?.score ?? null,

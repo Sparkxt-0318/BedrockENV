@@ -108,6 +108,8 @@ describe('Soil Scorer', () => {
     expect(result.available).toBe(true);
     expect(result.confidence).toBe('neighborhood');
     expect(result.score).toBeLessThan(30);
+    // All 4 sub-components present → full coverage
+    expect(result.coverage).toBe(1);
   });
 
   it('penalizes brownfield-only (no flood) proportionally to proximity', () => {
@@ -207,9 +209,11 @@ describe('Soil Scorer', () => {
     // Without SSURGO the resolution drops from neighborhood to area.
     expect(result.confidence).toBe('area');
     expect(result.score).toBeGreaterThan(0);
+    // 3 of 4 components present, 1 unmapped → coverage = (0.35+0.25+0.10) / 1.0 = 0.70
+    expect(result.coverage).toBeCloseTo(0.7, 10);
   });
 
-  it('returns available:false when every soil input is null/unmapped', () => {
+  it('returns available:false with 0 coverage when every soil input is null/unmapped', () => {
     const result = scoreSoilLayer(
       buildSoilData({
         ssurgo: null,
@@ -221,6 +225,7 @@ describe('Soil Scorer', () => {
     expect(result.available).toBe(false);
     expect(result.score).toBe(0);
     expect(result.confidence).toBe('area');
+    expect(result.coverage).toBe(0);
   });
 
   it('returns available:false when ssurgo unmapped and other clients failed', () => {

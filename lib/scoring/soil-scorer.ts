@@ -1,5 +1,9 @@
 import { SoilLayerData, LayerScore, BrownfieldSite, FloodZoneData } from '@/types/exposure';
 import { DataResolution } from '@/types/resolution';
+import {
+  SubComponent,
+  computeLayerCoverage,
+} from './coverage';
 
 /**
  * Soil Sub-Score (0–100). Higher = more exposure risk.
@@ -31,6 +35,7 @@ const UNAVAILABLE_LAYER: LayerScore = {
   score: 0,
   confidence: 'area',
   available: false,
+  coverage: 0,
   subScores: {},
   rawData: {},
 };
@@ -38,32 +43,58 @@ const UNAVAILABLE_LAYER: LayerScore = {
 export function scoreSoilLayer(data: SoilLayerData): LayerScore {
   const subScores: Record<string, number> = {};
   const activeWeights: Record<string, number> = {};
+  const components: SubComponent[] = [];
 
   // ── 1. Soil health (SSURGO pH + OM + drainage) ────────────────────────────
   //
-  // Only score health when SSURGO has real chemistry data. Unmapped points
-  // and fetch failures drop this component and re-weight the rest.
-  const ssurgoUsable =
-    data.ssurgo != null && data.ssurgo.coverage !== 'unmapped';
+  // SSURGO drives presence for this sub-component:
+  //   coverage === 'mapped'   → 'present' (full chemistry)
+  //   coverage === 'partial'  → 'partial' (mapunit intersected but fields thin)
+  //   coverage === 'unmapped' → 'unmapped' (outside any survey polygon)
+  //   null                    → 'fetch-failed' (client failure)
+  const ssurgo = data.ssurgo;
+  const ssurgoUsable = ssurgo != null && ssurgo.coverage !== 'unmapped';
 
-  if (ssurgoUsable && data.ssurgo) {
-    const phScore = scorePh(data.ssurgo.phRange);
-    const omScore = scoreOrganicMatter(data.ssurgo.organicMatterPct);
-    const drainageScore = scoreDrainage(data.ssurgo.drainageClass);
+  if (ssurgoUsable && ssurgo) {
+    const phScore = scorePh(ssurgo.phRange);
+    const omScore = scoreOrganicMatter(ssurgo.organicMatterPct);
+    const drainageScore = scoreDrainage(ssurgo.drainageClass);
     subScores.health = Math.round(
       phScore * 0.35 + omScore * 0.40 + drainageScore * 0.25
     );
     activeWeights.health = SOIL_SUB_WEIGHTS.health;
+    components.push({
+      score: subScores.health,
+      weight: SOIL_SUB_WEIGHTS.health,
+      reason: ssurgo.coverage === 'partial' ? 'partial' : 'present',
+    });
+  } else {
+    components.push({
+      score: null,
+      weight: SOIL_SUB_WEIGHTS.health,
+      reason: ssurgo == null ? 'fetch-failed' : 'unmapped',
+    });
   }
 
   // ── 2. Contamination proximity (EPA brownfields) ──────────────────────────
   //
-  // `brownfields == null` means the client failed — drop this sub-score.
-  // An empty array means the client succeeded with no hits — that's a
-  // positive signal (contamination = 0).
+  // `brownfields == null` means the client failed — drop this sub-score and
+  // mark 'fetch-failed'. An empty array means the client succeeded with no
+  // hits — that's a positive signal (contamination = 0) and full credit.
   if (data.brownfields != null) {
     subScores.contamination = scoreBrownfieldProximity(data.brownfields);
     activeWeights.contamination = SOIL_SUB_WEIGHTS.contamination;
+    components.push({
+      score: subScores.contamination,
+      weight: SOIL_SUB_WEIGHTS.contamination,
+      reason: 'present',
+    });
+  } else {
+    components.push({
+      score: null,
+      weight: SOIL_SUB_WEIGHTS.contamination,
+      reason: 'fetch-failed',
+    });
   }
 
   // ── 3. Flood-contamination compound (SFHA × brownfield density) ───────────
@@ -81,12 +112,40 @@ export function scoreSoilLayer(data: SoilLayerData): LayerScore {
       data.brownfields
     );
     activeWeights.floodContamination = SOIL_SUB_WEIGHTS.floodContamination;
+    components.push({
+      score: subScores.floodContamination,
+      weight: SOIL_SUB_WEIGHTS.floodContamination,
+      reason: 'present',
+    });
+  } else {
+    // Pick the best reason we have. NFHL unmapped dominates (it's a genuine
+    // coverage hole); missing brownfields is a fetch failure.
+    let reason: SubComponent['reason'] = 'fetch-failed';
+    if (data.floodZone == null) reason = 'fetch-failed';
+    else if (data.floodZone.coverage === 'unmapped') reason = 'unmapped';
+    else if (data.brownfields == null) reason = 'fetch-failed';
+    components.push({
+      score: null,
+      weight: SOIL_SUB_WEIGHTS.floodContamination,
+      reason,
+    });
   }
 
   // ── 4. Climate stress (NASA POWER aridity index + trend) ──────────────────
   if (data.moistureData) {
     subScores.climateStress = scoreClimateStress(data.moistureData);
     activeWeights.climateStress = SOIL_SUB_WEIGHTS.climateStress;
+    components.push({
+      score: subScores.climateStress,
+      weight: SOIL_SUB_WEIGHTS.climateStress,
+      reason: 'present',
+    });
+  } else {
+    components.push({
+      score: null,
+      weight: SOIL_SUB_WEIGHTS.climateStress,
+      reason: 'fetch-failed',
+    });
   }
 
   // ── Combine ───────────────────────────────────────────────────────────────
@@ -104,11 +163,13 @@ export function scoreSoilLayer(data: SoilLayerData): LayerScore {
   }
 
   const confidence: DataResolution = ssurgoUsable ? 'neighborhood' : 'area';
+  const coverage = computeLayerCoverage(components);
 
   return {
     score: Math.round(clamp(soilScore, 0, 100)),
     confidence,
     available: true,
+    coverage,
     subScores,
     rawData: {
       ssurgoCoverage: data.ssurgo?.coverage ?? 'unavailable',
@@ -124,6 +185,10 @@ export function scoreSoilLayer(data: SoilLayerData): LayerScore {
       aridityIndex: data.moistureData?.aridityIndex ?? null,
       precipitationAvgMm: data.moistureData?.precipitationAvgMm ?? null,
       weightsUsed: activeWeights,
+      coverageBreakdown: components.map((c) => ({
+        weight: c.weight,
+        reason: c.reason,
+      })),
     },
   };
 }

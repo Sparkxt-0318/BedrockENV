@@ -6,16 +6,26 @@ interface ExposureScoreGaugeProps {
 }
 
 export function ExposureScoreGauge({ compositeScore }: ExposureScoreGaugeProps) {
-  const { score, confidence, layersIncluded } = compositeScore;
-  const color = getExposureColor(score);
-  const label = getExposureLabel(score);
+  const { score, confidence, layersIncluded, sufficient } = compositeScore;
+  const isInsufficient = confidence === 'insufficient' || sufficient === false;
+  const color = isInsufficient ? 'var(--text-tertiary)' : getExposureColor(score);
+  const label = isInsufficient ? 'Insufficient Data' : getExposureLabel(score);
 
   // SVG circular gauge
   const size = 200;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = (score / 100) * circumference;
+  const progress = isInsufficient ? 0 : (score / 100) * circumference;
+
+  const confidenceLabel =
+    confidence === 'insufficient'
+      ? 'Insufficient'
+      : confidence === 'high'
+        ? 'High'
+        : confidence === 'moderate'
+          ? 'Moderate'
+          : 'Low';
 
   return (
     <div className="flex flex-col items-center">
@@ -46,28 +56,29 @@ export function ExposureScoreGauge({ compositeScore }: ExposureScoreGaugeProps) 
         </svg>
         {/* Score text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className="font-[family-name:var(--font-instrument-serif)] text-5xl"
-            style={{ color }}
-          >
-            {score}
+          {isInsufficient ? (
+            <span className="text-2xl text-text-tertiary">—</span>
+          ) : (
+            <span
+              className="font-[family-name:var(--font-instrument-serif)] text-5xl"
+              style={{ color }}
+            >
+              {score}
+            </span>
+          )}
+          <span className="text-sm text-text-secondary mt-1">
+            {isInsufficient ? 'insufficient data' : 'out of 100'}
           </span>
-          <span className="text-sm text-text-secondary mt-1">out of 100</span>
         </div>
       </div>
 
       {/* Label and confidence */}
       <div className="mt-4 text-center">
         <p className="text-lg font-semibold" style={{ color }}>
-          {label} Exposure
+          {label}{isInsufficient ? '' : ' Exposure'}
         </p>
         <p className="text-sm text-text-tertiary mt-1">
-          {confidence === 'high'
-            ? 'High'
-            : confidence === 'moderate'
-              ? 'Moderate'
-              : 'Low'}{' '}
-          confidence — based on {layersIncluded.length} of 5 data layers
+          {confidenceLabel} confidence — based on {layersIncluded.length} of 5 data layers
         </p>
       </div>
     </div>

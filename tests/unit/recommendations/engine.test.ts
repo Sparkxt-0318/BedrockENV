@@ -27,6 +27,9 @@ function buildAssessment(opts: {
     compositeScore: {
       score: opts.composite?.score ?? 50,
       confidence: opts.composite?.confidence ?? 'moderate',
+      sufficient: opts.composite?.sufficient ?? true,
+      coverage: opts.composite?.coverage ?? 1,
+      scoringVersion: opts.composite?.scoringVersion ?? 1,
       layersIncluded: opts.composite?.layersIncluded ?? ['water', 'soil'],
       layerScores: opts.composite?.layerScores ?? {},
     },

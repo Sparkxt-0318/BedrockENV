@@ -5,12 +5,14 @@ import type { LayerScore } from '@/types/exposure';
 function layer(
   score: number,
   confidence: LayerScore['confidence'] = 'neighborhood',
-  available = true
+  available = true,
+  coverage = 1
 ): LayerScore {
   return {
     score,
     confidence,
     available,
+    coverage,
     subScores: {},
     rawData: {},
   };
@@ -25,6 +27,9 @@ describe('Composite Scorer', () => {
     // 80 * 0.55 + 20 * 0.45 = 44 + 9 = 53
     expect(result.score).toBe(53);
     expect(result.layersIncluded).toEqual(['water', 'soil']);
+    expect(result.coverage).toBe(1);
+    expect(result.sufficient).toBe(true);
+    expect(result.scoringVersion).toBeGreaterThanOrEqual(1);
   });
 
   it('passes through water-only when soil is unavailable (no artificial penalty)', () => {
@@ -47,14 +52,36 @@ describe('Composite Scorer', () => {
     expect(result.confidence).toBe('moderate'); // neighborhood → moderate
   });
 
-  it('returns empty result with low confidence when both layers are unavailable', () => {
+  it('returns insufficient when both layers are unavailable', () => {
     const result = computeCompositeScore({
       water: layer(0, 'area', false),
       soil: layer(0, 'neighborhood', false),
     });
     expect(result.score).toBe(0);
-    expect(result.confidence).toBe('low');
+    expect(result.confidence).toBe('insufficient');
+    expect(result.sufficient).toBe(false);
+    expect(result.coverage).toBe(0);
     expect(result.layersIncluded).toEqual([]);
+  });
+
+  it('clamps confidence to low when coverage is between 0.35 and 0.60', () => {
+    // Water with 0.50 coverage (partial data), no soil
+    const result = computeCompositeScore({
+      water: layer(60, 'property', true, 0.50),
+      soil: layer(0, 'area', false, 0),
+    });
+    // 0.50 is above 0.35 (sufficient) but below 0.60 (low-capped)
+    expect(result.sufficient).toBe(true);
+    expect(result.confidence).toBe('low');
+  });
+
+  it('marks insufficient when coverage below 0.35', () => {
+    const result = computeCompositeScore({
+      water: layer(60, 'property', true, 0.30),
+      soil: layer(0, 'area', false, 0),
+    });
+    expect(result.sufficient).toBe(false);
+    expect(result.confidence).toBe('insufficient');
   });
 
   it('composite confidence inherits the lowest resolution among included layers', () => {
