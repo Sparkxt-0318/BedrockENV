@@ -56,7 +56,7 @@ describe('Water Scorer', () => {
         },
       })
     );
-    expect(result.score).toBeGreaterThan(25);
+    expect(result.score).toBeGreaterThan(20);
   });
 
   it('returns an elevated score for PFAS detected below MCL', () => {

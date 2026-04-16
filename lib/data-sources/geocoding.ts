@@ -21,13 +21,28 @@ export async function geocodeAddress(address: string): Promise<GeocodedAddress |
   if (mapboxResult) {
     console.info('Geocoded via Mapbox fallback for:', address);
 
-    // Mapbox doesn't provide county FIPS. Use the FCC Census API to fill
-    // in county FIPS from lat/lng so downstream water system lookup works.
-    if (!mapboxResult.fipsCounty && mapboxResult.latitude && mapboxResult.longitude) {
-      const fcc = await enrichWithFccCensus(mapboxResult.latitude, mapboxResult.longitude);
-      if (fcc) {
-        if (fcc.fipsCounty) mapboxResult.fipsCounty = fcc.fipsCounty;
-        if (fcc.fipsState && !mapboxResult.fipsState) mapboxResult.fipsState = fcc.fipsState;
+    // Mapbox doesn't provide census tract/block group or county FIPS.
+    // Use the Census coordinate-based geocoder to fill in tract + block group,
+    // then fall back to FCC Census API for county FIPS if still missing.
+    if (mapboxResult.latitude && mapboxResult.longitude) {
+      const censusTract = await enrichWithCensusCoordinates(
+        mapboxResult.latitude,
+        mapboxResult.longitude
+      );
+      if (censusTract) {
+        if (censusTract.fipsState) mapboxResult.fipsState = censusTract.fipsState;
+        if (censusTract.fipsCounty) mapboxResult.fipsCounty = censusTract.fipsCounty;
+        if (censusTract.censusTract) mapboxResult.censusTract = censusTract.censusTract;
+        if (censusTract.censusBlockGroup) mapboxResult.censusBlockGroup = censusTract.censusBlockGroup;
+      }
+
+      // Fall back to FCC for county FIPS if Census coordinate lookup didn't provide it
+      if (!mapboxResult.fipsCounty) {
+        const fcc = await enrichWithFccCensus(mapboxResult.latitude, mapboxResult.longitude);
+        if (fcc) {
+          if (fcc.fipsCounty) mapboxResult.fipsCounty = fcc.fipsCounty;
+          if (fcc.fipsState && !mapboxResult.fipsState) mapboxResult.fipsState = fcc.fipsState;
+        }
       }
     }
 
@@ -196,6 +211,54 @@ async function geocodeWithMapbox(address: string): Promise<GeocodedAddress | nul
     };
   } catch (err) {
     console.error('Mapbox geocoding error:', err);
+    return null;
+  }
+}
+
+/**
+ * Census Bureau coordinate-based geocoder — converts lat/lng to census tract
+ * and block group.
+ *
+ * This uses the same Census geocoder but with coordinates instead of an address.
+ * It's useful when Mapbox geocoding succeeds (giving us lat/lng) but the
+ * address-based Census geocoder doesn't match the address string.
+ *
+ * URL: https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x={lon}&y={lat}&benchmark=Public_AR_Current&vintage=Current_Current&format=json
+ *
+ * Non-fatal: returns null if the API fails or returns unexpected data.
+ */
+async function enrichWithCensusCoordinates(
+  lat: number,
+  lng: number
+): Promise<{
+  fipsState: string;
+  fipsCounty: string;
+  censusTract: string;
+  censusBlockGroup: string;
+} | null> {
+  const url = `https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x=${lng}&y=${lat}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`;
+
+  try {
+    const response = await fetchWithRetry(url, { timeoutMs: 15_000, retries: 1 });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const geo = data?.result?.geographies;
+    if (!geo) return null;
+
+    const censusTract = geo?.['Census Tracts']?.[0];
+    const censusBlock = geo?.['2020 Census Blocks']?.[0];
+
+    const fipsState = censusTract?.STATE || censusBlock?.STATE || '';
+    const fipsCounty = censusTract?.COUNTY || censusBlock?.COUNTY || '';
+    const tract = censusTract?.TRACT || censusBlock?.TRACT || '';
+    const blockGroup = censusBlock?.BLKGRP || '';
+
+    if (!fipsState) return null;
+
+    return { fipsState, fipsCounty, censusTract: tract, censusBlockGroup: blockGroup };
+  } catch {
+    // Non-fatal — tract enrichment is best-effort
     return null;
   }
 }

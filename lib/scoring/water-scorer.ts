@@ -10,9 +10,9 @@ import {
  * Water Sub-Score (0–100)
  *
  * Sub-components (weights within the layer, sum to 1.00):
- *   pfas        0.40 — max individual PFAS concentration (UCMR 5)
+ *   pfas        0.35 — max individual PFAS concentration (UCMR 5 or WQP)
  *   lead        0.30 — housing-age-derived service-line exposure (Census)
- *   violations  0.30 — health-based SDWIS violations + active flag
+ *   violations  0.35 — health-based SDWIS violations + active count
  *
  * Coverage is tracked alongside the score. A sub-component with no data
  * contributes 0 to coverage AND drops its weight from the score's
@@ -24,9 +24,9 @@ import {
  */
 
 const WATER_SUB_WEIGHTS = {
-  pfas: 0.40,
+  pfas: 0.35,
   lead: 0.30,
-  violations: 0.30,
+  violations: 0.35,
 } as const;
 
 export function scoreWaterLayer(data: WaterLayerData): LayerScore {
@@ -91,6 +91,8 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
   const hasSystemId = typeof data.systemId === 'string' && data.systemId.length > 0;
   if (data.violations.length > 0) {
     const stats = computeViolationStats(data.violations);
+
+    // Health-based violations in last 5 years are the strongest signal.
     const healthScore = stepNormalize(stats.healthBased5yr, [
       { value: 0, score: 0 },
       { value: 1, score: 30 },
@@ -99,9 +101,24 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
       { value: 5, score: 80 },
       { value: 10, score: 95 },
     ]);
-    const activeBoost = stats.activeCount > 0 ? 15 : 0;
-    const totalContrib = linearNormalize(stats.last10Years, 0, 20) * 0.2;
-    subScores.violations = Math.min(100, Math.round(healthScore + activeBoost + totalContrib));
+
+    // Active (unresolved) violations indicate ongoing regulatory issues.
+    // Scaled by count: 1 active = 20, 3+ = 30, 5+ = 40.
+    const activeBoost = stepNormalize(stats.activeCount, [
+      { value: 0, score: 0 },
+      { value: 1, score: 20 },
+      { value: 3, score: 30 },
+      { value: 5, score: 40 },
+      { value: 10, score: 50 },
+    ]);
+
+    // Total recent violations contribute proportionally.
+    // 10yr count / 20 → 0-100, weighted at 0.35 (up from 0.2).
+    const totalContrib = linearNormalize(stats.last10Years, 0, 20) * 0.35;
+
+    subScores.violations = Math.min(100, Math.round(
+      Math.max(healthScore, activeBoost) + totalContrib
+    ));
     activeWeights.violations = WATER_SUB_WEIGHTS.violations;
     components.push({
       score: subScores.violations,

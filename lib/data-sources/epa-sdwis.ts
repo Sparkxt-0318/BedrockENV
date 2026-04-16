@@ -36,12 +36,29 @@ function fieldNum(row: Row, name: string): number {
 // Violations
 // ---------------------------------------------------------------------------
 
-// Health-based violation type codes (MCL violations are more severe than monitoring)
-const HEALTH_BASED_TYPES = new Set([
-  'MCL',   // Maximum Contaminant Level
-  'MRDL',  // Maximum Residual Disinfectant Level
-  'TT',    // Treatment Technique
-]);
+// Contaminant code → human-readable name mapping (common codes)
+const CONTAMINANT_NAMES: Record<string, string> = {
+  '1005': 'Lead',
+  '1007': 'Copper',
+  '1024': 'Fluoride',
+  '1025': 'Nitrite',
+  '1040': 'Nitrate',
+  '1074': 'Arsenic',
+  '2050': 'Total Trihalomethanes',
+  '2456': 'Total Haloacetic Acids',
+  '2950': 'Chlorine',
+  '3014': 'E. coli',
+  '3100': 'Total Coliform',
+  '4000': 'Radionuclides Rule',
+  '5000': 'Lead & Copper Rule',
+  '5100': 'Stage 1 DBP Rule',
+  '5200': 'Stage 2 DBP Rule',
+  '5400': 'Ground Water Rule',
+  '5500': 'Aircraft Drinking Water Rule',
+  '5800': 'Revised Total Coliform Rule',
+  '7000': 'Consumer Confidence Report',
+  '7500': 'Public Notification Rule',
+};
 
 export async function fetchSdwisViolations(
   pwsid: string
@@ -74,14 +91,32 @@ export async function fetchSdwisViolations(
     }
 
     const violations: WaterViolation[] = results.map((v) => {
-      const typeCode = field(v, 'violation_type_code').toUpperCase();
+      // The API uses violation_category_code; legacy data may have violation_type_code.
+      const categoryCode = (
+        field(v, 'violation_category_code') || field(v, 'violation_type_code')
+      ).toUpperCase();
+
+      // Contaminant: API uses contaminant_code; look up human-readable name.
+      const contaminantCode = field(v, 'contaminant_code');
+      const contaminantName = field(v, 'contaminant_name');
+      const contaminant = contaminantName
+        || CONTAMINANT_NAMES[contaminantCode]
+        || contaminantCode
+        || 'Unknown';
+
+      // The API provides is_health_based_ind directly (Y/N).
+      // Fall back to category code if the indicator is missing.
+      const healthInd = field(v, 'is_health_based_ind').toUpperCase();
+      const isHealthBased = healthInd === 'Y' ||
+        categoryCode === 'MCL' || categoryCode === 'MRDL' || categoryCode === 'TT';
+
       return {
-        type: typeCode || 'Unknown',
-        contaminant: field(v, 'contaminant_name') || field(v, 'contaminant_code') || 'Unknown',
+        type: categoryCode || 'Unknown',
+        contaminant,
         beginDate: field(v, 'compl_per_begin_date'),
         endDate: field(v, 'compl_per_end_date') || undefined,
         status: field(v, 'compliance_status_code') || 'Unknown',
-        isHealthBased: HEALTH_BASED_TYPES.has(typeCode),
+        isHealthBased,
       };
     });
 

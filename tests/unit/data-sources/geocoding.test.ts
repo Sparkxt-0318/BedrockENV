@@ -138,10 +138,12 @@ describe('geocodeAddress (mocked fetch)', () => {
     expect(result).toBeNull();
   });
 
-  it('falls back to Mapbox when Census returns empty and token is set', async () => {
+  it('falls back to Mapbox and enriches tract via Census coordinate lookup', async () => {
     process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
 
-    // First call → Census (empty), second call → Mapbox (success)
+    // Call 1: Census address geocoder → empty
+    // Call 2: Mapbox → success
+    // Call 3: Census coordinate geocoder → enriches tract/block group
     vi.stubGlobal(
       'fetch',
       vi
@@ -156,18 +158,28 @@ describe('geocodeAddress (mocked fetch)', () => {
           status: 200,
           json: async () => makeMapboxResponse({ regionCode: 'US-DC' }),
         })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            result: {
+              geographies: {
+                'Census Tracts': [{ STATE: '11', COUNTY: '001', TRACT: '010100' }],
+                '2020 Census Blocks': [{ STATE: '11', COUNTY: '001', TRACT: '010100', BLKGRP: '1' }],
+              },
+            },
+          }),
+        })
     );
 
     const result = await geocodeAddress('1600 Pennsylvania Ave NW, DC');
 
     expect(result).not.toBeNull();
     expect(result!.source).toBe('mapbox');
-    // DC from "US-DC" → FIPS '11'
     expect(result!.fipsState).toBe('11');
-    // County FIPS unavailable via Mapbox
-    expect(result!.fipsCounty).toBe('');
-    expect(result!.censusTract).toBe('');
-    expect(result!.censusBlockGroup).toBe('');
+    expect(result!.fipsCounty).toBe('001');
+    expect(result!.censusTract).toBe('010100');
+    expect(result!.censusBlockGroup).toBe('1');
   });
 
   it('normalises Mapbox region_code "CA" (no country prefix) to FIPS 06', async () => {
@@ -188,11 +200,26 @@ describe('geocodeAddress (mocked fetch)', () => {
           json: async () =>
             makeMapboxResponse({ regionCode: 'CA', lng: -118.243, lat: 34.052 }),
         })
+        // Census coordinate lookup (enrichment)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            result: {
+              geographies: {
+                'Census Tracts': [{ STATE: '06', COUNTY: '037', TRACT: '207110' }],
+                '2020 Census Blocks': [{ STATE: '06', COUNTY: '037', TRACT: '207110', BLKGRP: '2' }],
+              },
+            },
+          }),
+        })
     );
 
     const result = await geocodeAddress('123 Main St, Los Angeles, CA');
     expect(result!.source).toBe('mapbox');
     expect(result!.fipsState).toBe('06');
+    expect(result!.fipsCounty).toBe('037');
+    expect(result!.censusTract).toBe('207110');
   });
 
   it('returns null when both Census and Mapbox fail', async () => {
