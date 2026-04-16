@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { fetchAirQualityData } from '@/lib/data-sources/openaq';
 
 function makeFetchOk(body: unknown) {
@@ -10,17 +10,37 @@ function makeFetchOk(body: unknown) {
 }
 
 describe('fetchAirQualityData', () => {
+  beforeEach(() => {
+    // Provide a test API key so the client doesn't short-circuit
+    vi.stubGlobal('process', {
+      ...process,
+      env: { ...process.env, OPENAQ_API_KEY: 'test-key-123' },
+    });
+  });
+
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it('parses OpenAQ response into AirQualityData', async () => {
+  it('parses OpenAQ v3 response into AirQualityData', async () => {
     const body = {
       results: [
         {
-          location: 'Newark Firehouse',
+          id: 1,
+          name: 'Newark Firehouse',
           coordinates: { latitude: 40.735, longitude: -74.17 },
-          measurements: [
-            { parameter: 'pm25', value: 18.2, lastUpdated: '2024-01-15T12:00:00Z', unit: 'µg/m³' },
-            { parameter: 'o3', value: 0.04, lastUpdated: '2024-01-15T12:00:00Z', unit: 'ppm' },
+          distance: 1200, // meters
+          sensors: [
+            {
+              id: 101,
+              parameter: { name: 'pm25', units: 'µg/m³' },
+              summary: { avg: 18.2 },
+              datetime_last: { utc: '2024-01-15T12:00:00Z' },
+            },
+            {
+              id: 102,
+              parameter: { name: 'o3', units: 'ppm' },
+              summary: { avg: 0.04 },
+              datetime_last: { utc: '2024-01-15T12:00:00Z' },
+            },
           ],
         },
       ],
@@ -40,10 +60,16 @@ describe('fetchAirQualityData', () => {
     const body = {
       results: [
         {
-          location: 'Clean Air Station',
+          id: 2,
+          name: 'Clean Air Station',
           coordinates: { latitude: 40.0, longitude: -74.0 },
-          measurements: [
-            { parameter: 'pm25', value: 8.0, lastUpdated: '2024-01-15T12:00:00Z', unit: 'µg/m³' },
+          sensors: [
+            {
+              id: 201,
+              parameter: { name: 'pm25', units: 'µg/m³' },
+              summary: { avg: 8.0 },
+              datetime_last: { utc: '2024-01-15T12:00:00Z' },
+            },
           ],
         },
       ],
@@ -62,6 +88,18 @@ describe('fetchAirQualityData', () => {
 
     expect(result.data).toBeNull();
     expect(result.error).toMatch(/No air quality/);
+  });
+
+  it('returns error when API key is missing', async () => {
+    vi.stubGlobal('process', {
+      ...process,
+      env: { ...process.env, OPENAQ_API_KEY: undefined },
+    });
+
+    const result = await fetchAirQualityData(40.0, -74.0);
+
+    expect(result.data).toBeNull();
+    expect(result.error).toMatch(/API key not configured/);
   });
 
   it('returns error on HTTP failure', async () => {
