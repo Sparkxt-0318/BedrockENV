@@ -66,6 +66,7 @@ export interface ExposureAssessment {
   waterData?: WaterLayerData;
   soilData?: SoilLayerData;
   airData?: AirLayerData;
+  proximityData?: ProximityLayerData;
   dataFreshness: string; // ISO date
   createdAt: string;
 }
@@ -361,4 +362,23 @@ export interface NonattainmentStatus {
   pollutants: string[];
   classification: string;
   countyFips: string;
+}
+
+// ---------------------------------------------------------------------------
+// Proximity Layer — hazardous facility proximity data for scoring
+// ---------------------------------------------------------------------------
+
+export interface SuperfundSite {
+  siteId: string;
+  name: string;
+  nplStatus: string;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
+export interface ProximityLayerData {
+  superfundSites: SuperfundSite[];
+  /** ECHO data reused from soil layer — RCRA, TRI, SNC counts derived from this. */
+  echoFacilities: EchoData | null;
 }
