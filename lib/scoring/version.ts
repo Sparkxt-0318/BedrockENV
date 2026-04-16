@@ -14,5 +14,7 @@
  *       (violation sub-weight rebalance, improved SDWIS field mapping).
  *   3 — Step 4: Five-layer composite (water, soil, air, proximity, EJ).
  *       Switch from MVP_WEIGHTS to FULL_WEIGHTS.
+ *   4 — Coverage honesty: FRS empty → 'partial' (not 'present'),
+ *       WQP empty + no PWSID → 'unmapped' (not 'partial').
  */
-export const SCORING_VERSION = 3;
+export const SCORING_VERSION = 4;

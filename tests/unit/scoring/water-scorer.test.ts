@@ -152,6 +152,30 @@ describe('Water Scorer', () => {
     expect(pfasPlusViolations.score).toBeGreaterThan(pfasOnly.score);
   });
 
+  it('treats WQP empty with no PWSID as unmapped, not clean', () => {
+    const withPwsid = scoreWaterLayer(
+      buildWaterData({
+        systemId: 'FL1234567',
+        wqpPfas: { detections: [], maxDetectionPpt: 0, monitoringLocationCount: 0, exceedsMcl: false },
+        leadRisk: { pctPre1986: 20, pctPreA1950: 5, riskTier: 'LOW', resolution: 'neighborhood' },
+      })
+    );
+    const noPwsid = scoreWaterLayer({
+      pfas: null,
+      wqpPfas: { detections: [], maxDetectionPpt: 0, monitoringLocationCount: 0, exceedsMcl: false },
+      violations: [],
+      leadRisk: { pctPre1986: 20, pctPreA1950: 5, riskTier: 'LOW', resolution: 'neighborhood' },
+      systemName: '',
+      systemId: '',
+    });
+
+    // With PWSID: WQP empty is 'partial' (0.5) → PFAS counts toward coverage
+    expect(withPwsid.coverage).toBeGreaterThan(noPwsid.coverage);
+    // Without PWSID: WQP empty is 'unmapped' (0.0) → PFAS does NOT count
+    const breakdown = noPwsid.rawData.coverageBreakdown as { weight: number; reason: string }[];
+    expect(breakdown[0].reason).toBe('unmapped');
+  });
+
   it('marks unavailable when no water layer data is present', () => {
     const result = scoreWaterLayer({
       pfas: null,

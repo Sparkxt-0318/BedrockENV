@@ -33,6 +33,7 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
   const subScores: Record<string, number> = {};
   const activeWeights: Record<string, number> = {};
   const components: SubComponent[] = [];
+  const hasSystemId = typeof data.systemId === 'string' && data.systemId.length > 0;
 
   // ── 1. PFAS ────────────────────────────────────────────────────────────
   // Primary source: UCMR 5 (utility-reported, system-level).
@@ -53,10 +54,16 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
     components.push({ score: pfasScore, weight: WATER_SUB_WEIGHTS.pfas, reason: 'partial' });
   } else if (data.wqpPfas && data.wqpPfas.detections.length === 0) {
     // WQP was queried successfully but found no PFAS detections nearby.
-    // Score 0 (no PFAS detected) with partial coverage.
-    subScores.pfas = 0;
-    activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
-    components.push({ score: 0, weight: WATER_SUB_WEIGHTS.pfas, reason: 'partial' });
+    // Distinguish "no monitoring stations" from "stations found clean water":
+    // if the address has no public water system (PWSID), zero WQP results
+    // likely means no monitoring infrastructure → unmapped, not clean.
+    if (hasSystemId || data.wqpPfas.monitoringLocationCount > 0) {
+      subScores.pfas = 0;
+      activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
+      components.push({ score: 0, weight: WATER_SUB_WEIGHTS.pfas, reason: 'partial' });
+    } else {
+      components.push({ score: null, weight: WATER_SUB_WEIGHTS.pfas, reason: 'unmapped' });
+    }
   } else {
     // Neither UCMR 5 nor WQP returned data.
     components.push({ score: null, weight: WATER_SUB_WEIGHTS.pfas, reason: 'fetch-failed' });
@@ -88,7 +95,6 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
   // in SDWIS at all." Without an out-of-band signal we treat an empty
   // array as a *partial* presence — half credit toward coverage, score
   // of 0. Step 2 threads the actual lookup outcome through.
-  const hasSystemId = typeof data.systemId === 'string' && data.systemId.length > 0;
   if (data.violations.length > 0) {
     const stats = computeViolationStats(data.violations);
 

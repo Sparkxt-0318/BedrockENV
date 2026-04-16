@@ -83,10 +83,13 @@ export function scoreProximityLayer(data: ProximityLayerData): LayerScore {
 
     subScores.superfundProximity = sfScore;
     activeWeights.superfundProximity = PROXIMITY_SUB_WEIGHTS.superfundProximity;
+    // FRS SEMS radius search has known coverage gaps (e.g. Tar Creek NPL).
+    // Positive results are high-confidence; negative results (empty array)
+    // get 'partial' to reflect the uncertainty of a null search.
     components.push({
       score: sfScore,
       weight: PROXIMITY_SUB_WEIGHTS.superfundProximity,
-      reason: 'present',
+      reason: sites.length > 0 ? 'present' : 'partial',
     });
   } else {
     components.push({

@@ -65,7 +65,9 @@ describe('scoreProximityLayer', () => {
     expect(result.available).toBe(true);
     expect(result.score).toBe(0);
     expect(result.confidence).toBe('property');
-    expect(result.coverage).toBeGreaterThan(0.9);
+    // Superfund empty → 'partial' (0.5 factor), ECHO components → 'present' (1.0)
+    // Coverage = (0.35*0.5 + 0.25*1.0 + 0.20*1.0 + 0.20*1.0) / 1.0 = 0.825
+    expect(result.coverage).toBeGreaterThan(0.8);
   });
 
   it('scores area near Superfund site high', () => {
