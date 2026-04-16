@@ -49,6 +49,7 @@ describe('Recommendation Engine', () => {
           systemId: 'TEST0001',
           violations: [],
           leadRisk: null,
+          wqpPfas: null,
           pfas: {
             systemId: 'TEST0001',
             systemName: 'Test Utility',
@@ -78,6 +79,7 @@ describe('Recommendation Engine', () => {
           systemId: 'TEST0001',
           violations: [],
           pfas: null,
+          wqpPfas: null,
           leadRisk: {
             pctPreA1950: 45,
             pctPre1986: 70,
@@ -97,6 +99,7 @@ describe('Recommendation Engine', () => {
         soil: {
           ssurgo: null,
           moistureData: null,
+          echoFacilities: null,
           brownfields: [
             {
               name: 'Old Mill Site',
@@ -140,6 +143,7 @@ describe('Recommendation Engine', () => {
             status: 'Resolved',
             isHealthBased: true,
           })),
+          wqpPfas: null,
           leadRisk: {
             pctPreA1950: 40,
             pctPre1986: 70,
@@ -172,6 +176,7 @@ describe('Recommendation Engine', () => {
           systemId: 'TEST0001',
           violations: [],
           leadRisk: null,
+          wqpPfas: null,
           pfas: {
             systemId: 'TEST0001',
             systemName: 'Test Utility',
@@ -187,6 +192,7 @@ describe('Recommendation Engine', () => {
         soil: {
           ssurgo: null,
           moistureData: null,
+          echoFacilities: null,
           floodZone: null,
           brownfields: [
             {
@@ -220,6 +226,7 @@ describe('Recommendation Engine', () => {
           systemId: 'TEST0001',
           violations: [],
           pfas: null,
+          wqpPfas: null,
           leadRisk: {
             pctPreA1950: 5,
             pctPre1986: 20,
@@ -241,6 +248,7 @@ describe('Recommendation Engine', () => {
             coverage: 'mapped',
           },
           brownfields: [],
+          echoFacilities: null,
           floodZone: {
             zone: 'X',
             zoneDescription: 'Minimal',

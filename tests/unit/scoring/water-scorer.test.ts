@@ -5,6 +5,7 @@ import type { WaterLayerData, WaterViolation } from '@/types/exposure';
 function buildWaterData(overrides: Partial<WaterLayerData> = {}): WaterLayerData {
   return {
     pfas: null,
+    wqpPfas: null,
     violations: [],
     leadRisk: null,
     systemName: 'Test Utility',
@@ -154,6 +155,7 @@ describe('Water Scorer', () => {
   it('marks unavailable when no water layer data is present', () => {
     const result = scoreWaterLayer({
       pfas: null,
+      wqpPfas: null,
       violations: [],
       leadRisk: null,
       systemName: '',

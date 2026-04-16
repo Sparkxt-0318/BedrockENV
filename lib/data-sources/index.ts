@@ -7,6 +7,9 @@ import { fetchSsurgoData } from './usda-ssurgo';
 import { fetchBrownfieldSites } from './epa-brownfields';
 import { fetchFloodZone } from './fema-nfhl';
 import { fetchNasaPowerData } from './nasa-smap';
+import { fetchWqpPfasData } from './usgs-wqp';
+import { fetchEchoFacilities } from './epa-echo';
+import { fetchAirQualityData } from './openaq';
 import { scoreWaterLayer } from '@/lib/scoring/water-scorer';
 import { scoreSoilLayer } from '@/lib/scoring/soil-scorer';
 import { computeCompositeScore } from '@/lib/scoring/engine';
@@ -57,63 +60,93 @@ export async function fetchFullAssessment(
     errors.push('Could not identify the serving water system for this address.');
   }
 
-  // Step 3: Fetch ALL layer data in parallel (water + soil)
+  // Step 3: Fetch ALL layer data in parallel with per-source 4s timeout
+  const SOURCE_TIMEOUT = 4_000;
   const noWaterSystem = { data: null, error: 'No water system identified', source: '', cached: false, fetchedAt: new Date().toISOString() };
 
-  const [
-    pfasResult,
-    violationsResult,
-    leadResult,
-    ssurgoResult,
-    brownfieldsResult,
-    floodResult,
-    moistureResult,
-  ] = await Promise.all([
-    // Water sources
+  const settled = await Promise.allSettled([
+    // [0] UCMR 5 PFAS (water)
     waterSystem
       ? fetchUcmr5PfasData(waterSystem.pwsid, waterSystem.name)
       : Promise.resolve(noWaterSystem),
+    // [1] SDWIS violations (water)
     waterSystem
       ? fetchSdwisViolations(waterSystem.pwsid)
       : Promise.resolve({ ...noWaterSystem, data: [] as never }),
+    // [2] Lead risk (water)
     fetchLeadRiskData(
       geocoded.fipsState,
       geocoded.fipsCounty,
       geocoded.censusTract,
       geocoded.censusBlockGroup
     ),
-    // Soil sources
+    // [3] WQP ambient PFAS (water — bbox, not PWSID-dependent)
+    fetchWqpPfasData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT }),
+    // [4] SSURGO (soil)
     fetchSsurgoData(geocoded.latitude, geocoded.longitude),
+    // [5] Brownfields (soil)
     fetchBrownfieldSites(geocoded.latitude, geocoded.longitude),
+    // [6] ECHO facilities (soil/proximity)
+    fetchEchoFacilities(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT }),
+    // [7] Flood zone (soil)
     fetchFloodZone(geocoded.latitude, geocoded.longitude),
+    // [8] Soil moisture / climate (soil)
     fetchNasaPowerData(geocoded.latitude, geocoded.longitude),
+    // [9] Air quality (air)
+    fetchAirQualityData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT }),
   ]);
 
-  // Collect non-fatal errors
-  if (pfasResult.error) errors.push(`PFAS: ${pfasResult.error}`);
-  if (violationsResult.error) errors.push(`Violations: ${violationsResult.error}`);
-  if (leadResult.error) errors.push(`Lead risk: ${leadResult.error}`);
-  if (ssurgoResult.error) errors.push(`Soil survey: ${ssurgoResult.error}`);
-  if (brownfieldsResult.error) errors.push(`Brownfields: ${brownfieldsResult.error}`);
-  if (floodResult.error) errors.push(`Flood zone: ${floodResult.error}`);
-  if (moistureResult.error) errors.push(`Soil moisture: ${moistureResult.error}`);
+  // Unwrap settled results — rejected promises become error results
+  function unwrap<T>(result: PromiseSettledResult<T>, label: string): T | null {
+    if (result.status === 'fulfilled') return result.value;
+    errors.push(`${label}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
+    return null;
+  }
+
+  const pfasResult = unwrap(settled[0], 'PFAS');
+  const violationsResult = unwrap(settled[1], 'Violations');
+  const leadResult = unwrap(settled[2], 'Lead risk');
+  const wqpResult = unwrap(settled[3], 'WQP PFAS');
+  const ssurgoResult = unwrap(settled[4], 'Soil survey');
+  const brownfieldsResult = unwrap(settled[5], 'Brownfields');
+  const echoResult = unwrap(settled[6], 'ECHO facilities');
+  const floodResult = unwrap(settled[7], 'Flood zone');
+  const moistureResult = unwrap(settled[8], 'Soil moisture');
+  const airResult = unwrap(settled[9], 'Air quality');
+
+  // Collect non-fatal errors from successful-but-errored results
+  if (pfasResult?.error) errors.push(`PFAS: ${pfasResult.error}`);
+  if (violationsResult?.error) errors.push(`Violations: ${violationsResult.error}`);
+  if (leadResult?.error) errors.push(`Lead risk: ${leadResult.error}`);
+  if (wqpResult?.error) errors.push(`WQP PFAS: ${wqpResult.error}`);
+  if (ssurgoResult?.error) errors.push(`Soil survey: ${ssurgoResult.error}`);
+  if (brownfieldsResult?.error) errors.push(`Brownfields: ${brownfieldsResult.error}`);
+  if (echoResult?.error) errors.push(`ECHO: ${echoResult.error}`);
+  if (floodResult?.error) errors.push(`Flood zone: ${floodResult.error}`);
+  if (moistureResult?.error) errors.push(`Soil moisture: ${moistureResult.error}`);
+  if (airResult?.error) errors.push(`Air quality: ${airResult.error}`);
 
   // Build water layer data
   const waterData: WaterLayerData = {
-    pfas: pfasResult.data,
-    violations: (violationsResult.data as never) ?? [],
-    leadRisk: leadResult.data,
+    pfas: pfasResult?.data ?? null,
+    wqpPfas: wqpResult?.data ?? null,
+    violations: (violationsResult?.data as never) ?? [],
+    leadRisk: leadResult?.data ?? null,
     systemName: waterSystem?.name ?? 'Unknown',
     systemId: waterSystem?.pwsid ?? '',
   };
 
   // Build soil layer data
   const soilData: SoilLayerData = {
-    ssurgo: ssurgoResult.data,
-    brownfields: brownfieldsResult.data ?? [],
-    floodZone: floodResult.data,
-    moistureData: moistureResult.data,
+    ssurgo: ssurgoResult?.data ?? null,
+    brownfields: brownfieldsResult?.data ?? [],
+    echoFacilities: echoResult?.data ?? null,
+    floodZone: floodResult?.data ?? null,
+    moistureData: moistureResult?.data ?? null,
   };
+
+  // Air data (standalone layer)
+  const airData = airResult?.data ?? null;
 
   // Step 4: Score layers
   const waterScore = scoreWaterLayer(waterData);
@@ -131,6 +164,7 @@ export async function fetchFullAssessment(
     compositeScore,
     waterData,
     soilData,
+    airData,
     dataFreshness: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };

@@ -65,12 +65,15 @@ export interface ExposureAssessment {
   compositeScore: CompositeScore;
   waterData?: WaterLayerData;
   soilData?: SoilLayerData;
+  airData?: AirQualityData | null;
   dataFreshness: string; // ISO date
   createdAt: string;
 }
 
 export interface WaterLayerData {
   pfas: PfasData | null;
+  /** Ambient PFAS monitoring from USGS WQP (bbox-based, not tied to a PWSID). */
+  wqpPfas: WqpPfasData | null;
   violations: WaterViolation[];
   leadRisk: LeadRiskData | null;
   systemName: string;
@@ -113,6 +116,8 @@ export interface LeadRiskData {
 export interface SoilLayerData {
   ssurgo: SsurgoData | null;
   brownfields: BrownfieldSite[];
+  /** Regulated facilities from EPA ECHO within search radius. */
+  echoFacilities: EchoData | null;
   floodZone: FloodZoneData | null;
   moistureData: SoilMoistureData | null;
 }
@@ -215,4 +220,97 @@ export interface SoilMoistureData {
   /** Fraction of requested months that came back as fill values (-999). */
   fillFraction: number;
   resolution: DataResolution;
+}
+
+// ---------------------------------------------------------------------------
+// WQP — USGS Water Quality Portal detections (bbox-based PFAS monitoring)
+// ---------------------------------------------------------------------------
+
+export interface WqpDetection {
+  /** Characteristic name from WQP (e.g. "Perfluorooctanoic acid"). */
+  characteristicName: string;
+  /** Measured value in the result's unit. */
+  value: number;
+  /** Unit string from WQP (e.g. "ug/l", "ng/l"). */
+  unit: string;
+  /** Value normalized to ng/L (parts per trillion). */
+  valuePpt: number;
+  /** Date of sampling. */
+  sampleDate: string;
+  /** Monitoring location identifier. */
+  monitoringLocationId: string;
+  /** Name of the monitoring organization. */
+  organizationName: string;
+}
+
+export interface WqpPfasData {
+  detections: WqpDetection[];
+  /** Highest single detection in ppt across all results. */
+  maxDetectionPpt: number;
+  /** Number of unique monitoring locations that returned data. */
+  monitoringLocationCount: number;
+  /** Whether any detection exceeds the 4 ppt EPA MCL for PFOS/PFOA. */
+  exceedsMcl: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// ECHO — EPA Enforcement and Compliance History Online (regulated facilities)
+// ---------------------------------------------------------------------------
+
+export interface EchoFacility {
+  /** EPA Registry ID. */
+  registryId: string;
+  /** Facility name. */
+  name: string;
+  /** Distance from query point in miles. */
+  distance: number;
+  /** Cardinal direction from query point. */
+  direction: string;
+  /** Latitude of facility. */
+  latitude: number;
+  /** Longitude of facility. */
+  longitude: number;
+  /** Programs this facility is regulated under (e.g. "CWA", "RCRA", "CAA"). */
+  programs: string[];
+  /** Current compliance status. */
+  complianceStatus: string;
+  /** Whether the facility is currently in significant non-compliance. */
+  significantViolation: boolean;
+}
+
+export interface EchoData {
+  facilities: EchoFacility[];
+  /** Number of facilities with significant violations within radius. */
+  significantViolationCount: number;
+  /** Total regulated facilities found within radius. */
+  totalCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// OpenAQ — Air Quality monitoring data
+// ---------------------------------------------------------------------------
+
+export interface AirQualityMeasurement {
+  /** Parameter name (e.g. "pm25", "pm10", "o3", "no2", "so2", "co"). */
+  parameter: string;
+  /** Most recent measurement value. */
+  value: number;
+  /** Unit (e.g. "µg/m³", "ppm"). */
+  unit: string;
+  /** ISO timestamp of last measurement. */
+  lastUpdated: string;
+}
+
+export interface AirQualityData {
+  /** Nearest monitoring station name. */
+  stationName: string;
+  /** Distance to station in km. */
+  distanceKm: number;
+  /** Station latitude. */
+  latitude: number;
+  /** Station longitude. */
+  longitude: number;
+  measurements: AirQualityMeasurement[];
+  /** Whether any PM2.5 reading exceeds WHO guideline (15 µg/m³ annual). */
+  exceedsWhoGuideline: boolean;
 }

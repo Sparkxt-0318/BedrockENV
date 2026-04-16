@@ -78,6 +78,7 @@ function buildSoilData(overrides: Partial<SoilLayerData> = {}): SoilLayerData {
   return {
     ssurgo: null,
     brownfields: [],
+    echoFacilities: null,
     floodZone: null,
     moistureData: null,
     ...overrides,
