@@ -434,24 +434,34 @@ async function runCompositeRankOrderTest(): Promise<{
 
   const RANK_CASES: { key: string; label: string; address: string }[] = [
     {
-      key: 'hoosick',
-      label: 'Hoosick Falls (water-heavy)',
-      address: '123 Main St, Hoosick Falls, NY 12090',
-    },
-    {
-      key: 'newark',
-      label: 'Newark (soil-heavy industrial)',
-      address: '100 Iron St, Newark, NJ 07105',
-    },
-    {
       key: 'miami',
-      label: 'Miami Beach (flood-heavy)',
+      label: 'Miami Beach (flood + PFAS + old housing)',
       address: '100 Ocean Dr, Miami Beach, FL 33139',
     },
     {
+      key: 'newark',
+      label: 'Newark (industrial + lead + violations)',
+      address: '100 Iron St, Newark, NJ 07105',
+    },
+    {
+      key: 'flint',
+      label: 'Flint (lead crisis + brownfields)',
+      address: '1101 S Saginaw St, Flint, MI 48502',
+    },
+    {
+      key: 'hoosick',
+      label: 'Hoosick Falls (PFOA contamination)',
+      address: '123 Main St, Hoosick Falls, NY 12090',
+    },
+    {
       key: 'salinas',
-      label: 'Salinas Valley (clean baseline)',
+      label: 'Salinas Valley (agricultural area)',
       address: '1000 Farm Rd, Salinas, CA 93901',
+    },
+    {
+      key: 'yellowstone',
+      label: 'Yellowstone (rural/clean baseline)',
+      address: '1 Grand Loop Rd, Yellowstone National Park, WY 82190',
     },
   ];
 
@@ -460,6 +470,7 @@ async function runCompositeRankOrderTest(): Promise<{
   const failures: string[] = [];
 
   const scores: Record<string, number> = {};
+  const coverages: Record<string, number> = {};
 
   for (const rc of RANK_CASES) {
     try {
@@ -479,7 +490,10 @@ async function runCompositeRankOrderTest(): Promise<{
         `${rc.label}: composite.score not a number`
       );
       scores[rc.key] = composite.score;
-      console.log(`  ${rc.label}: ${composite.score}/100`);
+      coverages[rc.key] = composite.coverage ?? 0;
+      console.log(
+        `  ${rc.label}: ${composite.score}/100 (coverage: ${(composite.coverage * 100).toFixed(0)}%)`
+      );
     } catch (err) {
       failed++;
       const msg = `${rc.label} fetch: ${(err as Error).message}`;
@@ -490,40 +504,85 @@ async function runCompositeRankOrderTest(): Promise<{
 
   if (failed > 0) return { passed, failed, failures };
 
-  // Clean baseline should score below the three "heavy" cases once Issue 1
-  // (data-accuracy fix) lands and "no data" stops masquerading as "clean".
+  // ── Hard rank-order assertions ──
+  // Expected: Miami Beach > Newark > Flint > {Hoosick Falls, Salinas} > Yellowstone
   //
-  // Until then: warn-only so the canary stays visible but doesn't gate CI.
-  // Any regression that flips the observed order still gets surfaced in the
-  // logs above.
-  const anomalies: string[] = [];
-  if (!(scores.salinas < scores.hoosick)) {
-    anomalies.push(
-      `Salinas baseline (${scores.salinas}) not below Hoosick Falls (${scores.hoosick})`
-    );
-  }
-  if (!(scores.salinas < scores.newark)) {
-    anomalies.push(
-      `Salinas baseline (${scores.salinas}) not below Newark (${scores.newark})`
-    );
-  }
-  if (!(scores.salinas < scores.miami)) {
-    anomalies.push(
-      `Salinas baseline (${scores.salinas}) not below Miami Beach (${scores.miami})`
+  // Miami Beach is highest: coastal flood + high PFAS (89 ppt) + old housing
+  // Newark: industrial + lead/copper violations + brownfields
+  // Flint: lead crisis + active violations + brownfields
+  // Hoosick Falls & Salinas: similar composite (~35-40) from different drivers
+  // Yellowstone: genuinely clean/rural — should score lowest
+
+  const rankFailures: string[] = [];
+
+  // Miami Beach should be highest
+  if (!(scores.miami > scores.newark)) {
+    rankFailures.push(
+      `Miami Beach (${scores.miami}) should score above Newark (${scores.newark})`
     );
   }
 
-  if (anomalies.length === 0) {
-    console.log(
-      `  ✓ Clean baseline (${scores.salinas}) scores below Hoosick ${scores.hoosick}, Newark ${scores.newark}, Miami ${scores.miami}`
+  // Newark should beat Flint (more diverse risk factors)
+  if (!(scores.newark > scores.flint)) {
+    rankFailures.push(
+      `Newark (${scores.newark}) should score above Flint (${scores.flint})`
     );
-  } else {
-    console.log(
-      `  ! Known rank-order anomalies (blocked by Issue 1 — missing data scored as clean):`
-    );
-    for (const a of anomalies) console.log(`    - ${a}`);
   }
-  passed++;
+
+  // Flint should beat Yellowstone significantly
+  if (!(scores.flint > scores.yellowstone + 10)) {
+    rankFailures.push(
+      `Flint (${scores.flint}) should score well above Yellowstone (${scores.yellowstone})`
+    );
+  }
+
+  // Yellowstone should be low (genuinely clean/rural)
+  if (!(scores.yellowstone < 25)) {
+    rankFailures.push(
+      `Yellowstone (${scores.yellowstone}) should be < 25 for a rural/clean location`
+    );
+  }
+
+  // Miami Beach should be significantly elevated (urban + multi-factor risk)
+  if (!(scores.miami > 55)) {
+    rankFailures.push(
+      `Miami Beach (${scores.miami}) should be > 55 (multi-factor risk: flood + PFAS + housing)`
+    );
+  }
+
+  // ── Coverage assertions ──
+  // Urban addresses should have coverage >= 0.60; rural >= 0.35
+  const urbanKeys = ['miami', 'newark', 'flint', 'hoosick'];
+  const ruralKeys = ['salinas', 'yellowstone'];
+
+  for (const key of urbanKeys) {
+    if (coverages[key] < 0.60) {
+      rankFailures.push(
+        `${key} coverage (${coverages[key].toFixed(2)}) should be >= 0.60`
+      );
+    }
+  }
+
+  for (const key of ruralKeys) {
+    if (coverages[key] < 0.35) {
+      rankFailures.push(
+        `${key} coverage (${coverages[key].toFixed(2)}) should be >= 0.35`
+      );
+    }
+  }
+
+  if (rankFailures.length === 0) {
+    console.log(`  ✓ Rank order: Miami ${scores.miami} > Newark ${scores.newark} > Flint ${scores.flint} > Yellowstone ${scores.yellowstone}`);
+    console.log(`  ✓ Yellowstone < 25: ${scores.yellowstone}`);
+    console.log(`  ✓ Coverage: urban ≥ 0.60, rural ≥ 0.35`);
+    passed += 3;
+  } else {
+    for (const f of rankFailures) {
+      failed++;
+      failures.push(f);
+      console.log(`  ✗ ${f}`);
+    }
+  }
 
   return { passed, failed, failures };
 }
