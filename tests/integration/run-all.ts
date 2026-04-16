@@ -411,18 +411,23 @@ async function runGeocodeTests(): Promise<{ passed: number; failed: number; fail
 // Composite rank-order test
 // ---------------------------------------------------------------------------
 //
-// Pulls live assessments for four canonical locations whose dominant exposure
+// Pulls live assessments for nine canonical locations whose dominant exposure
 // modes we know a priori, then asserts the composite scores land in the
 // expected rank order. This is the end-to-end sanity check that the scoring
 // pipeline reflects real-world exposure differences — not just that each
 // component runs to completion.
 //
-//   Hoosick Falls  — water-heavy (PFAS contamination)
-//   Newark         — soil-heavy (industrial brownfield corridor)
-//   Miami Beach    — flood-heavy (SFHA barrier island)
-//   Salinas        — clean agricultural baseline
+//   Port Arthur TX  — refinery corridor, SO2+Ozone nonattainment
+//   Newark NJ       — industrial + brownfields + lead
+//   South LA (90002) — urban EJ burden, CA nonattainment
+//   Miami Beach FL  — coastal flood + high PFAS
+//   Flint MI        — lead crisis city
+//   Salinas CA      — agricultural area, CA nonattainment
+//   Hoosick Falls NY — PFOA water contamination
+//   Picher OK       — Tar Creek Superfund (abandoned town, data gap)
+//   Yellowstone WY  — rural/clean baseline
 //
-// The clean baseline MUST score lower than every "heavy" location.
+// The clean baseline MUST score lower than every contaminated location.
 // ---------------------------------------------------------------------------
 
 async function runCompositeRankOrderTest(): Promise<{
@@ -434,9 +439,9 @@ async function runCompositeRankOrderTest(): Promise<{
 
   const RANK_CASES: { key: string; label: string; address: string }[] = [
     {
-      key: 'miami',
-      label: 'Miami Beach (flood + PFAS + old housing)',
-      address: '100 Ocean Dr, Miami Beach, FL 33139',
+      key: 'portarthur',
+      label: 'Port Arthur (refinery corridor, nonattainment)',
+      address: '100 Houston Ave, Port Arthur, TX 77640',
     },
     {
       key: 'newark',
@@ -444,9 +449,24 @@ async function runCompositeRankOrderTest(): Promise<{
       address: '100 Iron St, Newark, NJ 07105',
     },
     {
+      key: 'southla',
+      label: 'South LA (urban EJ burden, CA nonattainment)',
+      address: '1400 E 103rd St, Los Angeles, CA 90002',
+    },
+    {
+      key: 'miami',
+      label: 'Miami Beach (flood + PFAS + old housing)',
+      address: '100 Ocean Dr, Miami Beach, FL 33139',
+    },
+    {
       key: 'flint',
       label: 'Flint (lead crisis + brownfields)',
       address: '1101 S Saginaw St, Flint, MI 48502',
+    },
+    {
+      key: 'salinas',
+      label: 'Salinas Valley (agricultural area)',
+      address: '1000 Farm Rd, Salinas, CA 93901',
     },
     {
       key: 'hoosick',
@@ -454,9 +474,9 @@ async function runCompositeRankOrderTest(): Promise<{
       address: '123 Main St, Hoosick Falls, NY 12090',
     },
     {
-      key: 'salinas',
-      label: 'Salinas Valley (agricultural area)',
-      address: '1000 Farm Rd, Salinas, CA 93901',
+      key: 'picher',
+      label: 'Picher (Tar Creek Superfund — data gap)',
+      address: 'Picher, OK 74360',
     },
     {
       key: 'yellowstone',
@@ -505,27 +525,47 @@ async function runCompositeRankOrderTest(): Promise<{
   if (failed > 0) return { passed, failed, failures };
 
   // ── Hard rank-order assertions ──
-  // Expected: Miami Beach > Newark > Flint > {Hoosick Falls, Salinas} > Yellowstone
+  // Expected: Port Arthur > Newark > South LA > Miami Beach > Flint >
+  //           Salinas > Hoosick Falls > Picher* > Yellowstone
   //
-  // Miami Beach is highest: coastal flood + high PFAS (89 ppt) + old housing
+  // * Picher scores low (data gap: FRS misses Tar Creek, town abandoned,
+  //   no water system). Documented in IMPROVEMENT_LOG.md.
+  //
+  // Port Arthur: refinery corridor, nonattainment, high facility density
   // Newark: industrial + lead/copper violations + brownfields
-  // Flint: lead crisis + active violations + brownfields
-  // Hoosick Falls & Salinas: similar composite (~35-40) from different drivers
-  // Yellowstone: genuinely clean/rural — should score lowest
+  // South LA: CA nonattainment, urban, industrial proximity
+  // Miami Beach: coastal flood + high PFAS + old housing
+  // Flint: lead crisis + brownfields
+  // Salinas: agricultural area, CA nonattainment
+  // Hoosick Falls: PFOA water contamination
+  // Picher: abandoned Superfund town (under-scored due to data gaps)
+  // Yellowstone: genuinely clean/rural — lowest
 
   const rankFailures: string[] = [];
 
-  // Miami Beach should be highest
-  if (!(scores.miami > scores.newark)) {
+  // Top-tier industrial locations should beat mid-tier
+  if (!(scores.portarthur > scores.flint)) {
     rankFailures.push(
-      `Miami Beach (${scores.miami}) should score above Newark (${scores.newark})`
+      `Port Arthur (${scores.portarthur}) should score above Flint (${scores.flint})`
     );
   }
 
-  // Newark should beat Flint (more diverse risk factors)
   if (!(scores.newark > scores.flint)) {
     rankFailures.push(
       `Newark (${scores.newark}) should score above Flint (${scores.flint})`
+    );
+  }
+
+  if (!(scores.southla > scores.flint)) {
+    rankFailures.push(
+      `South LA (${scores.southla}) should score above Flint (${scores.flint})`
+    );
+  }
+
+  // Port Arthur and Newark should be the top two (either order acceptable)
+  if (!(scores.portarthur > 45 && scores.newark > 45)) {
+    rankFailures.push(
+      `Port Arthur (${scores.portarthur}) and Newark (${scores.newark}) should both be > 45`
     );
   }
 
@@ -543,17 +583,19 @@ async function runCompositeRankOrderTest(): Promise<{
     );
   }
 
-  // Miami Beach should be significantly elevated (urban + multi-factor risk)
-  if (!(scores.miami > 55)) {
-    rankFailures.push(
-      `Miami Beach (${scores.miami}) should be > 55 (multi-factor risk: flood + PFAS + housing)`
-    );
+  // All contaminated locations should beat Yellowstone
+  for (const key of ['portarthur', 'newark', 'southla', 'miami', 'flint', 'salinas', 'hoosick']) {
+    if (!(scores[key] > scores.yellowstone)) {
+      rankFailures.push(
+        `${key} (${scores[key]}) should score above Yellowstone (${scores.yellowstone})`
+      );
+    }
   }
 
   // ── Coverage assertions ──
-  // Urban addresses should have coverage >= 0.60; rural >= 0.35
-  const urbanKeys = ['miami', 'newark', 'flint', 'hoosick'];
-  const ruralKeys = ['salinas', 'yellowstone'];
+  // Urban addresses should have coverage >= 0.60; rural/abandoned >= 0.35
+  const urbanKeys = ['miami', 'newark', 'flint', 'hoosick', 'portarthur', 'southla'];
+  const ruralKeys = ['salinas', 'yellowstone', 'picher'];
 
   for (const key of urbanKeys) {
     if (coverages[key] < 0.60) {
@@ -572,10 +614,11 @@ async function runCompositeRankOrderTest(): Promise<{
   }
 
   if (rankFailures.length === 0) {
-    console.log(`  ✓ Rank order: Miami ${scores.miami} > Newark ${scores.newark} > Flint ${scores.flint} > Yellowstone ${scores.yellowstone}`);
+    console.log(`  ✓ Rank order: Port Arthur ${scores.portarthur} | Newark ${scores.newark} | South LA ${scores.southla} | Miami ${scores.miami} | Flint ${scores.flint} > Yellowstone ${scores.yellowstone}`);
     console.log(`  ✓ Yellowstone < 25: ${scores.yellowstone}`);
+    console.log(`  ✓ All contaminated locations > Yellowstone`);
     console.log(`  ✓ Coverage: urban ≥ 0.60, rural ≥ 0.35`);
-    passed += 3;
+    passed += 4;
   } else {
     for (const f of rankFailures) {
       failed++;

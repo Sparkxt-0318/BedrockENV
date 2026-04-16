@@ -12,6 +12,7 @@ const dataSources = [
     measures: 'PFAS (29 analytes) in public water systems',
     resolution: 'Area-level (water system)',
     updateFrequency: 'Quarterly',
+    layer: 'Water',
   },
   {
     source: 'EPA SDWIS',
@@ -19,6 +20,15 @@ const dataSources = [
     measures: 'Drinking water violations (MCL, treatment, monitoring)',
     resolution: 'Area-level (water system)',
     updateFrequency: 'Monthly',
+    layer: 'Water',
+  },
+  {
+    source: 'USGS WQP',
+    agency: 'USGS',
+    measures: 'Ambient PFAS monitoring from surface/groundwater',
+    resolution: 'Neighborhood-level (bbox query)',
+    updateFrequency: 'As reported',
+    layer: 'Water',
   },
   {
     source: 'Census ACS (B25034)',
@@ -26,6 +36,7 @@ const dataSources = [
     measures: 'Housing age as lead pipe risk proxy',
     resolution: 'Neighborhood-level (block group)',
     updateFrequency: 'Annually',
+    layer: 'Water',
   },
   {
     source: 'USDA SSURGO',
@@ -33,6 +44,7 @@ const dataSources = [
     measures: 'Soil texture, pH, organic matter, drainage, CEC',
     resolution: 'Neighborhood-level (soil map unit)',
     updateFrequency: 'Annually',
+    layer: 'Soil',
   },
   {
     source: 'EPA Brownfields',
@@ -40,6 +52,7 @@ const dataSources = [
     measures: 'Contaminated land sites, contaminant types, cleanup status',
     resolution: 'Property-level (distance computed)',
     updateFrequency: 'Quarterly',
+    layer: 'Soil',
   },
   {
     source: 'FEMA NFHL',
@@ -47,6 +60,7 @@ const dataSources = [
     measures: 'Flood zone designation (SFHA, Zone A/V/X)',
     resolution: 'Property-level (parcel boundary)',
     updateFrequency: 'As revised',
+    layer: 'Soil',
   },
   {
     source: 'NASA POWER',
@@ -54,6 +68,63 @@ const dataSources = [
     measures: 'Precipitation and temperature (soil moisture proxy)',
     resolution: 'Area-level (~50km)',
     updateFrequency: 'Monthly',
+    layer: 'Soil',
+  },
+  {
+    source: 'EPA ECHO',
+    agency: 'EPA',
+    measures: 'Regulated facilities, compliance status, TRI/RCRA/CAA programs',
+    resolution: 'Property-level (within radius)',
+    updateFrequency: 'Quarterly',
+    layer: 'Soil / Air / Proximity',
+  },
+  {
+    source: 'OpenAQ',
+    agency: 'OpenAQ',
+    measures: 'Real-time PM2.5, ozone, and other pollutant measurements',
+    resolution: 'Area-level (nearest station)',
+    updateFrequency: 'Hourly',
+    layer: 'Air',
+  },
+  {
+    source: 'EPA AQS',
+    agency: 'EPA',
+    measures: 'Annual PM2.5 and ozone summaries from monitoring stations',
+    resolution: 'Area-level (nearest monitor)',
+    updateFrequency: 'Annually',
+    layer: 'Air',
+  },
+  {
+    source: 'EPA Green Book',
+    agency: 'EPA',
+    measures: 'Nonattainment area designations (Clean Air Act)',
+    resolution: 'Area-level (county)',
+    updateFrequency: 'As revised',
+    layer: 'Air',
+  },
+  {
+    source: 'EPA FRS (Superfund)',
+    agency: 'EPA',
+    measures: 'National Priorities List (NPL) Superfund site proximity',
+    resolution: 'Property-level (distance computed)',
+    updateFrequency: 'Quarterly',
+    layer: 'Proximity',
+  },
+  {
+    source: 'EPA EJScreen',
+    agency: 'EPA',
+    measures: 'Environmental justice indices and demographic indicators',
+    resolution: 'Neighborhood-level (block group)',
+    updateFrequency: 'Annually',
+    layer: 'EJ',
+  },
+  {
+    source: 'CDC SVI',
+    agency: 'CDC/ATSDR',
+    measures: 'Social vulnerability index (4 themes, national percentile)',
+    resolution: 'Neighborhood-level (census tract)',
+    updateFrequency: 'Biennially',
+    layer: 'EJ',
   },
 ];
 
@@ -77,7 +148,7 @@ export default function MethodologyPage() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 pr-4 font-medium text-text-secondary">Source</th>
-                <th className="text-left py-3 pr-4 font-medium text-text-secondary">Agency</th>
+                <th className="text-left py-3 pr-4 font-medium text-text-secondary">Layer</th>
                 <th className="text-left py-3 pr-4 font-medium text-text-secondary">Measures</th>
                 <th className="text-left py-3 pr-4 font-medium text-text-secondary">Resolution</th>
                 <th className="text-left py-3 font-medium text-text-secondary">Updates</th>
@@ -87,7 +158,7 @@ export default function MethodologyPage() {
               {dataSources.map((ds) => (
                 <tr key={ds.source} className="border-b border-border">
                   <td className="py-3 pr-4 font-medium text-text-primary">{ds.source}</td>
-                  <td className="py-3 pr-4 text-text-secondary">{ds.agency}</td>
+                  <td className="py-3 pr-4 text-text-secondary">{ds.layer}</td>
                   <td className="py-3 pr-4 text-text-secondary">{ds.measures}</td>
                   <td className="py-3 pr-4 text-text-secondary">{ds.resolution}</td>
                   <td className="py-3 text-text-secondary">{ds.updateFrequency}</td>
@@ -116,7 +187,7 @@ export default function MethodologyPage() {
             </div>
             <p className="text-sm text-text-secondary">
               Derived from exact coordinates or parcel-level boundaries. Examples: distance to specific
-              contamination sites, FEMA flood zone designation, presence on lead service line inventories.
+              contamination sites, FEMA flood zone designation, regulated facility proximity.
             </p>
           </div>
           <div className="p-4 rounded-[var(--radius-md)] border border-border bg-bg-surface">
@@ -128,7 +199,7 @@ export default function MethodologyPage() {
             </div>
             <p className="text-sm text-text-secondary">
               Based on census block group or soil survey map unit data. Examples: SSURGO soil properties,
-              EJScreen indicators, housing age distributions.
+              housing age distributions, EJScreen environmental justice indices, CDC SVI percentiles.
             </p>
           </div>
           <div className="p-4 rounded-[var(--radius-md)] border border-border bg-bg-surface">
@@ -140,7 +211,7 @@ export default function MethodologyPage() {
             </div>
             <p className="text-sm text-text-secondary">
               Based on county, water system, or regional data. Examples: water utility PFAS testing,
-              drinking water violations, regional climate trends.
+              drinking water violations, nonattainment designations, regional climate trends.
             </p>
           </div>
         </div>
@@ -155,14 +226,18 @@ export default function MethodologyPage() {
           exposure burden.
         </p>
         <div className="p-4 rounded-[var(--radius-md)] border border-border bg-bg-surface">
-          <h3 className="font-medium text-text-primary mb-2">MVP layer weights (water + soil)</h3>
+          <h3 className="font-medium text-text-primary mb-2">Layer weights (five-layer composite)</h3>
           <ul className="text-sm text-text-secondary space-y-1">
-            <li>Water contamination: <strong className="text-text-primary">55%</strong> — PFAS, lead risk, utility violations</li>
-            <li>Soil health &amp; contamination: <strong className="text-text-primary">45%</strong> — SSURGO soil properties, brownfield proximity, flood-contamination risk</li>
+            <li>Water contamination: <strong className="text-text-primary">25%</strong> — PFAS, lead risk, utility violations, ambient water quality</li>
+            <li>Air quality: <strong className="text-text-primary">25%</strong> — PM2.5, ozone, TRI emissions, nonattainment status</li>
+            <li>Toxic proximity: <strong className="text-text-primary">20%</strong> — Superfund NPL sites, RCRA hazardous waste, TRI facilities, compliance violations</li>
+            <li>Soil &amp; land: <strong className="text-text-primary">15%</strong> — SSURGO properties, brownfields, flood zones, soil moisture</li>
+            <li>Environmental justice: <strong className="text-text-primary">15%</strong> — EJScreen indices, CDC Social Vulnerability Index, demographic burden</li>
           </ul>
           <p className="mt-3 text-xs text-text-tertiary">
-            When a data layer is unavailable, remaining layers are re-weighted proportionally.
-            Composite confidence reflects the lowest confidence among included layers.
+            When a data layer is unavailable, remaining layers are re-weighted proportionally to
+            maintain a sum of 100%. Composite confidence reflects the lowest confidence among
+            included layers and overall data coverage.
           </p>
         </div>
       </section>
