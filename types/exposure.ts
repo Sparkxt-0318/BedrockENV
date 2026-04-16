@@ -67,6 +67,7 @@ export interface ExposureAssessment {
   soilData?: SoilLayerData;
   airData?: AirLayerData;
   proximityData?: ProximityLayerData;
+  ejData?: EjLayerData;
   dataFreshness: string; // ISO date
   createdAt: string;
 }
@@ -381,4 +382,42 @@ export interface ProximityLayerData {
   superfundSites: SuperfundSite[];
   /** ECHO data reused from soil layer — RCRA, TRI, SNC counts derived from this. */
   echoFacilities: EchoData | null;
+}
+
+// ---------------------------------------------------------------------------
+// EJ Layer — Environmental Justice composite data for scoring
+// ---------------------------------------------------------------------------
+
+export interface EjLayerData {
+  /** EPA EJScreen indices (percentile ranks). */
+  ejscreen: EjScreenIndices | null;
+  /** CDC Social Vulnerability Index (percentile ranks, 0–1). */
+  svi: SviIndices | null;
+}
+
+export interface EjScreenIndices {
+  ejIndex: number | null;
+  ejIndexSupplemental: number | null;
+  demographicIndex: number | null;
+  pm25Pctile: number | null;
+  ozonePctile: number | null;
+  trafficPctile: number | null;
+  leadPaintPctile: number | null;
+  superfundPctile: number | null;
+  hazWastePctile: number | null;
+  minorityPct: number | null;
+  lowIncomePct: number | null;
+  linguisticIsolationPct: number | null;
+  lessHsEducationPct: number | null;
+  blockGroup: string;
+}
+
+export interface SviIndices {
+  overallSvi: number;
+  socioeconomicSvi: number;
+  householdSvi: number;
+  minoritySvi: number;
+  housingSvi: number;
+  tractFips: string;
+  totalPopulation: number;
 }

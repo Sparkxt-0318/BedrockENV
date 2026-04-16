@@ -1,4 +1,4 @@
-import { GeocodedAddress, WaterLayerData, SoilLayerData, AirLayerData, ProximityLayerData, ExposureAssessment } from '@/types/exposure';
+import { GeocodedAddress, WaterLayerData, SoilLayerData, AirLayerData, ProximityLayerData, EjLayerData, ExposureAssessment } from '@/types/exposure';
 import { geocodeAddress, lookupWaterSystem, extractCityHint, extractZipHint } from './geocoding';
 import { fetchUcmr5PfasData } from './epa-ucmr5';
 import { fetchSdwisViolations } from './epa-sdwis';
@@ -12,11 +12,14 @@ import { fetchEchoFacilities } from './epa-echo';
 import { fetchAirQualityData } from './openaq';
 import { fetchAqsData } from './epa-aqs';
 import { fetchSuperfundSites } from './epa-superfund';
+import { fetchEjScreenData } from './epa-ejscreen';
+import { fetchSviData } from './cdc-svi';
 import { lookupNonattainment } from './nonattainment';
 import { scoreWaterLayer } from '@/lib/scoring/water-scorer';
 import { scoreSoilLayer } from '@/lib/scoring/soil-scorer';
 import { scoreAirLayer } from '@/lib/scoring/air-scorer';
 import { scoreProximityLayer } from '@/lib/scoring/proximity-scorer';
+import { scoreEjLayer } from '@/lib/scoring/ej-scorer';
 import { computeCompositeScore } from '@/lib/scoring/engine';
 
 /**
@@ -103,6 +106,10 @@ export async function fetchFullAssessment(
     fetchAqsData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT * 2 }),
     // [11] Superfund NPL sites (proximity)
     fetchSuperfundSites(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT * 2 }),
+    // [12] EJScreen (EJ)
+    fetchEjScreenData(geocoded.latitude, geocoded.longitude, { timeoutMs: SOURCE_TIMEOUT * 2.5 }),
+    // [13] CDC SVI (EJ)
+    fetchSviData(geocoded.fipsState, geocoded.fipsCounty, geocoded.censusTract, { timeoutMs: SOURCE_TIMEOUT * 2 }),
   ]);
 
   // Unwrap settled results — rejected promises become error results
@@ -124,6 +131,8 @@ export async function fetchFullAssessment(
   const airResult = unwrap(settled[9], 'Air quality');
   const aqsResult = unwrap(settled[10], 'EPA AQS');
   const superfundResult = unwrap(settled[11], 'Superfund');
+  const ejscreenResult = unwrap(settled[12], 'EJScreen');
+  const sviResult = unwrap(settled[13], 'CDC SVI');
 
   // Collect non-fatal errors from successful-but-errored results
   if (pfasResult?.error) errors.push(`PFAS: ${pfasResult.error}`);
@@ -138,6 +147,8 @@ export async function fetchFullAssessment(
   if (airResult?.error) errors.push(`Air quality: ${airResult.error}`);
   if (aqsResult?.error) errors.push(`EPA AQS: ${aqsResult.error}`);
   if (superfundResult?.error) errors.push(`Superfund: ${superfundResult.error}`);
+  if (ejscreenResult?.error) errors.push(`EJScreen: ${ejscreenResult.error}`);
+  if (sviResult?.error) errors.push(`CDC SVI: ${sviResult.error}`);
 
   // Build water layer data
   const waterData: WaterLayerData = {
@@ -177,11 +188,45 @@ export async function fetchFullAssessment(
     echoFacilities: echoResult?.data ?? null,
   };
 
+  // Build EJ layer data
+  const ejScreenIndices = ejscreenResult?.data ? {
+    ejIndex: ejscreenResult.data.ejIndex,
+    ejIndexSupplemental: ejscreenResult.data.ejIndexSupplemental,
+    demographicIndex: ejscreenResult.data.demographicIndex,
+    pm25Pctile: ejscreenResult.data.pm25Pctile,
+    ozonePctile: ejscreenResult.data.ozonePctile,
+    trafficPctile: ejscreenResult.data.trafficPctile,
+    leadPaintPctile: ejscreenResult.data.leadPaintPctile,
+    superfundPctile: ejscreenResult.data.superfundPctile,
+    hazWastePctile: ejscreenResult.data.hazWastePctile,
+    minorityPct: ejscreenResult.data.minorityPct,
+    lowIncomePct: ejscreenResult.data.lowIncomePct,
+    linguisticIsolationPct: ejscreenResult.data.linguisticIsolationPct,
+    lessHsEducationPct: ejscreenResult.data.lessHsEducationPct,
+    blockGroup: ejscreenResult.data.blockGroup,
+  } : null;
+
+  const sviIndices = sviResult?.data ? {
+    overallSvi: sviResult.data.overallSvi,
+    socioeconomicSvi: sviResult.data.socioeconomicSvi,
+    householdSvi: sviResult.data.householdSvi,
+    minoritySvi: sviResult.data.minoritySvi,
+    housingSvi: sviResult.data.housingSvi,
+    tractFips: sviResult.data.tractFips,
+    totalPopulation: sviResult.data.totalPopulation,
+  } : null;
+
+  const ejData: EjLayerData = {
+    ejscreen: ejScreenIndices,
+    svi: sviIndices,
+  };
+
   // Step 4: Score layers
   const waterScore = scoreWaterLayer(waterData);
   const soilScore = scoreSoilLayer(soilData);
   const airScore = scoreAirLayer(airData);
   const proximityScore = scoreProximityLayer(proximityData);
+  const ejScore = scoreEjLayer(ejData);
 
   // Step 5: Compute composite score (MVP: water + soil only — other layers scored but not weighted yet)
   const compositeScore = computeCompositeScore({
@@ -192,6 +237,7 @@ export async function fetchFullAssessment(
   // Attach other layer scores for visibility even though they're not weighted in MVP composite
   compositeScore.layerScores.air = airScore;
   compositeScore.layerScores.proximity = proximityScore;
+  compositeScore.layerScores.ej = ejScore;
 
   const assessment: ExposureAssessment = {
     id: crypto.randomUUID(),
@@ -201,6 +247,7 @@ export async function fetchFullAssessment(
     soilData,
     airData,
     proximityData,
+    ejData,
     dataFreshness: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
