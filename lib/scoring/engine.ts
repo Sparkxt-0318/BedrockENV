@@ -4,7 +4,7 @@ import {
   LayerScore,
 } from '@/types/exposure';
 import { DataResolution } from '@/types/resolution';
-import { MVP_WEIGHTS, reweightForAvailableLayers } from './weights';
+import { FULL_WEIGHTS, reweightForAvailableLayers } from './weights';
 import {
   classifyCoverage,
   computeCompositeCoverage,
@@ -67,7 +67,7 @@ export function computeCompositeScore(
   }
 
   // Re-weight remaining layers to sum to 1.0.
-  const weights = reweightForAvailableLayers(MVP_WEIGHTS, availableLayers);
+  const weights = reweightForAvailableLayers(FULL_WEIGHTS, availableLayers);
 
   // Weighted arithmetic composite.
   let compositeScore = 0;

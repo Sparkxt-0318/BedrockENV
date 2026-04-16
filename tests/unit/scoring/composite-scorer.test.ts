@@ -19,17 +19,18 @@ function layer(
 }
 
 describe('Composite Scorer', () => {
-  it('weights water 0.55 and soil 0.45 when both layers are present', () => {
+  it('reweights water and soil proportionally when only two layers present', () => {
     const result = computeCompositeScore({
       water: layer(80, 'neighborhood'),
       soil: layer(20, 'neighborhood'),
     });
-    // 80 * 0.55 + 20 * 0.45 = 44 + 9 = 53
-    expect(result.score).toBe(53);
+    // FULL_WEIGHTS: water=0.25, soil=0.15. Reweighted: 0.625/0.375
+    // 80 * 0.625 + 20 * 0.375 = 50 + 7.5 = 57.5 → 58
+    expect(result.score).toBe(58);
     expect(result.layersIncluded).toEqual(['water', 'soil']);
     expect(result.coverage).toBe(1);
     expect(result.sufficient).toBe(true);
-    expect(result.scoringVersion).toBeGreaterThanOrEqual(1);
+    expect(result.scoringVersion).toBeGreaterThanOrEqual(3);
   });
 
   it('passes through water-only when soil is unavailable (no artificial penalty)', () => {

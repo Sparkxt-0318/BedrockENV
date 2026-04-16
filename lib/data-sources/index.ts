@@ -228,16 +228,14 @@ export async function fetchFullAssessment(
   const proximityScore = scoreProximityLayer(proximityData);
   const ejScore = scoreEjLayer(ejData);
 
-  // Step 5: Compute composite score (MVP: water + soil only — other layers scored but not weighted yet)
+  // Step 5: Compute composite score — all 5 layers with FULL_WEIGHTS
   const compositeScore = computeCompositeScore({
     water: waterScore,
     soil: soilScore,
+    air: airScore,
+    proximity: proximityScore,
+    ej: ejScore,
   });
-
-  // Attach other layer scores for visibility even though they're not weighted in MVP composite
-  compositeScore.layerScores.air = airScore;
-  compositeScore.layerScores.proximity = proximityScore;
-  compositeScore.layerScores.ej = ejScore;
 
   const assessment: ExposureAssessment = {
     id: crypto.randomUUID(),
