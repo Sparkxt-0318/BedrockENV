@@ -1,24 +1,39 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useExposureAssessment } from '@/hooks/useExposureAssessment';
-import { Card, CardContent } from '@/components/ui';
-import { Skeleton } from '@/components/ui';
+import { Card, CardContent, Skeleton } from '@/components/ui';
 import { ExposureReportView } from '@/components/report/ExposureReportView';
+import { ShowcaseReport } from '@/components/report/showcase/ShowcaseReport';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import type { TriggeredRecommendation } from '@/lib/recommendations/types';
 
 function ReportSearchContent() {
   const searchParams = useSearchParams();
   const address = searchParams.get('address') || '';
+  const mode = searchParams.get('mode') || 'showcase';
   const { assessment, loading, error, warnings, fetchAssessment } =
     useExposureAssessment();
+  const [recommendations, setRecommendations] = useState<TriggeredRecommendation[]>([]);
 
   useEffect(() => {
     if (address) {
       fetchAssessment(address);
     }
   }, [address, fetchAssessment]);
+
+  useEffect(() => {
+    if (!assessment) return;
+    fetch('/api/generate-narrative', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assessment }),
+    })
+      .then((res) => res.json())
+      .then((data) => setRecommendations(data.recommendations || []))
+      .catch(() => setRecommendations([]));
+  }, [assessment]);
 
   if (!address) {
     return (
@@ -60,18 +75,22 @@ function ReportSearchContent() {
     );
   }
 
-  if (assessment) {
+  if (!assessment) return null;
+
+  if (mode === 'doc') {
     return <ExposureReportView assessment={assessment} warnings={warnings} />;
   }
 
-  return null;
+  return (
+    <ShowcaseReport assessment={assessment} recommendations={recommendations} />
+  );
 }
 
 function LoadingSkeleton({ address }: { address: string }) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
       <div className="text-center mb-12">
-        <h1 className="font-[family-name:var(--font-instrument-serif)] text-3xl text-text-primary mb-2">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl text-text-primary mb-2">
           Scanning federal databases...
         </h1>
         <p className="text-text-secondary">
