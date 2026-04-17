@@ -22,12 +22,12 @@ export function Hero() {
           Know what you&rsquo;re breathing, drinking, and standing on.
         </h1>
 
-        <p className="mt-6 text-lg sm:text-xl text-text-secondary leading-relaxed max-w-xl">
+        <p className="mt-10 text-lg sm:text-xl text-text-secondary leading-relaxed max-w-xl">
           Bedrock scans 15 federal databases and scores the environmental
           exposure at any U.S. address.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-10">
+        <form onSubmit={handleSubmit} className="mt-12">
           <div className="relative">
             <svg
               className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"

@@ -23,7 +23,8 @@ export function ShowcaseIntro({ assessment }: ShowcaseIntroProps) {
           <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(1.75rem,4vw,3rem)] leading-[1.15] text-text-primary">
             {address.normalized || address.raw}
           </h1>
-          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-end gap-8">
+          <div className="mt-8 w-16 border-t border-border" aria-hidden="true" />
+          <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-end gap-8">
             <Score
               value={compositeScore.score}
               confidence={compositeScore.confidence}

@@ -1,5 +1,69 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Routine — 3 New Addresses (2026-04-17)
+
+### Full Results
+
+| Address | Comp | Water | Soil | Air | Prox | EJ | Coverage | Expected | Delta |
+|---------|------|-------|------|-----|------|-----|----------|----------|-------|
+| Midland MI (Dow Chemical) | 35 | 44 | 20 | 27 | 44 | 0* | 76% | 55-70 | -25 |
+| East Palestine OH (derailment) | 20 | 42 | 12 | 0 | 24 | 0* | 76% | 45-60 | -30 |
+| Camp Lejeune NC (TCE/PCE) | 10 | 10 | 15 | 9 | 7 | 0* | 67% | 65-80 | -60 |
+
+*EJ layer unavailable.
+
+### Ground-Truth Cross-Check
+
+#### Midland, Michigan (Score: 35 — Expected: 55-70)
+**Published reality**: Dow Chemical operated in Midland since 1897. Dioxin contamination
+in the Tittabawassee River floodplain is one of Michigan's largest environmental
+cleanups. 195 ECHO-regulated facilities. PFAS detected at 8.9 ppt via UCMR 5.
+65% pre-1986 housing stock.
+
+**What we captured correctly**: ECHO facility density (195 facilities, 8 TRI), PFAS
+detection (8.9 ppt from UCMR 5), high pre-1986 housing (65%).
+
+**What we missed**: Dioxin contamination is not captured by any of our 15 data sources.
+The Tittabawassee River cleanup is state-managed, not an NPL Superfund site, so FRS
+SEMS returns 0 hits. Dioxin is not in UCMR 5 (PFAS only). No EJ layer.
+
+#### East Palestine, Ohio (Score: 20 — Expected: 45-60)
+**Published reality**: Feb 2023 Norfolk Southern train derailment released vinyl chloride,
+butyl acrylate, and ethylhexyl acrylate. EPA deployed Superfund response authority.
+Major national environmental disaster with soil, groundwater, and air contamination.
+
+**What we captured correctly**: 4 SDWIS violations, 96% pre-1986 housing (correctly
+reflects old railroad town), 52 ECHO facilities.
+
+**What we missed**: (1) The derailment site is not yet in FRS SEMS — federal databases
+lag behind events by months/years. (2) No air monitoring data in this rural area
+(air=0). (3) No PFAS detected (the contamination is VOCs, not PFAS — outside UCMR 5
+scope). This is a systemic limitation: acute environmental events take 1-3 years to
+appear in federal databases.
+
+#### Camp Lejeune, North Carolina (Score: 10 — Expected: 65-80)
+**Published reality**: One of the worst water contamination cases in US history.
+TCE, PCE, benzene, and vinyl chloride contaminated the base's water supply 1953-1987.
+ATSDR documented cancer clusters. Camp Lejeune Justice Act of 2022. Active NPL site.
+
+**What we missed**: Nearly everything. (1) TCE/PCE are not in UCMR 5 (PFAS only).
+(2) Historical SDWIS violations aged off — only 1 current violation. (3) Military base
+has no Census ACS housing data → no lead risk proxy. (4) Camp Lejeune IS on the NPL
+but FRS SEMS radius search returned 0 — same gap as Picher. (5) Only 1 TRI emitter.
+This is our worst-performing address type: historical military contamination on a base
+with no civilian census data.
+
+### Systemic Issues Identified
+
+1. **NPL Superfund gap persists**: FRS SEMS radius search misses Camp Lejeune (active NPL
+   site). Static Superfund bundle (ROADMAP "in-progress") is critical.
+2. **VOC blindspot**: UCMR 5 only covers PFAS. TCE, PCE, benzene, vinyl chloride are not
+   captured by any bundled data source. Would need AQS/TRI chemical-specific queries.
+3. **Federal data latency**: Acute events (East Palestine) take 1-3 years to appear.
+   Consider adding a "known events" supplemental bundle.
+4. **Military base gap**: No Census ACS data for military bases → water lead risk = null.
+   Consider DOD-specific data sources.
+
 ## Issue 2: Design System & Showcase Report (2026-04-17)
 
 ### Step 5 — Design System Primitives

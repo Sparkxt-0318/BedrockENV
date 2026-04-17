@@ -59,9 +59,12 @@ export function LayerChapters() {
         >
           <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-24">
             <ScrollReveal>
-              <span className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.1em] text-text-tertiary">
-                {ch.label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+                <span className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.1em] text-text-tertiary">
+                  {ch.label}
+                </span>
+              </div>
               <div className="mt-6 flex items-baseline gap-3">
                 <CountUp
                   end={ch.stat}
