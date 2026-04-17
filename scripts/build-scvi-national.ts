@@ -36,7 +36,7 @@ import {
 // ---------------------------------------------------------------------------
 
 const LOG_FILE = '/tmp/scvi-national-run.log';
-writeFileSync(LOG_FILE, '');
+appendFileSync(LOG_FILE, '\n--- NEW RUN STARTED ---\n');
 
 function log(msg: string): void {
   process.stdout.write(msg + '\n');
@@ -363,16 +363,45 @@ async function processCounty(county: CountyRef): Promise<CountyResult> {
 // Checkpoint: save progress periodically
 // ---------------------------------------------------------------------------
 
+const CHECKPOINT_PATH = 'data/scvi-build/checkpoint.json';
+const CHECKPOINT_INTERVAL = 20;
+
+interface CheckpointData {
+  timestamp: string;
+  processed: number;
+  total: number;
+  completedFips: string[];
+  results: Array<{
+    fips: string;
+    county: string;
+    state: string;
+    population: number;
+    areaSqMi: number;
+    scvi: number;
+    svs: number;
+    cpi: number;
+    usdaSviClass: string;
+    svsComponents: ScviResult['svsComponents'];
+    cpiComponents: ScviResult['cpiComponents'];
+    coverage: ScviResult['coverage'];
+    samplePoints: number;
+    errors: string[];
+  }>;
+  failedCounties: FailedCounty[];
+}
+
 function saveCheckpoint(results: CountyResult[], processed: number, total: number): void {
-  const checkpoint = {
+  const checkpoint: CheckpointData = {
     timestamp: new Date().toISOString(),
     processed,
     total,
+    completedFips: results.map(r => r.county.fips),
     results: results.map(r => ({
       fips: r.county.fips,
       county: r.county.name,
       state: r.county.stateAbbr,
       population: r.county.population,
+      areaSqMi: r.county.areaSqMi,
       scvi: r.scviResult.scvi,
       svs: r.scviResult.svs,
       cpi: r.scviResult.cpi,
@@ -381,10 +410,51 @@ function saveCheckpoint(results: CountyResult[], processed: number, total: numbe
       cpiComponents: r.scviResult.cpiComponents,
       coverage: r.scviResult.coverage,
       samplePoints: r.samplePoints,
+      errors: r.errors,
     })),
+    failedCounties: [...failedCounties],
   };
   mkdirSync('data/scvi-build', { recursive: true });
-  writeFileSync('data/scvi-build/checkpoint.json', JSON.stringify(checkpoint));
+  writeFileSync(CHECKPOINT_PATH, JSON.stringify(checkpoint));
+}
+
+function loadCheckpoint(): CheckpointData | null {
+  try {
+    const raw = readFileSync(CHECKPOINT_PATH, 'utf8');
+    const data = JSON.parse(raw) as CheckpointData;
+    if (data.completedFips && data.results && data.completedFips.length > 0) {
+      return data;
+    }
+  } catch {
+    // No checkpoint or invalid — start fresh
+  }
+  return null;
+}
+
+function restoreResultsFromCheckpoint(
+  checkpoint: CheckpointData,
+  counties: CountyRef[],
+): CountyResult[] {
+  const countyMap = new Map(counties.map(c => [c.fips, c]));
+  return checkpoint.results
+    .filter(r => countyMap.has(r.fips))
+    .map(r => ({
+      county: countyMap.get(r.fips)!,
+      scviResult: {
+        scvi: r.scvi,
+        svs: r.svs,
+        cpi: r.cpi,
+        usdaSviClass: r.usdaSviClass,
+        svsComponents: r.svsComponents,
+        cpiComponents: r.cpiComponents,
+        coverage: r.coverage,
+        scviQuartile: 0,
+      } as ScviResult,
+      errors: r.errors,
+      svsInputs: {} as SoilVulnerabilityInputs,
+      cpiInputs: {} as ContaminationPressureInputs,
+      samplePoints: r.samplePoints,
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -408,11 +478,26 @@ async function main() {
   const results: CountyResult[] = [];
   const multiPointCount = counties.filter(c => c.areaSqMi >= LARGE_COUNTY_THRESHOLD_SQMI).length;
   log(`${multiPointCount} counties will use multi-point sampling (≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi)`);
+
+  // Resume from checkpoint if available
+  const checkpoint = loadCheckpoint();
+  const completedFips = new Set<string>();
+  if (checkpoint) {
+    const restored = restoreResultsFromCheckpoint(checkpoint, counties);
+    results.push(...restored);
+    for (const fips of checkpoint.completedFips) completedFips.add(fips);
+    failedCounties.push(...(checkpoint.failedCounties ?? []));
+    log(`RESUMING from checkpoint: ${restored.length} counties already processed`);
+  }
   log('');
 
+  let processed = results.length;
   for (let i = 0; i < counties.length; i++) {
     const county = counties[i];
-    const tag = `[${i + 1}/${counties.length}]`;
+    if (completedFips.has(county.fips)) continue;
+
+    processed++;
+    const tag = `[${processed}/${counties.length}]`;
 
     try {
       const result = await processCounty(county);
@@ -429,25 +514,32 @@ async function main() {
       log(`${tag} ${county.stateAbbr}/${county.name}: FAILED — ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    // Save checkpoint every CHECKPOINT_INTERVAL counties
+    if (processed % CHECKPOINT_INTERVAL === 0) {
+      saveCheckpoint(results, processed, counties.length);
+    }
+
     // Progress summary every LOG_INTERVAL counties
-    if ((i + 1) % LOG_INTERVAL === 0) {
+    if (processed % LOG_INTERVAL === 0) {
       const elapsed = (Date.now() - startTime) / 1000;
-      const rate = (i + 1) / elapsed;
-      const eta = Math.round((counties.length - i - 1) / rate / 60);
+      const newThisRun = processed - (checkpoint?.completedFips.length ?? 0);
+      const rate = newThisRun > 0 ? newThisRun / elapsed : 0.05;
+      const remaining = counties.length - processed;
+      const eta = Math.round(remaining / rate / 60);
       const avgScvi = Math.round(results.reduce((s, r) => s + r.scviResult.scvi, 0) / results.length);
       log('');
-      log(`--- PROGRESS: ${i + 1}/${counties.length} (${((i + 1) / counties.length * 100).toFixed(1)}%) | ${elapsed.toFixed(0)}s elapsed | ~${eta}min remaining | avg SCVI=${avgScvi} | ${failedCounties.length} with warnings ---`);
+      log(`--- PROGRESS: ${processed}/${counties.length} (${(processed / counties.length * 100).toFixed(1)}%) | ${elapsed.toFixed(0)}s elapsed | ~${eta}min remaining | avg SCVI=${avgScvi} | ${failedCounties.length} with warnings ---`);
       log('');
-
-      // Save checkpoint
-      saveCheckpoint(results, i + 1, counties.length);
     }
 
     // Batch delay: pause between batches
-    if ((i + 1) % BATCH_SIZE === 0 && i < counties.length - 1) {
+    if (processed % BATCH_SIZE === 0) {
       await delay(BATCH_DELAY_MS);
     }
   }
+
+  // Final checkpoint
+  saveCheckpoint(results, results.length, counties.length);
 
   // Assign quartiles across all results
   const quartiles = assignQuartiles(results.map(r => ({ scvi: r.scviResult.scvi })));
