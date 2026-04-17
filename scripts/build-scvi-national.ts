@@ -1,18 +1,21 @@
 /**
- * SCVI NJ Pilot — Batch pipeline for New Jersey's 21 counties.
+ * SCVI National Run — Batch pipeline for all ~3,140 US counties.
  *
- * For each county, fetches SSURGO, NASA POWER, Brownfields, Superfund, ECHO,
- * and TRI data at the county seat coordinates, maps results to SCVI inputs,
- * and reports SVS/CPI/SCVI scores with USDA SVI classification.
+ * Reads county reference data from data/us-counties-ref.json, fetches
+ * SSURGO, NASA POWER, Brownfields, Superfund, ECHO, and TRI data for each,
+ * computes SVS/CPI/SCVI scores, and writes results to data/scvi-national.json.
  *
- * Includes hardened retry logic for batch runs:
+ * Includes hardened retry logic:
  *  - 5 retries with exponential backoff (2s, 4s, 8s, 16s, 32s) + jitter
  *  - Per-source circuit breaker: 3 consecutive 503s → 60s pause
+ *  - Batches of 20 counties with 500ms between batches
+ *  - Progress logging every 100 counties
  *  - Failed counties written to data/scvi-build/failed-counties.json
  *
- * Usage: npx tsx scripts/build-scvi-nj-pilot.ts
+ * Usage: npx tsx scripts/build-scvi-national.ts
  */
 
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fetchSsurgoData } from '../lib/data-sources/usda-ssurgo';
 import { fetchNasaPowerData } from '../lib/data-sources/nasa-smap';
 import { fetchBrownfieldSites } from '../lib/data-sources/epa-brownfields';
@@ -29,41 +32,23 @@ import {
 } from '../lib/intelligence/scvi-scorer';
 
 // ---------------------------------------------------------------------------
-// NJ county reference data
+// County reference data
 // ---------------------------------------------------------------------------
 
-interface NjCounty {
+interface CountyRef {
   fips: string;
   name: string;
-  seat: string;
+  stateAbbr: string;
   lat: number;
   lng: number;
   areaSqMi: number;
+  population: number;
 }
 
-const NJ_COUNTIES: NjCounty[] = [
-  { fips: '34001', name: 'Atlantic',    seat: 'Mays Landing',           lat: 39.4527, lng: -74.7276, areaSqMi: 561 },
-  { fips: '34003', name: 'Bergen',      seat: 'Hackensack',             lat: 40.8859, lng: -74.0435, areaSqMi: 234 },
-  { fips: '34005', name: 'Burlington',  seat: 'Mount Holly',            lat: 39.9929, lng: -74.7874, areaSqMi: 819 },
-  { fips: '34007', name: 'Camden',      seat: 'Camden',                 lat: 39.9259, lng: -75.1196, areaSqMi: 222 },
-  { fips: '34009', name: 'Cape May',    seat: 'Cape May Court House',   lat: 39.0826, lng: -74.8234, areaSqMi: 255 },
-  { fips: '34011', name: 'Cumberland',  seat: 'Bridgeton',              lat: 39.4273, lng: -75.2340, areaSqMi: 489 },
-  { fips: '34013', name: 'Essex',       seat: 'Newark',                 lat: 40.7357, lng: -74.1724, areaSqMi: 126 },
-  { fips: '34015', name: 'Gloucester',  seat: 'Woodbury',               lat: 39.8382, lng: -75.1527, areaSqMi: 325 },
-  { fips: '34017', name: 'Hudson',      seat: 'Jersey City',            lat: 40.7282, lng: -74.0776, areaSqMi: 47 },
-  { fips: '34019', name: 'Hunterdon',   seat: 'Flemington',             lat: 40.5123, lng: -74.8594, areaSqMi: 430 },
-  { fips: '34021', name: 'Mercer',      seat: 'Trenton',                lat: 40.2171, lng: -74.7429, areaSqMi: 226 },
-  { fips: '34023', name: 'Middlesex',   seat: 'New Brunswick',          lat: 40.4862, lng: -74.4518, areaSqMi: 312 },
-  { fips: '34025', name: 'Monmouth',    seat: 'Freehold',               lat: 40.2598, lng: -74.2737, areaSqMi: 472 },
-  { fips: '34027', name: 'Morris',      seat: 'Morristown',             lat: 40.7968, lng: -74.4815, areaSqMi: 469 },
-  { fips: '34029', name: 'Ocean',       seat: 'Toms River',             lat: 39.9537, lng: -74.1979, areaSqMi: 636 },
-  { fips: '34031', name: 'Passaic',     seat: 'Paterson',               lat: 40.9168, lng: -74.1718, areaSqMi: 185 },
-  { fips: '34033', name: 'Salem',       seat: 'Salem',                  lat: 39.5717, lng: -75.4674, areaSqMi: 338 },
-  { fips: '34035', name: 'Somerset',    seat: 'Somerville',             lat: 40.5740, lng: -74.6099, areaSqMi: 305 },
-  { fips: '34037', name: 'Sussex',      seat: 'Newton',                 lat: 41.0582, lng: -74.7524, areaSqMi: 521 },
-  { fips: '34039', name: 'Union',       seat: 'Elizabeth',              lat: 40.6640, lng: -74.2107, areaSqMi: 103 },
-  { fips: '34041', name: 'Warren',      seat: 'Belvidere',              lat: 40.8298, lng: -75.0779, areaSqMi: 358 },
-];
+function loadCounties(): CountyRef[] {
+  const raw = readFileSync('data/us-counties-ref.json', 'utf8');
+  return JSON.parse(raw) as CountyRef[];
+}
 
 // ---------------------------------------------------------------------------
 // Batch retry infrastructure
@@ -77,6 +62,9 @@ const BATCH_MAX_RETRIES = 5;
 const BATCH_BASE_BACKOFF_MS = 2000;
 const CIRCUIT_BREAKER_THRESHOLD = 3;
 const CIRCUIT_BREAKER_PAUSE_MS = 60_000;
+const BATCH_SIZE = 20;
+const BATCH_DELAY_MS = 500;
+const LOG_INTERVAL = 100;
 
 type SourceName = 'SSURGO' | 'POWER' | 'Brownfields' | 'Superfund' | 'ECHO' | 'TRI';
 
@@ -87,12 +75,10 @@ class SourceCircuitBreaker {
   record503(source: SourceName, countyFips: string): void {
     const count = (this.consecutive503s.get(source) ?? 0) + 1;
     this.consecutive503s.set(source, count);
-    console.log(`    [503] ${source} failed for ${countyFips} (${count} consecutive)`);
 
     if (count >= CIRCUIT_BREAKER_THRESHOLD) {
-      const pauseUntil = Date.now() + CIRCUIT_BREAKER_PAUSE_MS;
-      this.pausedUntil.set(source, pauseUntil);
-      console.log(`    [CIRCUIT BREAKER] ${source} paused for 60s after ${count} consecutive 503s`);
+      this.pausedUntil.set(source, Date.now() + CIRCUIT_BREAKER_PAUSE_MS);
+      console.log(`    [CIRCUIT BREAKER] ${source} paused 60s after ${count} consecutive 503s (${countyFips})`);
     }
   }
 
@@ -109,7 +95,6 @@ class SourceCircuitBreaker {
       this.consecutive503s.set(source, 0);
       return false;
     }
-    console.log(`    [WAIT] ${source} paused, waiting ${Math.ceil(remaining / 1000)}s...`);
     await delay(remaining);
     this.pausedUntil.delete(source);
     this.consecutive503s.set(source, 0);
@@ -122,6 +107,7 @@ const breaker = new SourceCircuitBreaker();
 interface FailedCounty {
   fips: string;
   county: string;
+  state: string;
   failedSources: string[];
   errors: string[];
 }
@@ -183,10 +169,10 @@ async function fetchWithBatchRetry<T>(
 // ---------------------------------------------------------------------------
 
 const LARGE_COUNTY_THRESHOLD_SQMI = 1000;
-const SAMPLE_OFFSET_DEG = 0.1; // ~11km offset for additional sample points
+const SAMPLE_OFFSET_DEG = 0.1;
 
 interface CountyResult {
-  county: NjCounty;
+  county: CountyRef;
   scviResult: ScviResult;
   errors: string[];
   svsInputs: SoilVulnerabilityInputs;
@@ -194,7 +180,7 @@ interface CountyResult {
   samplePoints: number;
 }
 
-function getSamplePoints(county: NjCounty): Array<{ lat: number; lng: number }> {
+function getSamplePoints(county: CountyRef): Array<{ lat: number; lng: number }> {
   const points = [{ lat: county.lat, lng: county.lng }];
   if (county.areaSqMi >= LARGE_COUNTY_THRESHOLD_SQMI) {
     points.push({ lat: county.lat + SAMPLE_OFFSET_DEG, lng: county.lng });
@@ -203,8 +189,9 @@ function getSamplePoints(county: NjCounty): Array<{ lat: number; lng: number }> 
   return points;
 }
 
-async function fetchPointData(lat: number, lng: number, county: NjCounty) {
+async function fetchPointData(lat: number, lng: number, county: CountyRef) {
   const errors: string[] = [];
+  const sourceErrors: string[] = [];
 
   const [ssurgoRes, powerRes, brownfieldRes, superfundRes, echoRes, triRes] =
     await Promise.all([
@@ -213,10 +200,11 @@ async function fetchPointData(lat: number, lng: number, county: NjCounty) {
       fetchWithBatchRetry('Brownfields', county.fips, () => fetchBrownfieldSites(lat, lng)),
       fetchWithBatchRetry('Superfund', county.fips, () => fetchSuperfundSites(lat, lng, {})),
       fetchWithBatchRetry('ECHO', county.fips, () => fetchEchoFacilities(lat, lng, {})),
-      fetchWithBatchRetry('TRI', county.fips, () => fetchTriReleasesByCounty('NJ', county.name)),
+      fetchWithBatchRetry('TRI', county.fips, () =>
+        fetchTriReleasesByCounty(county.stateAbbr, county.name),
+      ),
     ]);
 
-  const sourceErrors: string[] = [];
   if (ssurgoRes?.error) { errors.push(`SSURGO: ${ssurgoRes.error}`); sourceErrors.push('SSURGO'); }
   if (powerRes?.error) { errors.push(`POWER: ${powerRes.error}`); sourceErrors.push('POWER'); }
   if (brownfieldRes?.error) { errors.push(`Brownfields: ${brownfieldRes.error}`); sourceErrors.push('Brownfields'); }
@@ -235,7 +223,7 @@ async function fetchPointData(lat: number, lng: number, county: NjCounty) {
 
 function buildScviFromFetchResults(
   fetchResult: Awaited<ReturnType<typeof fetchPointData>>,
-  county: NjCounty,
+  county: CountyRef,
 ): { scviResult: ScviResult; svsInputs: SoilVulnerabilityInputs; cpiInputs: ContaminationPressureInputs } {
   const { ssurgoRes, powerRes, brownfieldRes, superfundRes, echoRes, triRes } = fetchResult;
 
@@ -292,12 +280,11 @@ function buildScviFromFetchResults(
   return { scviResult, svsInputs, cpiInputs };
 }
 
-async function processCounty(county: NjCounty): Promise<CountyResult> {
+async function processCounty(county: CountyRef): Promise<CountyResult> {
   const samplePoints = getSamplePoints(county);
   const allErrors: string[] = [];
   const allSourceErrors: string[] = [];
 
-  // For single-point counties, use original flow
   if (samplePoints.length === 1) {
     const fetchResult = await fetchPointData(samplePoints[0].lat, samplePoints[0].lng, county);
     allErrors.push(...fetchResult.errors);
@@ -307,6 +294,7 @@ async function processCounty(county: NjCounty): Promise<CountyResult> {
       failedCounties.push({
         fips: county.fips,
         county: county.name,
+        state: county.stateAbbr,
         failedSources: [...new Set(allSourceErrors)],
         errors: allErrors.slice(),
       });
@@ -316,7 +304,7 @@ async function processCounty(county: NjCounty): Promise<CountyResult> {
     return { county, scviResult, errors: allErrors, svsInputs, cpiInputs, samplePoints: 1 };
   }
 
-  // Multi-point: fetch each point sequentially (to avoid overwhelming APIs)
+  // Multi-point: fetch sequentially to avoid overwhelming APIs
   const pointResults: Array<ReturnType<typeof buildScviFromFetchResults>> = [];
   for (let p = 0; p < samplePoints.length; p++) {
     const pt = samplePoints[p];
@@ -331,17 +319,16 @@ async function processCounty(county: NjCounty): Promise<CountyResult> {
     failedCounties.push({
       fips: county.fips,
       county: county.name,
+      state: county.stateAbbr,
       failedSources: [...new Set(allSourceErrors)],
       errors: allErrors.slice(),
     });
   }
 
-  // Average SVS and CPI across sample points, recompute SCVI from averages
   const avgSvs = Math.round(pointResults.reduce((s, r) => s + r.scviResult.svs, 0) / pointResults.length);
   const avgCpi = Math.round(pointResults.reduce((s, r) => s + r.scviResult.cpi, 0) / pointResults.length);
   const avgScvi = Math.round(Math.sqrt(avgSvs * avgCpi));
 
-  // Use the centroid point's result as the base, override with averaged scores
   const baseResult = pointResults[0];
   const averaged: ScviResult = {
     ...baseResult.scviResult,
@@ -361,39 +348,93 @@ async function processCounty(county: NjCounty): Promise<CountyResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Checkpoint: save progress periodically
+// ---------------------------------------------------------------------------
+
+function saveCheckpoint(results: CountyResult[], processed: number, total: number): void {
+  const checkpoint = {
+    timestamp: new Date().toISOString(),
+    processed,
+    total,
+    results: results.map(r => ({
+      fips: r.county.fips,
+      county: r.county.name,
+      state: r.county.stateAbbr,
+      population: r.county.population,
+      scvi: r.scviResult.scvi,
+      svs: r.scviResult.svs,
+      cpi: r.scviResult.cpi,
+      usdaSviClass: r.scviResult.usdaSviClass,
+      svsComponents: r.scviResult.svsComponents,
+      cpiComponents: r.scviResult.cpiComponents,
+      coverage: r.scviResult.coverage,
+      samplePoints: r.samplePoints,
+    })),
+  };
+  mkdirSync('data/scvi-build', { recursive: true });
+  writeFileSync('data/scvi-build/checkpoint.json', JSON.stringify(checkpoint));
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 async function main() {
+  const counties = loadCounties();
+  const startTime = Date.now();
+
   console.log('='.repeat(80));
-  console.log('SCVI NJ PILOT — Soil Contamination Vulnerability Index');
-  console.log(`Processing ${NJ_COUNTIES.length} counties...`);
+  console.log('SCVI NATIONAL RUN — Soil Contamination Vulnerability Index');
+  console.log(`Processing ${counties.length} counties in batches of ${BATCH_SIZE}`);
   console.log(`Retry policy: ${BATCH_MAX_RETRIES} retries, ${BATCH_BASE_BACKOFF_MS}ms base backoff + jitter`);
   console.log(`Circuit breaker: ${CIRCUIT_BREAKER_THRESHOLD} consecutive 503s → ${CIRCUIT_BREAKER_PAUSE_MS / 1000}s pause`);
+  console.log(`Multi-point sampling: counties ≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi get 3 sample points`);
+  console.log(`Started: ${new Date().toISOString()}`);
   console.log('='.repeat(80));
   console.log('');
 
   const results: CountyResult[] = [];
+  const multiPointCount = counties.filter(c => c.areaSqMi >= LARGE_COUNTY_THRESHOLD_SQMI).length;
+  console.log(`${multiPointCount} counties will use multi-point sampling (≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi)`);
+  console.log('');
 
-  for (let i = 0; i < NJ_COUNTIES.length; i++) {
-    const county = NJ_COUNTIES[i];
-    const tag = `[${i + 1}/${NJ_COUNTIES.length}]`;
-    process.stdout.write(`${tag} ${county.name} (${county.seat})... `);
+  for (let i = 0; i < counties.length; i++) {
+    const county = counties[i];
+    const tag = `[${i + 1}/${counties.length}]`;
 
     try {
       const result = await processCounty(county);
       results.push(result);
+
+      // Compact single-line output for each county
       const r = result.scviResult;
-      const pts = result.samplePoints > 1 ? ` (${result.samplePoints}pt avg)` : '';
-      console.log(
-        `SCVI=${r.scvi} SVS=${r.svs} CPI=${r.cpi} SVI=${r.usdaSviClass}${pts}` +
-        (result.errors.length > 0 ? ` [${result.errors.length} warnings]` : '')
+      const pts = result.samplePoints > 1 ? ` ${result.samplePoints}pt` : '';
+      const warns = result.errors.length > 0 ? ` [${result.errors.length}w]` : '';
+      process.stdout.write(
+        `${tag} ${county.stateAbbr}/${county.name}: SCVI=${r.scvi} SVS=${r.svs} CPI=${r.cpi}${pts}${warns}\n`
       );
     } catch (err) {
-      console.log(`FAILED: ${err instanceof Error ? err.message : String(err)}`);
+      console.log(`${tag} ${county.stateAbbr}/${county.name}: FAILED — ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    if (i < NJ_COUNTIES.length - 1) await delay(2000);
+    // Progress summary every LOG_INTERVAL counties
+    if ((i + 1) % LOG_INTERVAL === 0) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = (i + 1) / elapsed;
+      const eta = Math.round((counties.length - i - 1) / rate / 60);
+      const avgScvi = Math.round(results.reduce((s, r) => s + r.scviResult.scvi, 0) / results.length);
+      console.log('');
+      console.log(`--- PROGRESS: ${i + 1}/${counties.length} (${((i + 1) / counties.length * 100).toFixed(1)}%) | ${elapsed.toFixed(0)}s elapsed | ~${eta}min remaining | avg SCVI=${avgScvi} | ${failedCounties.length} with warnings ---`);
+      console.log('');
+
+      // Save checkpoint
+      saveCheckpoint(results, i + 1, counties.length);
+    }
+
+    // Batch delay: pause between batches
+    if ((i + 1) % BATCH_SIZE === 0 && i < counties.length - 1) {
+      await delay(BATCH_DELAY_MS);
+    }
   }
 
   // Assign quartiles across all results
@@ -403,65 +444,108 @@ async function main() {
   }
 
   const sorted = [...results].sort((a, b) => b.scviResult.scvi - a.scviResult.scvi);
+  const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
 
   // ---------------------------------------------------------------------------
-  // Report: Full results table
+  // Report: Summary
   // ---------------------------------------------------------------------------
   console.log('');
   console.log('='.repeat(80));
-  console.log('RESULTS — ALL NJ COUNTIES (sorted by SCVI descending)');
+  console.log(`NATIONAL SCVI RESULTS — ${results.length} counties processed in ${elapsed} minutes`);
+  console.log('='.repeat(80));
+  console.log('');
+
+  console.log(`Total counties: ${results.length} / ${counties.length}`);
+  console.log(`Counties with warnings: ${failedCounties.length}`);
+  console.log('');
+
+  // ---------------------------------------------------------------------------
+  // Report: Top 25 highest SCVI
+  // ---------------------------------------------------------------------------
+  console.log('='.repeat(80));
+  console.log('TOP 25 HIGHEST SCVI COUNTIES');
   console.log('='.repeat(80));
   console.log('');
   console.log(
-    'County'.padEnd(14) +
+    '#'.padEnd(4) +
+    'County'.padEnd(28) +
+    'State'.padEnd(6) +
     'SCVI'.padStart(6) +
     'Q'.padStart(4) +
     'SVS'.padStart(6) +
     'CPI'.padStart(6) +
     'SVI Class'.padStart(18) +
-    '  SVS Coverage  CPI Coverage'
+    'Pop'.padStart(12)
   );
-  console.log('-'.repeat(80));
+  console.log('-'.repeat(90));
 
-  for (const r of sorted) {
+  for (let i = 0; i < Math.min(25, sorted.length); i++) {
+    const r = sorted[i];
     const s = r.scviResult;
     console.log(
-      r.county.name.padEnd(14) +
+      String(i + 1).padEnd(4) +
+      r.county.name.padEnd(28) +
+      r.county.stateAbbr.padEnd(6) +
       String(s.scvi).padStart(6) +
       String(s.scviQuartile).padStart(4) +
       String(s.svs).padStart(6) +
       String(s.cpi).padStart(6) +
       s.usdaSviClass.padStart(18) +
-      `  ${s.coverage.svsDataPoints}/${s.coverage.svsMaxDataPoints}`.padStart(14) +
-      `  ${s.coverage.cpiDataPoints}/${s.coverage.cpiMaxDataPoints}`.padStart(12)
+      r.county.population.toLocaleString().padStart(12)
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Report: Top 5 highest SCVI counties
+  // Report: Top 25 details
   // ---------------------------------------------------------------------------
   console.log('');
   console.log('='.repeat(80));
-  console.log('TOP 5 HIGHEST SCVI COUNTIES');
+  console.log('TOP 25 DETAIL');
   console.log('='.repeat(80));
 
-  for (let i = 0; i < Math.min(5, sorted.length); i++) {
+  for (let i = 0; i < Math.min(25, sorted.length); i++) {
     const r = sorted[i];
     const s = r.scviResult;
     console.log('');
-    console.log(`#${i + 1}: ${r.county.name} County (${r.county.seat})`);
+    console.log(`#${i + 1}: ${r.county.name} County, ${r.county.stateAbbr} (pop ${r.county.population.toLocaleString()})`);
     console.log(`  SCVI: ${s.scvi} (Q${s.scviQuartile})  |  USDA SVI: ${s.usdaSviClass}`);
     console.log(`  SVS: ${s.svs}  |  CPI: ${s.cpi}`);
-    console.log(`  SVS components: OM=${s.svsComponents.organicMatter} pH=${s.svsComponents.ph} drain=${s.svsComponents.drainage} texture=${s.svsComponents.texture} climate=${s.svsComponents.climate} urban=${s.svsComponents.urbanGap}`);
-    console.log(`  CPI components: legacy=${s.cpiComponents.legacy} industrial=${s.cpiComponents.industrial} compliance=${s.cpiComponents.compliance} release=${s.cpiComponents.release}`);
+    console.log(`  SVS: OM=${s.svsComponents.organicMatter} pH=${s.svsComponents.ph} drain=${s.svsComponents.drainage} texture=${s.svsComponents.texture} climate=${s.svsComponents.climate} urban=${s.svsComponents.urbanGap}`);
+    console.log(`  CPI: legacy=${s.cpiComponents.legacy} industrial=${s.cpiComponents.industrial} compliance=${s.cpiComponents.compliance} release=${s.cpiComponents.release}`);
     console.log(`  Coverage: SVS ${s.coverage.svsDataPoints}/${s.coverage.svsMaxDataPoints}, CPI ${s.coverage.cpiDataPoints}/${s.coverage.cpiMaxDataPoints}`);
     if (r.errors.length > 0) {
-      console.log(`  Warnings: ${r.errors.join('; ')}`);
+      console.log(`  Warnings (${r.errors.length}): ${r.errors.slice(0, 3).join('; ')}${r.errors.length > 3 ? '...' : ''}`);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Report: USDA SVI distribution
+  // Report: Population in top quartile
+  // ---------------------------------------------------------------------------
+  console.log('');
+  console.log('='.repeat(80));
+  console.log('POPULATION BY SCVI QUARTILE');
+  console.log('='.repeat(80));
+  console.log('');
+
+  const popByQuartile = [0, 0, 0, 0];
+  const countByQuartile = [0, 0, 0, 0];
+  for (const r of results) {
+    const q = r.scviResult.scviQuartile - 1;
+    popByQuartile[q] += r.county.population;
+    countByQuartile[q]++;
+  }
+  const totalPop = popByQuartile.reduce((a, b) => a + b, 0);
+
+  for (let q = 0; q < 4; q++) {
+    const pct = totalPop > 0 ? ((popByQuartile[q] / totalPop) * 100).toFixed(1) : '0.0';
+    console.log(
+      `  Q${q + 1}: ${countByQuartile[q]} counties | pop ${popByQuartile[q].toLocaleString()} (${pct}% of total)`
+    );
+  }
+  console.log(`  Total population covered: ${totalPop.toLocaleString()}`);
+
+  // ---------------------------------------------------------------------------
+  // Report: USDA SVI class distribution
   // ---------------------------------------------------------------------------
   console.log('');
   console.log('='.repeat(80));
@@ -473,51 +557,72 @@ async function main() {
     sviCounts[cls] = (sviCounts[cls] || 0) + 1;
   }
   for (const [cls, count] of Object.entries(sviCounts).sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${cls}: ${count} counties`);
+    console.log(`  ${cls}: ${count} counties (${((count / results.length) * 100).toFixed(1)}%)`);
   }
 
   // ---------------------------------------------------------------------------
-  // Report: Quartile distribution
+  // Report: SCVI quartile distribution
   // ---------------------------------------------------------------------------
   console.log('');
   console.log('SCVI QUARTILE DISTRIBUTION');
   console.log('-'.repeat(40));
-  const qCounts = [0, 0, 0, 0];
-  for (const r of results) qCounts[r.scviResult.scviQuartile - 1]++;
   for (let q = 1; q <= 4; q++) {
-    console.log(`  Q${q}: ${qCounts[q - 1]} counties`);
+    console.log(`  Q${q}: ${countByQuartile[q - 1]} counties`);
   }
 
   // ---------------------------------------------------------------------------
-  // Report: Data limitations
+  // Report: State breakdown — states with most Q4 counties
+  // ---------------------------------------------------------------------------
+  console.log('');
+  console.log('='.repeat(80));
+  console.log('STATES WITH MOST Q4 (HIGHEST RISK) COUNTIES');
+  console.log('='.repeat(80));
+  const q4ByState = new Map<string, number>();
+  for (const r of results) {
+    if (r.scviResult.scviQuartile === 4) {
+      q4ByState.set(r.county.stateAbbr, (q4ByState.get(r.county.stateAbbr) ?? 0) + 1);
+    }
+  }
+  const stateQ4Sorted = [...q4ByState.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
+  for (const [state, count] of stateQ4Sorted) {
+    console.log(`  ${state}: ${count} Q4 counties`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Report: Data limitations and warnings
   // ---------------------------------------------------------------------------
   console.log('');
   console.log('='.repeat(80));
   console.log('DATA LIMITATIONS');
   console.log('='.repeat(80));
-  console.log('  - ndviAnomaly: No data source available; urban gap uses default score=50 when applicable');
+  console.log('  - ndviAnomaly: No data source; urban gap uses default score=50');
+  console.log('  - TRI release volumes: one_time_release_qty underestimates actual annual totals');
+  console.log('  - Income by quartile: Census ACS unavailable at build time; omitted');
 
-  // All warnings
+  // Warning summary
   const allWarnings = results.flatMap(r => r.errors);
   if (allWarnings.length > 0) {
     console.log('');
-    console.log(`API WARNINGS (${allWarnings.length} total):`);
-    const uniqueWarnings = [...new Set(allWarnings)];
-    for (const w of uniqueWarnings) {
-      const count = allWarnings.filter(x => x === w).length;
-      console.log(`  - ${w}${count > 1 ? ` (×${count})` : ''}`);
+    console.log(`API WARNINGS (${allWarnings.length} total across ${failedCounties.length} counties):`);
+    const warningCounts = new Map<string, number>();
+    for (const w of allWarnings) {
+      const key = w.replace(/\d{5}/g, 'XXXXX').replace(/for .+$/, '...');
+      warningCounts.set(key, (warningCounts.get(key) ?? 0) + 1);
+    }
+    const sortedWarnings = [...warningCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
+    for (const [w, count] of sortedWarnings) {
+      console.log(`  - ${w} (×${count})`);
     }
   }
 
   // ---------------------------------------------------------------------------
   // Output files
   // ---------------------------------------------------------------------------
-  const fs = await import('fs');
-
   const jsonOutput = sorted.map(r => ({
     fips: r.county.fips,
     county: r.county.name,
-    seat: r.county.seat,
+    state: r.county.stateAbbr,
+    population: r.county.population,
     scvi: r.scviResult.scvi,
     quartile: r.scviResult.scviQuartile,
     svs: r.scviResult.svs,
@@ -526,22 +631,25 @@ async function main() {
     svsComponents: r.scviResult.svsComponents,
     cpiComponents: r.scviResult.cpiComponents,
     coverage: r.scviResult.coverage,
+    samplePoints: r.samplePoints,
   }));
 
-  fs.mkdirSync('data/scvi-build', { recursive: true });
-  const outPath = 'data/scvi-nj-pilot.json';
-  fs.writeFileSync(outPath, JSON.stringify(jsonOutput, null, 2));
+  mkdirSync('data/scvi-build', { recursive: true });
+  const outPath = 'data/scvi-national.json';
+  writeFileSync(outPath, JSON.stringify(jsonOutput, null, 2));
   console.log('');
   console.log(`Full results written to ${outPath}`);
 
-  // Write failed counties for re-run targeting
   if (failedCounties.length > 0) {
     const failedPath = 'data/scvi-build/failed-counties.json';
-    fs.writeFileSync(failedPath, JSON.stringify(failedCounties, null, 2));
+    writeFileSync(failedPath, JSON.stringify(failedCounties, null, 2));
     console.log(`Failed counties (${failedCounties.length}) written to ${failedPath}`);
   } else {
     console.log('No failed counties — all sources responded for all counties.');
   }
+
+  console.log('');
+  console.log(`Completed in ${elapsed} minutes.`);
 }
 
 main().catch((err) => {
