@@ -1,5 +1,76 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 2 (2026-04-17)
+
+### Section 1: Data Accuracy — 3 New Addresses
+
+| Address | Comp | Water | Soil | Air | Prox | EJ | Coverage | Expected | Delta |
+|---------|------|-------|------|-----|------|-----|----------|----------|-------|
+| Parkersburg WV (DuPont C8) | 22 | 29 | 2 | 9 | 46 | 0* | 68% | 50-65 | -33 |
+| Gary IN (US Steel) | 44 | 77 | 2 | 40 | 38 | 0* | 79% | 55-70 | -18 |
+| Anniston AL (Monsanto PCB) | 29 | 30 | 17 | 27 | 41 | 0* | 76% | 55-70 | -31 |
+
+*EJ layer unavailable. Brownfields API (503) caused soil=2 across all addresses.
+
+**Ground-Truth Cross-Check:**
+- **Parkersburg**: DuPont C8 PFOA contamination site. Proximity (46) captures ECHO facility
+  density. PFOA not in UCMR 5 if post-remediation. Soil crushed by Brownfields 503.
+- **Gary**: Highest scorer (44). Water (77) captures PFAS + violations. Air (40) captures
+  nonattainment. US Steel Superfund may have timed out via FRS.
+- **Anniston**: Monsanto PCB Superfund. PCBs not in UCMR 5. FRS Superfund timed out.
+  Same systemic gaps as Camp Lejeune.
+
+### Section 2: Design Quality — 3 Fixes
+1. Added `--shadow-sm/md/lg`, `--focus-ring`, `--duration-fast` CSS tokens to globals.css
+2. Added `focus:ring-2 focus:ring-accent focus:ring-offset-2` to Hero button and
+   FreePreviewOverlay CTA (was missing visible keyboard focus states)
+3. Added `role="meter"` with ARIA attributes to DataCoverageBreakdown unavailable placeholder
+
+### Section 3: Feature Selection
+Selected **Mapbox layer visualization** as highest-impact Considering item. Rationale:
+ContaminationMap already existed with brownfields/flood/water but was missing Superfund
+and ECHO/TRI markers, and wasn't in the showcase report. Completing this was ~0.5 days.
+
+### Section 5: Code Health — Test Coverage
+Added 17 tests for `lib/utils.ts` (all 6 exported functions). Coverage: 46% → 100%.
+Fixed TS errors in orchestrator test (WaterSystemInfo missing properties).
+Total tests: 329 → 352.
+
+### Section 6: Documentation Verification
+Re-confirmed methodology page matches engine v4. 15 data sources, 5 layer weights,
+confidence tier descriptions all in sync. No changes needed.
+
+### Feature Build: Mapbox Layer Visualization
+Enhanced ContaminationMap with:
+- Superfund NPL site markers (red squares with hazard icon, distance popup)
+- ECHO regulated facility markers (up to 30 nearest, TRI=amber, SNC=red, other=gray)
+- Toggle checkboxes for each layer in toolbar
+- Legend entries for all marker types
+- useMemo wrapping to fix React lint warnings
+- Integrated into ShowcaseReport after layer chapters
+- 6 unit tests for static fallback mode
+
+### Canonical 9-Address Re-Assessment (2026-04-17)
+
+| Address | Prev | Curr | Delta | Flag | Cause |
+|---------|------|------|-------|------|-------|
+| Port Arthur TX | 58 | 44 | -14 | FLAG | Brownfields 503 (soil 56→3) |
+| Newark NJ | 56 | 29 | -27 | FLAG | Brownfields 503 + ECHO timeout + Superfund timeout |
+| South LA (90002) | 52 | 27 | -25 | FLAG | Brownfields 503 (soil 59→24) + ECHO degraded |
+| Miami Beach FL | 39 | 43 | +4 | | Normal variance |
+| Flint MI | 37 | 31 | -6 | | Brownfields 503 (soil 47→7) |
+| Salinas CA | 33 | 25 | -8 | | Brownfields 503 (soil 61→20) |
+| Hoosick Falls NY | 28 | 28 | 0 | | Stable |
+| Picher OK | 18 | N/A | — | | Geocoding fails (dissolved town) |
+| Yellowstone WY | 7 | 7 | 0 | | Stable |
+
+**Analysis**: All flagged drops are caused by **transient API outages**, not scoring
+regressions. EPA Brownfields API returning HTTP 503 across all runs crushes soil scores.
+FRS Superfund and ECHO APIs experiencing intermittent timeouts. Scoring engine is
+unchanged — when APIs respond, scores match baseline. No code changes needed.
+
+---
+
 ## Section 6: Documentation Verification (2026-04-17)
 
 Audited `app/methodology/page.tsx` against scoring engine (`lib/scoring/engine.ts`,

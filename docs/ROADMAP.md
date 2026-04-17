@@ -17,6 +17,7 @@
 - **Accessibility** — axe-core audited, ARIA meters, semantic HTML, keyboard accessible
 - **PDF report export** — @react-pdf/renderer multi-page PDF with cover, layers, recommendations, methodology
 - **Stripe payments** — $29 consumer report purchase, $99/mo Pro subscription, free preview with frosted blur overlay
+- **Mapbox layer visualization** — Interactive map in showcase report showing property marker, Superfund NPL sites, ECHO/TRI regulated facilities, brownfield sites, flood zones, water system markers with toggleable layers and legend
 
 ## In Progress
 
@@ -31,9 +32,7 @@
 - **Historical contamination flag** — Special handling for abandoned/dissolved towns (Picher-class) where contamination predates monitoring infrastructure
 - **RSEI cancer risk** — EPA Risk-Screening Environmental Indicators for air toxics cancer risk (would improve Port Arthur scoring)
 - **CERCLIS/SEMS supplemental source** — Additional Superfund data beyond FRS facility records
-- **Mapbox layer visualization** — Interactive map showing Superfund sites, TRI facilities, flood zones overlaid on the report
 - **Time-series trends** — Show how contamination levels have changed over time (SDWIS violation history, air quality trends)
-- **Neighborhood comparison** — Compare scores across nearby census tracts or zip codes
 - **Mobile app** — React Native wrapper for push notifications on data updates
 
 ---
