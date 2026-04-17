@@ -1,5 +1,55 @@
 # Scoring Pipeline Improvement Log
 
+## Issue 2: Design System & Showcase Report (2026-04-17)
+
+### Step 5 — Design System Primitives
+- Migrated fonts to `next/font/google` self-hosting (Instrument Serif, Inter Tight, JetBrains Mono)
+- Built full CSS variable palette (ink #0D1F1C, paper #F7F4EE, forest #1A3E2A, signal red, amber, data gray)
+- Dark mode via `prefers-color-scheme: dark` with inverted palette
+- Pure CSS animation: `@keyframes` + `IntersectionObserver` (no JS animation library)
+- Motion hard-gated behind `prefers-reduced-motion: reduce`
+- Components: `Score` (SVG ring + count-up), `CoverageMeter`, `CountUp`, `ScrollReveal`, `StickyColumn`, `ReferenceCite`, `Type` (semantic typography), `Badge` + `ConfidenceBadge`
+- 23 unit tests for all design system primitives
+
+### Step 6 — Landing Page Rewrite
+- Replaced generic SaaS landing with editorial scrollytelling design
+- `Hero`: massive serif headline with embedded address input, clamp typography
+- `LayerChapters`: 5 full-viewport sections with CountUp hero stats (176M, 40%, 1336, 450K+, 46%)
+- `DataSources`: horizontal agency marquee
+- `CTAPro`: single-column CTA with ScrollReveal
+- Removed `ProblemStatement` and `HowItWorks` (replaced by layer chapters)
+
+### Step 7 — Showcase Report
+- `ShowcaseReport`: orchestrator with scrollytelling layout
+- `ShowcaseIntro`: address + Score lg + CoverageMeter + metadata
+- `LayerChapterShowcase`: per-layer hero stat, data point grid, source citations
+- `StickyScoreSidebar`: live-updating via IntersectionObserver activeLayer state
+- `RecommendationsShowcase`: editorial-style triggered recommendations
+- `DataCoverageBreakdown`: all 5 layers with coverage meters + confidence badges
+- `MethodologyFootnotes`: version + methodology link
+- Mode switching: `?mode=showcase` (default) and `?mode=doc`
+- 11 unit tests for showcase components
+
+### QA Gate Results (2026-04-17)
+| Check | Result |
+|---|---|
+| axe-core accessibility (landing + Newark) | PASS — 0 serious/critical violations |
+| Bundle size (main app chunk) | PASS — 69KB gzip (target: <250KB) |
+| Responsive rendering (375/768/1024/1440) | PASS — sm/md/lg breakpoints |
+| Dark mode | PASS — full dark palette via prefers-color-scheme |
+| pnpm qa (build + tsc + lint + test) | PASS — 0 errors, 276/276 tests |
+
+## Coverage Honesty Fix (2026-04-17, SCORING_VERSION 4)
+
+### Changes
+- Water scorer: WQP empty results + no PWSID + no monitoring stations → 'unmapped' (0.0 coverage factor) instead of 'partial' (0.5)
+- Proximity scorer: empty FRS results → 'partial' (0.5) instead of 'present' (1.0)
+- Distinguishes "we checked and it's clean" from "no monitoring infrastructure exists"
+
+### Impact
+- Picher OK: coverage drops from 68% to ~61% (more honest about data gaps)
+- SCORING_VERSION bumped 3 → 4 for cache invalidation
+
 ## Data Accuracy Audit — 9 Canonical Addresses (2026-04-16)
 
 ### Full Coverage Table (SCORING_VERSION 3, FULL_WEIGHTS)

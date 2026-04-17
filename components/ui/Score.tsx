@@ -50,7 +50,8 @@ export function Score({
   className = '',
 }: ScoreProps) {
   const { box, stroke, text, ring } = SIZE_MAP[size];
-  const [displayValue, setDisplayValue] = useState(animate ? 0 : value);
+  const [animatedValue, setAnimatedValue] = useState(0);
+  const displayValue = animate ? animatedValue : value;
   const ref = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
 
@@ -68,7 +69,7 @@ export function Score({
     ).matches;
 
     if (prefersReducedMotion) {
-      setDisplayValue(value);
+      setAnimatedValue(value);
       return;
     }
 
@@ -78,17 +79,14 @@ export function Score({
       const elapsed = now - start;
       const t = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayValue(Math.round(eased * value));
+      setAnimatedValue(Math.round(eased * value));
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }, [value]);
 
   useEffect(() => {
-    if (!animate) {
-      setDisplayValue(value);
-      return;
-    }
+    if (!animate) return;
 
     const el = ref.current;
     if (!el) return;

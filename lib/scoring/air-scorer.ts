@@ -1,6 +1,6 @@
 import { AirLayerData, LayerScore } from '@/types/exposure';
 import { DataResolution } from '@/types/resolution';
-import { logNormalize, linearNormalize, stepNormalize } from './normalizer';
+import { stepNormalize } from './normalizer';
 import { SubComponent, computeLayerCoverage } from './coverage';
 
 /**

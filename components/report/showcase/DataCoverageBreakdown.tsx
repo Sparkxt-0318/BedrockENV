@@ -1,7 +1,7 @@
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { CoverageMeter } from '@/components/ui/CoverageMeter';
 import { ConfidenceBadge } from '@/components/ui/Badge';
-import type { CompositeScore, ExposureLayer, LayerScore } from '@/types/exposure';
+import type { CompositeScore, ExposureLayer } from '@/types/exposure';
 
 const LAYER_META: Record<ExposureLayer, { name: string; sources: string }> = {
   water: { name: 'Water', sources: 'UCMR 5, SDWIS, WQP, Census ACS' },

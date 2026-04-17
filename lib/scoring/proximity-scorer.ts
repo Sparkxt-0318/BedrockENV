@@ -48,23 +48,6 @@ export function scoreProximityLayer(data: ProximityLayerData): LayerScore {
     let sfScore = 0;
     if (sites.length > 0) {
       const closestKm = sites[0].distanceKm;
-      const distScore = stepNormalize(
-        closestKm <= 0 ? 0.1 : closestKm,
-        [
-          { value: 0, score: 100 },
-          { value: 0.5, score: 95 },
-          { value: 1.0, score: 85 },
-          { value: 2.0, score: 70 },
-          { value: 4.0, score: 50 },
-          { value: 6.0, score: 35 },
-          { value: 8.0, score: 20 },
-        ]
-      );
-      // Inverse: closer = higher risk, but stepNormalize picks the last >=
-      // So we need inverted scoring: score = 100 at 0km, ~20 at 8km
-      // Actually stepNormalize assigns the score for the highest threshold
-      // the value reaches. For distance, higher = less risky.
-      // Reverse the mapping: use (max_dist - distance) as input.
       const maxDist = 10;
       const invertedDist = Math.max(0, maxDist - closestKm);
       const proximityScore = stepNormalize(invertedDist, [
