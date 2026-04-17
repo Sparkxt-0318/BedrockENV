@@ -56,7 +56,7 @@ export function Hero() {
             <button
               type="submit"
               disabled={loading || !address.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-[var(--radius-md)] bg-accent text-white text-sm sm:text-base font-medium hover:bg-accent-hover disabled:opacity-40 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-[var(--radius-md)] bg-accent text-white text-sm sm:text-base font-medium hover:bg-accent-hover disabled:opacity-40 transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
             >
               {loading ? 'Scanning…' : 'Check exposure'}
             </button>

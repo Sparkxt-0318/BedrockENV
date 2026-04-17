@@ -20,7 +20,7 @@ export function FreePreviewOverlay({ assessmentId, topFinding }: FreePreviewOver
         <div className="w-full max-w-md mx-4">
           <div
             className="rounded-[var(--radius-lg)] border border-border p-8 text-center"
-            style={{ background: 'var(--bg-surface)', boxShadow: '0 24px 48px -12px rgba(0,0,0,.12)' }}
+            style={{ background: 'var(--bg-surface)', boxShadow: 'var(--shadow-lg)' }}
           >
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--accent)', color: 'white' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -48,7 +48,8 @@ export function FreePreviewOverlay({ assessmentId, topFinding }: FreePreviewOver
             <button
               onClick={() => purchaseReport(assessmentId)}
               disabled={loading}
-              className="w-full rounded-[var(--radius-md)] px-6 py-3 text-sm font-medium text-white transition-colors disabled:opacity-50"
+              aria-busy={loading}
+              className="w-full rounded-[var(--radius-md)] px-6 py-3 text-sm font-medium text-white transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               style={{ background: 'var(--accent)' }}
             >
               {loading ? 'Redirecting to checkout...' : `Unlock full report — $${PLANS.consumerReport.price}`}

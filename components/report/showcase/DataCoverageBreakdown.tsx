@@ -68,7 +68,14 @@ export function DataCoverageBreakdown({ compositeScore }: DataCoverageBreakdownP
                   />
                 ) : (
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 rounded-[var(--radius-full)] bg-border" />
+                    <div
+                      className="flex-1 h-2 rounded-[var(--radius-full)] bg-border"
+                      role="meter"
+                      aria-valuenow={0}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${meta.name} coverage: unavailable`}
+                    />
                     <span className="text-xs text-text-tertiary font-[family-name:var(--font-mono)]">
                       0%
                     </span>

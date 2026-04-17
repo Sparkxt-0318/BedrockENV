@@ -12,7 +12,7 @@ const mockGeocoded: GeocodedAddress = {
   censusBlockGroup: '1',
 };
 
-const mockWaterSystem = { pwsid: 'NJ0714001', name: 'NEWARK WATER' };
+const mockWaterSystem = { pwsid: 'NJ0714001', name: 'NEWARK WATER', populationServed: 280000, primarySource: 'Surface water' };
 
 vi.mock('@/lib/data-sources/geocoding', () => ({
   geocodeAddress: vi.fn(),
@@ -173,8 +173,8 @@ describe('fetchFullAssessment', () => {
 
     const result = await fetchFullAssessment('123 Test St');
 
-    expect(result.assessment!.waterData.systemName).toBe('Unknown');
-    expect(result.assessment!.waterData.systemId).toBe('');
+    expect(result.assessment!.waterData!.systemName).toBe('Unknown');
+    expect(result.assessment!.waterData!.systemId).toBe('');
   });
 
   it('assigns a UUID to the assessment', async () => {
