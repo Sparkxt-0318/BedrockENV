@@ -12,6 +12,7 @@ import { RecommendationList } from './RecommendationCard';
 import { ContaminationMap } from './ContaminationMap';
 import { ShareButtons } from './ShareButtons';
 import { DisclaimerBanner } from './DisclaimerBanner';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import { ProUpsellBanner } from './ProUpsellBanner';
 import { ReportStructuredData } from './StructuredData';
 import { Card, CardContent } from '@/components/ui';
@@ -205,6 +206,8 @@ export function ExposureReportView({ assessment, warnings }: ExposureReportViewP
           </p>
         </div>
       </div>
+
+      <PdfDownloadButton assessmentId={assessment.id} className="mt-8" />
 
       {/* Disclaimer */}
       <DisclaimerBanner />

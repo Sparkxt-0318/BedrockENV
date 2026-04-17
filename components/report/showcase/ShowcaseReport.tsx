@@ -11,6 +11,7 @@ import { DataCoverageBreakdown } from './DataCoverageBreakdown';
 import { MethodologyFootnotes } from './MethodologyFootnotes';
 import { StickyColumn } from '@/components/ui/StickyColumn';
 import { DisclaimerBanner } from '@/components/report/DisclaimerBanner';
+import { PdfDownloadButton } from '@/components/report/PdfDownloadButton';
 
 interface ShowcaseReportProps {
   assessment: ExposureAssessment;
@@ -258,6 +259,7 @@ export function ShowcaseReport({ assessment, recommendations }: ShowcaseReportPr
       <div className="max-w-3xl">
         <RecommendationsShowcase recommendations={recommendations} />
         <DataCoverageBreakdown compositeScore={compositeScore} />
+        <PdfDownloadButton assessmentId={assessment.id} className="py-8 border-t border-border" />
         <MethodologyFootnotes scoringVersion={compositeScore.scoringVersion} />
         <DisclaimerBanner />
       </div>
