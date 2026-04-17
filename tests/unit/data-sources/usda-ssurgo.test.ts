@@ -13,6 +13,7 @@ const HEADERS = [
   'compkind',
   'comppct_r',
   'drainagecl',
+  'hydgrp',
   'hzname',
   'hzdept_r',
   'hzdepb_r',
@@ -55,9 +56,9 @@ describe('fetchSsurgoData', () => {
     //   A horizon: 0–18 cm, pH 6.8, OM 3.5%
     //   Bt horizon: 18–50 cm, pH 7.0, OM 1.2%  (only 18–25 falls in the 0–25 band)
     const rows: Row[] = [
-      ['Salinas clay loam', 'MU-1', 'Salinas', 'Series', 95, 'Well drained',
+      ['Salinas clay loam', 'MU-1', 'Salinas', 'Series', 95, 'Well drained', 'B',
         'A', 0, 18, 30, 40, 30, 6.8, 3.5, 18, 10],
-      ['Salinas clay loam', 'MU-1', 'Salinas', 'Series', 95, 'Well drained',
+      ['Salinas clay loam', 'MU-1', 'Salinas', 'Series', 95, 'Well drained', 'B',
         'Bt', 18, 50, 25, 40, 35, 7.0, 1.2, 20, 5],
     ];
     vi.stubGlobal('fetch', mockFetchJson(tableResponse(rows)));
@@ -86,9 +87,9 @@ describe('fetchSsurgoData', () => {
   it('weights across components by comppct_r', async () => {
     // 70% clay (pH 5.0) + 30% sandy loam (pH 7.5). Weighted pH → 5.75 ish.
     const rows: Row[] = [
-      ['Mixed unit', 'MU-2', 'Heavy Clay', 'Series', 70, 'Poorly drained',
+      ['Mixed unit', 'MU-2', 'Heavy Clay', 'Series', 70, 'Poorly drained', 'D',
         'A', 0, 20, 10, 30, 60, 5.0, 2.0, 20, 1],
-      ['Mixed unit', 'MU-2', 'Sandy', 'Series', 30, 'Well drained',
+      ['Mixed unit', 'MU-2', 'Sandy', 'Series', 30, 'Well drained', 'A',
         'A', 0, 20, 70, 20, 10, 7.5, 1.0, 10, 15],
     ];
     vi.stubGlobal('fetch', mockFetchJson(tableResponse(rows)));
@@ -108,9 +109,9 @@ describe('fetchSsurgoData', () => {
   it('skips miscellaneous-area components (rock outcrop, urban land)', async () => {
     // 50% Rock outcrop (miscellaneous area, no chemistry) + 50% real soil.
     const rows: Row[] = [
-      ['Mixed', 'MU-3', 'Rock outcrop', 'Miscellaneous area', 50, '',
+      ['Mixed', 'MU-3', 'Rock outcrop', 'Miscellaneous area', 50, '', null,
         null, null, null, null, null, null, null, null, null, null],
-      ['Mixed', 'MU-3', 'Good Soil', 'Series', 50, 'Well drained',
+      ['Mixed', 'MU-3', 'Good Soil', 'Series', 50, 'Well drained', 'B',
         'A', 0, 25, 40, 40, 20, 6.5, 3.0, 15, 10],
     ];
     vi.stubGlobal('fetch', mockFetchJson(tableResponse(rows)));
@@ -128,7 +129,7 @@ describe('fetchSsurgoData', () => {
   it('returns partial coverage when every component has null chemistry', async () => {
     // "Urban land" — intersection found but no usable chemistry.
     const rows: Row[] = [
-      ['Urban land', 'MU-4', 'Urban land', 'Series', 100, '',
+      ['Urban land', 'MU-4', 'Urban land', 'Series', 100, '', null,
         null, null, null, null, null, null, null, null, null, null],
     ];
     vi.stubGlobal('fetch', mockFetchJson(tableResponse(rows)));
@@ -162,6 +163,7 @@ describe('fetchSsurgoData', () => {
           compkind: 'Series',
           comppct_r: 100,
           drainagecl: 'Well drained',
+          hydgrp: 'C',
           hzname: 'A',
           hzdept_r: 0,
           hzdepb_r: 20,

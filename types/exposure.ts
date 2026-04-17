@@ -132,6 +132,9 @@ export interface SsurgoData {
   phRange: [number, number];
   organicMatterPct: number;
   drainageClass: string;
+  hydrologicSoilGroup: string | null;
+  sandPct: number;
+  clayPct: number;
   cec: number; // cation exchange capacity
   ksat: number; // saturated hydraulic conductivity
   /**

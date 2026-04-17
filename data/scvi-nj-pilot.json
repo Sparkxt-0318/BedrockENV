@@ -1,18 +1,288 @@
 [
   {
+    "fips": "34031",
+    "county": "Passaic",
+    "seat": "Paterson",
+    "scvi": 41,
+    "quartile": 4,
+    "svs": 27,
+    "cpi": 63,
+    "usdaSviClass": "Moderate",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 70,
+      "compliance": 90,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34023",
+    "county": "Middlesex",
+    "seat": "New Brunswick",
+    "scvi": 39,
+    "quartile": 4,
+    "svs": 55,
+    "cpi": 27,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 60,
+      "ph": 90,
+      "drainage": 50,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 50,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34011",
+    "county": "Cumberland",
+    "seat": "Bridgeton",
+    "scvi": 38,
+    "quartile": 4,
+    "svs": 42,
+    "cpi": 34,
+    "usdaSviClass": "Low",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 90,
+      "drainage": 20,
+      "texture": 80,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 40,
+      "industrial": 30,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
     "fips": "34033",
     "county": "Salem",
     "seat": "Salem",
-    "scvi": 33,
+    "scvi": 38,
     "quartile": 4,
-    "svs": 41,
-    "cpi": 26,
+    "svs": 40,
+    "cpi": 37,
     "usdaSviClass": "Moderate",
     "svsComponents": {
       "organicMatter": 30,
       "ph": 90,
       "drainage": 20,
-      "texture": 25,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 30,
+      "compliance": 10,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34039",
+    "county": "Union",
+    "seat": "Elizabeth",
+    "scvi": 38,
+    "quartile": 4,
+    "svs": 21,
+    "cpi": 70,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 90,
+      "compliance": 90,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34005",
+    "county": "Burlington",
+    "seat": "Mount Holly",
+    "scvi": 37,
+    "quartile": 3,
+    "svs": 41,
+    "cpi": 34,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 60,
+      "ph": 30,
+      "drainage": 50,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 40,
+      "industrial": 30,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34021",
+    "county": "Mercer",
+    "seat": "Trenton",
+    "scvi": 34,
+    "quartile": 3,
+    "svs": 21,
+    "cpi": 56,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 50,
+      "compliance": 90,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34007",
+    "county": "Camden",
+    "seat": "Camden",
+    "scvi": 33,
+    "quartile": 3,
+    "svs": 19,
+    "cpi": 58,
+    "usdaSviClass": "Moderate",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 10,
+      "drainage": 20,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 70,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34035",
+    "county": "Somerset",
+    "seat": "Somerville",
+    "scvi": 31,
+    "quartile": 3,
+    "svs": 24,
+    "cpi": 41,
+    "usdaSviClass": "Moderate",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 40,
+      "industrial": 50,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 4,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34017",
+    "county": "Hudson",
+    "seat": "Jersey City",
+    "scvi": 27,
+    "quartile": 3,
+    "svs": 29,
+    "cpi": 26,
+    "usdaSviClass": "Moderate",
+    "svsComponents": {
+      "organicMatter": 60,
+      "ph": 10,
+      "drainage": 10,
+      "texture": 20,
       "climate": 40,
       "urbanGap": 50
     },
@@ -30,21 +300,111 @@
     }
   },
   {
-    "fips": "34005",
-    "county": "Burlington",
-    "seat": "Mount Holly",
-    "scvi": 29,
-    "quartile": 4,
-    "svs": 41,
+    "fips": "34013",
+    "county": "Essex",
+    "seat": "Newark",
+    "scvi": 26,
+    "quartile": 2,
+    "svs": 27,
+    "cpi": 26,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 70,
+      "industrial": 0,
+      "compliance": 10,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34015",
+    "county": "Gloucester",
+    "seat": "Woodbury",
+    "scvi": 24,
+    "quartile": 2,
+    "svs": 21,
+    "cpi": 27,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 50,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34001",
+    "county": "Atlantic",
+    "seat": "Mays Landing",
+    "scvi": 23,
+    "quartile": 2,
+    "svs": 43,
+    "cpi": 12,
+    "usdaSviClass": "Low",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 50,
+      "texture": 80,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 10,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34027",
+    "county": "Morris",
+    "seat": "Morristown",
+    "scvi": 23,
+    "quartile": 2,
+    "svs": 27,
     "cpi": 20,
     "usdaSviClass": "Moderate",
     "svsComponents": {
-      "organicMatter": 60,
-      "ph": 30,
-      "drainage": 50,
-      "texture": 25,
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 10,
+      "texture": 20,
       "climate": 40,
-      "urbanGap": 0
+      "urbanGap": 50
     },
     "cpiComponents": {
       "legacy": 0,
@@ -53,489 +413,9 @@
       "release": 0
     },
     "coverage": {
-      "svsDataPoints": 5,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34017",
-    "county": "Hudson",
-    "seat": "Jersey City",
-    "scvi": 28,
-    "quartile": 4,
-    "svs": 30,
-    "cpi": 26,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 60,
-      "ph": 10,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 70,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
       "svsDataPoints": 6,
       "svsMaxDataPoints": 6,
       "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34031",
-    "county": "Passaic",
-    "seat": "Paterson",
-    "scvi": 26,
-    "quartile": 4,
-    "svs": 27,
-    "cpi": 26,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 70,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34021",
-    "county": "Mercer",
-    "seat": "Trenton",
-    "scvi": 25,
-    "quartile": 3,
-    "svs": 24,
-    "cpi": 26,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 70,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34039",
-    "county": "Union",
-    "seat": "Elizabeth",
-    "scvi": 25,
-    "quartile": 4,
-    "svs": 24,
-    "cpi": 26,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 70,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34035",
-    "county": "Somerset",
-    "seat": "Somerville",
-    "scvi": 20,
-    "quartile": 3,
-    "svs": 25,
-    "cpi": 16,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 0
-    },
-    "cpiComponents": {
-      "legacy": 40,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 5,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 3,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34023",
-    "county": "Middlesex",
-    "seat": "New Brunswick",
-    "scvi": 11,
-    "quartile": 3,
-    "svs": 56,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 60,
-      "ph": 90,
-      "drainage": 50,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34001",
-    "county": "Atlantic",
-    "seat": "Mays Landing",
-    "scvi": 8,
-    "quartile": 2,
-    "svs": 34,
-    "cpi": 2,
-    "usdaSviClass": "Low",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 50,
-      "texture": 25,
-      "climate": 0,
-      "urbanGap": 0
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 4,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34011",
-    "county": "Cumberland",
-    "seat": "Bridgeton",
-    "scvi": 8,
-    "quartile": 3,
-    "svs": 33,
-    "cpi": 2,
-    "usdaSviClass": "Low",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 90,
-      "drainage": 20,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 0
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 5,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34019",
-    "county": "Hunterdon",
-    "seat": "Flemington",
-    "scvi": 8,
-    "quartile": 3,
-    "svs": 36,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 30,
-      "ph": 90,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 0
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 5,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34003",
-    "county": "Bergen",
-    "seat": "Hackensack",
-    "scvi": 7,
-    "quartile": 1,
-    "svs": 24,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34009",
-    "county": "Cape May",
-    "seat": "Cape May Court House",
-    "scvi": 7,
-    "quartile": 1,
-    "svs": 25,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 0
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 5,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34013",
-    "county": "Essex",
-    "seat": "Newark",
-    "scvi": 7,
-    "quartile": 1,
-    "svs": 27,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34015",
-    "county": "Gloucester",
-    "seat": "Woodbury",
-    "scvi": 7,
-    "quartile": 1,
-    "svs": 24,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34025",
-    "county": "Monmouth",
-    "seat": "Freehold",
-    "scvi": 7,
-    "quartile": 2,
-    "svs": 24,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34027",
-    "county": "Morris",
-    "seat": "Morristown",
-    "scvi": 7,
-    "quartile": 2,
-    "svs": 27,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 60,
-      "drainage": 10,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34029",
-    "county": "Ocean",
-    "seat": "Toms River",
-    "scvi": 7,
-    "quartile": 2,
-    "svs": 24,
-    "cpi": 2,
-    "usdaSviClass": "Moderate",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 30,
-      "drainage": 10,
-      "texture": 45,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
       "cpiMaxDataPoints": 4
     }
   },
@@ -543,59 +423,149 @@
     "fips": "34037",
     "county": "Sussex",
     "seat": "Newton",
-    "scvi": 7,
+    "scvi": 23,
     "quartile": 2,
     "svs": 27,
-    "cpi": 2,
-    "usdaSviClass": "Low",
-    "svsComponents": {
-      "organicMatter": 10,
-      "ph": 10,
-      "drainage": 50,
-      "texture": 25,
-      "climate": 40,
-      "urbanGap": 50
-    },
-    "cpiComponents": {
-      "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
-      "release": 0
-    },
-    "coverage": {
-      "svsDataPoints": 6,
-      "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
-      "cpiMaxDataPoints": 4
-    }
-  },
-  {
-    "fips": "34007",
-    "county": "Camden",
-    "seat": "Camden",
-    "scvi": 6,
-    "quartile": 1,
-    "svs": 20,
-    "cpi": 2,
+    "cpi": 20,
     "usdaSviClass": "Moderate",
     "svsComponents": {
       "organicMatter": 10,
       "ph": 10,
-      "drainage": 20,
-      "texture": 25,
+      "drainage": 50,
+      "texture": 20,
       "climate": 40,
       "urbanGap": 50
     },
     "cpiComponents": {
       "legacy": 0,
-      "industrial": 0,
-      "compliance": 10,
+      "industrial": 30,
+      "compliance": 60,
       "release": 0
     },
     "coverage": {
       "svsDataPoints": 6,
       "svsMaxDataPoints": 6,
-      "cpiDataPoints": 2,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34009",
+    "county": "Cape May",
+    "seat": "Cape May Court House",
+    "scvi": 20,
+    "quartile": 1,
+    "svs": 33,
+    "cpi": 12,
+    "usdaSviClass": "Low",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 60,
+      "drainage": 10,
+      "texture": 80,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 10,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34019",
+    "county": "Hunterdon",
+    "seat": "Flemington",
+    "scvi": 20,
+    "quartile": 1,
+    "svs": 35,
+    "cpi": 12,
+    "usdaSviClass": "Moderate",
+    "svsComponents": {
+      "organicMatter": 30,
+      "ph": 90,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 0
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 10,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 5,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34025",
+    "county": "Monmouth",
+    "seat": "Freehold",
+    "scvi": 20,
+    "quartile": 1,
+    "svs": 21,
+    "cpi": 20,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34029",
+    "county": "Ocean",
+    "seat": "Toms River",
+    "scvi": 20,
+    "quartile": 1,
+    "svs": 21,
+    "cpi": 20,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
       "cpiMaxDataPoints": 4
     }
   },
@@ -603,16 +573,46 @@
     "fips": "34041",
     "county": "Warren",
     "seat": "Belvidere",
-    "scvi": 6,
+    "scvi": 20,
     "quartile": 1,
     "svs": 21,
-    "cpi": 2,
+    "cpi": 20,
     "usdaSviClass": "Low",
     "svsComponents": {
       "organicMatter": 10,
       "ph": 30,
       "drainage": 10,
-      "texture": 25,
+      "texture": 20,
+      "climate": 40,
+      "urbanGap": 50
+    },
+    "cpiComponents": {
+      "legacy": 0,
+      "industrial": 30,
+      "compliance": 60,
+      "release": 0
+    },
+    "coverage": {
+      "svsDataPoints": 6,
+      "svsMaxDataPoints": 6,
+      "cpiDataPoints": 3,
+      "cpiMaxDataPoints": 4
+    }
+  },
+  {
+    "fips": "34003",
+    "county": "Bergen",
+    "seat": "Hackensack",
+    "scvi": 6,
+    "quartile": 1,
+    "svs": 21,
+    "cpi": 2,
+    "usdaSviClass": "Moderately High",
+    "svsComponents": {
+      "organicMatter": 10,
+      "ph": 30,
+      "drainage": 10,
+      "texture": 20,
       "climate": 40,
       "urbanGap": 50
     },

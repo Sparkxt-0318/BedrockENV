@@ -39,7 +39,7 @@ const SDA_URL =
 const SDA_QUERY = `
   SELECT
     mu.muname, mu.mukey,
-    c.compname, c.compkind, c.comppct_r, c.drainagecl,
+    c.compname, c.compkind, c.comppct_r, c.drainagecl, c.hydgrp,
     ch.hzname, ch.hzdept_r, ch.hzdepb_r,
     ch.sandtotal_r, ch.silttotal_r, ch.claytotal_r,
     ch.ph1to1h2o_r, ch.om_r, ch.cec7_r, ch.ksat_r
@@ -62,6 +62,7 @@ interface SdaRow {
   compkind?: string | null;
   comppct_r?: number | string | null;
   drainagecl?: string | null;
+  hydgrp?: string | null;
   hzname?: string | null;
   hzdept_r?: number | string | null;
   hzdepb_r?: number | string | null;
@@ -207,6 +208,7 @@ function aggregateRows(rows: SdaRow[]): SsurgoData {
     percentage: number;
     compkind: string;
     drainage: string;
+    hydgrp: string;
     horizons: SoilHorizon[];
     /** Horizons intersecting 0..SURFACE_DEPTH_CM, with intersected thickness. */
     surfaceHorizons: Array<{ horizon: SoilHorizon; weightCm: number }>;
@@ -229,6 +231,7 @@ function aggregateRows(rows: SdaRow[]): SsurgoData {
         percentage: compPct,
         compkind,
         drainage: (row.drainagecl as string) || '',
+        hydgrp: (row.hydgrp as string) || '',
         horizons: [],
         surfaceHorizons: [],
       };
@@ -340,9 +343,10 @@ function aggregateRows(rows: SdaRow[]): SsurgoData {
     horizons: c.horizons,
   }));
 
-  // Dominant drainage class = that of the highest-percentage valid component.
+  // Dominant drainage class and hydrologic group from highest-percentage valid component.
   const dominantComp = validComps[0];
   const drainageClass = dominantComp?.drainage || 'Unknown';
+  const hydrologicSoilGroup = dominantComp?.hydgrp || null;
 
   const div = componentWeightContributing > 0 ? componentWeightContributing : 1;
   const avgOm = omSum / div;
@@ -377,6 +381,9 @@ function aggregateRows(rows: SdaRow[]): SsurgoData {
     phRange,
     organicMatterPct: round1(avgOm),
     drainageClass,
+    hydrologicSoilGroup,
+    sandPct: round1(avgSand),
+    clayPct: round1(avgClay),
     cec: round1(avgCec),
     ksat: round1(avgKsat),
     coverage,
@@ -392,6 +399,9 @@ function unmappedPlaceholder(): SsurgoData {
     phRange: [0, 0],
     organicMatterPct: 0,
     drainageClass: 'Unknown',
+    hydrologicSoilGroup: null,
+    sandPct: 0,
+    clayPct: 0,
     cec: 0,
     ksat: 0,
     coverage: 'unmapped',

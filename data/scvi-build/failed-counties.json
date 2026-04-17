@@ -1,0 +1,218 @@
+[
+  {
+    "fips": "34001",
+    "county": "Atlantic",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34003",
+    "county": "Bergen",
+    "failedSources": [
+      "ECHO",
+      "TRI"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34005",
+    "county": "Burlington",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34007",
+    "county": "Camden",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34009",
+    "county": "Cape May",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34011",
+    "county": "Cumberland",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34013",
+    "county": "Essex",
+    "failedSources": [
+      "ECHO",
+      "TRI"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34015",
+    "county": "Gloucester",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "34017",
+    "county": "Hudson",
+    "failedSources": [
+      "ECHO",
+      "TRI"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34019",
+    "county": "Hunterdon",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34021",
+    "county": "Mercer",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34023",
+    "county": "Middlesex",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34025",
+    "county": "Monmouth",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34027",
+    "county": "Morris",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34029",
+    "county": "Ocean",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34031",
+    "county": "Passaic",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34033",
+    "county": "Salem",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34035",
+    "county": "Somerset",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "34037",
+    "county": "Sussex",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34039",
+    "county": "Union",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 404"
+    ]
+  },
+  {
+    "fips": "34041",
+    "county": "Warren",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  }
+]
