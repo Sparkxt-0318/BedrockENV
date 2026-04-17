@@ -1,5 +1,12 @@
 export { Button } from './Button';
 export { Card, CardHeader, CardContent } from './Card';
 export { Input } from './Input';
-export { ResolutionBadge, RiskBadge } from './Badge';
+export { ResolutionBadge, RiskBadge, ConfidenceBadge } from './Badge';
 export { Skeleton } from './Skeleton';
+export { Display, Headline, Body, Label, Mono } from './Type';
+export { Score } from './Score';
+export { CoverageMeter } from './CoverageMeter';
+export { CountUp } from './CountUp';
+export { ScrollReveal } from './ScrollReveal';
+export { StickyColumn } from './StickyColumn';
+export { ReferenceCite } from './ReferenceCite';

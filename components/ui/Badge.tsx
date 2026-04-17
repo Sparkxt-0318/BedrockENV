@@ -21,12 +21,7 @@ const resolutionLabels: Record<DataResolution, string> = {
 export function ResolutionBadge({ resolution, className = '' }: ResolutionBadgeProps) {
   return (
     <span
-      className={`
-        inline-flex items-center px-2 py-0.5 text-xs font-medium
-        rounded-[var(--radius-full)]
-        ${resolutionStyles[resolution]}
-        ${className}
-      `}
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] ${resolutionStyles[resolution]} ${className}`}
     >
       {resolutionLabels[resolution]}
     </span>
@@ -39,23 +34,40 @@ interface RiskBadgeProps {
 }
 
 const riskStyles: Record<RiskTier, string> = {
-  LOW: 'bg-exposure-low/15 text-exposure-low',
-  MODERATE: 'bg-exposure-moderate/15 text-[#9A7B1A]',
-  ELEVATED: 'bg-exposure-elevated/15 text-[#C47A30]',
-  HIGH: 'bg-exposure-high/15 text-exposure-high',
+  LOW: 'bg-exposure-low/10 text-exposure-low',
+  MODERATE: 'bg-exposure-moderate/10 text-exposure-moderate',
+  ELEVATED: 'bg-exposure-elevated/10 text-exposure-elevated',
+  HIGH: 'bg-exposure-high/10 text-exposure-high',
 };
 
 export function RiskBadge({ tier, className = '' }: RiskBadgeProps) {
   return (
     <span
-      className={`
-        inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide
-        rounded-[var(--radius-full)]
-        ${riskStyles[tier]}
-        ${className}
-      `}
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-[family-name:var(--font-mono)] font-semibold uppercase tracking-[0.06em] rounded-[var(--radius-sm)] ${riskStyles[tier]} ${className}`}
     >
       {tier}
+    </span>
+  );
+}
+
+interface ConfidenceBadgeProps {
+  confidence: 'high' | 'moderate' | 'low' | 'insufficient';
+  className?: string;
+}
+
+const confidenceStyles: Record<string, string> = {
+  high: 'bg-[var(--badge-property-bg)] text-[var(--badge-property-text)]',
+  moderate: 'bg-[var(--badge-neighborhood-bg)] text-[var(--badge-neighborhood-text)]',
+  low: 'bg-[var(--badge-area-bg)] text-[var(--badge-area-text)]',
+  insufficient: 'bg-exposure-high/10 text-exposure-high',
+};
+
+export function ConfidenceBadge({ confidence, className = '' }: ConfidenceBadgeProps) {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] ${confidenceStyles[confidence]} ${className}`}
+    >
+      {confidence === 'insufficient' ? 'Insufficient data' : `${confidence} confidence`}
     </span>
   );
 }
