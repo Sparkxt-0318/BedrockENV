@@ -1,5 +1,33 @@
 # Scoring Pipeline Improvement Log
 
+## Section 6: Documentation Verification (2026-04-17)
+
+Audited `app/methodology/page.tsx` against scoring engine (`lib/scoring/engine.ts`,
+`lib/scoring/weights.ts`) and data orchestrator (`lib/data-sources/index.ts`).
+
+| Check | Status |
+|---|---|
+| Layer weights (5 layers) match FULL_WEIGHTS | PASS |
+| Data source table (15 sources) matches orchestrator imports | PASS |
+| Confidence tier descriptions match engine logic | PASS |
+| Re-weighting explanation matches `reweightForAvailableLayers` | PASS |
+| Recommendations methodology (deterministic, not AI) matches engine | PASS |
+| Limitations section matches STANDARD_DISCLAIMERS | PASS |
+
+**No drift detected.** Methodology page accurately reflects scoring engine v4.
+
+## Section 5: Code Health — Test Coverage (2026-04-17)
+
+Added 31 tests across 3 files to cover previously untested modules.
+
+| File | Before | After | Tests Added |
+|---|---|---|---|
+| `lib/recommendations/disclaimers.ts` | 0% | 100% | 8 (disclaimer exports + getApplicableDisclaimers) |
+| `lib/rate-limit.ts` | 0% | 85% | 15 (tier limits, window reset, per-minute, hashIp) |
+| `lib/data-sources/index.ts` | 0% | 100% | 8 (orchestrator: geocoding fail, full assessment, error collection) |
+
+Overall line coverage: 66.69% → 71.22%.
+
 ## Autonomous Improvement Routine — 3 New Addresses (2026-04-17)
 
 ### Full Results
