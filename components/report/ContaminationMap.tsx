@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { ExposureAssessment } from '@/types/exposure';
 
 interface ContaminationMapProps {
@@ -11,6 +11,8 @@ type LayerVisibility = {
   brownfields: boolean;
   floodZone: boolean;
   waterSystem: boolean;
+  superfund: boolean;
+  echoFacilities: boolean;
 };
 
 /**
@@ -32,6 +34,8 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
     brownfields: true,
     floodZone: true,
     waterSystem: true,
+    superfund: true,
+    echoFacilities: true,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -40,9 +44,11 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
     : undefined;
 
   const { latitude, longitude } = assessment.address;
-  const brownfields = assessment.soilData?.brownfields ?? [];
+  const brownfields = useMemo(() => assessment.soilData?.brownfields ?? [], [assessment.soilData?.brownfields]);
   const floodZone = assessment.soilData?.floodZone;
   const waterData = assessment.waterData;
+  const superfundSites = useMemo(() => assessment.proximityData?.superfundSites ?? [], [assessment.proximityData?.superfundSites]);
+  const echoFacilities = useMemo(() => assessment.proximityData?.echoFacilities?.facilities ?? [], [assessment.proximityData?.echoFacilities?.facilities]);
 
   // Toggle a layer
   const toggleLayer = useCallback((layer: keyof LayerVisibility) => {
@@ -62,6 +68,12 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
       }
       if (el.dataset.layer === 'water') {
         el.style.display = layers.waterSystem ? '' : 'none';
+      }
+      if (el.dataset.layer === 'superfund') {
+        el.style.display = layers.superfund ? '' : 'none';
+      }
+      if (el.dataset.layer === 'echo') {
+        el.style.display = layers.echoFacilities ? '' : 'none';
       }
     }
 
@@ -246,6 +258,67 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
             markersRef.current.push(marker);
           }
 
+          // === Superfund NPL site markers ===
+          for (const site of superfundSites) {
+            const el = document.createElement('div');
+            el.dataset.layer = 'superfund';
+            el.style.cssText = `
+              width: 24px; height: 24px; border-radius: 4px;
+              background: #C23B22; border: 2px solid white;
+              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+              display: flex; align-items: center; justify-content: center;
+              cursor: pointer;
+            `;
+            el.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6z"/><rect x="11" y="10" width="2" height="4"/><rect x="11" y="16" width="2" height="2"/></svg>`;
+
+            const distMi = (site.distanceKm * 0.621371).toFixed(1);
+            const marker = new mapboxgl.Marker({ element: el })
+              .setLngLat([site.longitude, site.latitude])
+              .setPopup(
+                new mapboxgl.Popup().setHTML(
+                  `<strong>${site.name}</strong><br/>NPL Status: ${site.nplStatus}<br/>Distance: ${distMi} mi`
+                )
+              )
+              .addTo(map);
+            markersRef.current.push(marker);
+          }
+
+          // === ECHO regulated facility markers (TRI + SNC highlighted) ===
+          const maxEchoMarkers = 30;
+          const sortedFacilities = [...echoFacilities]
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, maxEchoMarkers);
+
+          for (const fac of sortedFacilities) {
+            const isTri = fac.programs.includes('TRI');
+            const isSnc = fac.complianceStatus === 'Significant Violation';
+            const color = isSnc ? '#E76F51' : isTri ? '#F4A261' : '#86807A';
+            const size = isTri || isSnc ? 16 : 12;
+
+            const el = document.createElement('div');
+            el.dataset.layer = 'echo';
+            el.style.cssText = `
+              width: ${size}px; height: ${size}px; border-radius: 50%;
+              background: ${color}; border: 1.5px solid white;
+              box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+              cursor: pointer; opacity: 0.85;
+            `;
+
+            const programList = fac.programs.join(', ');
+            const marker = new mapboxgl.Marker({ element: el })
+              .setLngLat([fac.longitude, fac.latitude])
+              .setPopup(
+                new mapboxgl.Popup().setHTML(
+                  `<strong>${fac.name}</strong><br/>` +
+                  `Programs: ${programList}<br/>` +
+                  `Status: ${fac.complianceStatus}<br/>` +
+                  `Distance: ${fac.distance.toFixed(1)} mi`
+                )
+              )
+              .addTo(map);
+            markersRef.current.push(marker);
+          }
+
           map.addControl(new mapboxgl.NavigationControl(), 'top-right');
         });
       } catch {
@@ -255,7 +328,7 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
 
     initMap();
     return () => { cancelled = true; };
-  }, [token, latitude, longitude, brownfields, floodZone, waterData, assessment]);
+  }, [token, latitude, longitude, brownfields, floodZone, waterData, superfundSites, echoFacilities, assessment]);
 
   // Inject Mapbox CSS
   useEffect(() => {
@@ -289,10 +362,18 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
             <p className="text-xs text-text-tertiary mt-1">
               Set NEXT_PUBLIC_MAPBOX_TOKEN to enable interactive map
             </p>
-            {brownfields.length > 0 && (
-              <p className="text-xs text-text-secondary mt-2">
-                {brownfields.length} brownfield site(s) within 2 miles
-              </p>
+            {(brownfields.length > 0 || superfundSites.length > 0 || echoFacilities.length > 0) && (
+              <div className="mt-2 space-y-0.5">
+                {brownfields.length > 0 && (
+                  <p className="text-xs text-text-secondary">{brownfields.length} brownfield site(s) nearby</p>
+                )}
+                {superfundSites.length > 0 && (
+                  <p className="text-xs text-text-secondary">{superfundSites.length} Superfund NPL site(s) nearby</p>
+                )}
+                {echoFacilities.length > 0 && (
+                  <p className="text-xs text-text-secondary">{echoFacilities.length} regulated facilities nearby</p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -336,6 +417,28 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
                 className="rounded"
               />
               Flood zone
+            </label>
+          )}
+          {superfundSites.length > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={layers.superfund}
+                onChange={() => toggleLayer('superfund')}
+                className="rounded"
+              />
+              Superfund sites
+            </label>
+          )}
+          {echoFacilities.length > 0 && (
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={layers.echoFacilities}
+                onChange={() => toggleLayer('echoFacilities')}
+                className="rounded"
+              />
+              Regulated facilities
             </label>
           )}
         </div>
@@ -385,6 +488,24 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
             <span className="w-3 h-3 rounded-sm inline-block border border-blue-400" style={{ background: 'rgba(59,130,246,0.15)' }} />
             Flood Zone {floodZone.zone}
           </span>
+        )}
+        {layers.superfund && superfundSites.length > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-sm inline-block" style={{ background: '#C23B22' }} />
+            Superfund NPL
+          </span>
+        )}
+        {layers.echoFacilities && echoFacilities.length > 0 && (
+          <>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#F4A261' }} />
+              TRI facility
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#86807A' }} />
+              Regulated
+            </span>
+          </>
         )}
       </div>
     </div>

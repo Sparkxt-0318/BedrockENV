@@ -12,6 +12,7 @@ import { MethodologyFootnotes } from './MethodologyFootnotes';
 import { StickyColumn } from '@/components/ui/StickyColumn';
 import { DisclaimerBanner } from '@/components/report/DisclaimerBanner';
 import { PdfDownloadButton } from '@/components/report/PdfDownloadButton';
+import { ContaminationMap } from '@/components/report/ContaminationMap';
 
 interface ShowcaseReportProps {
   assessment: ExposureAssessment;
@@ -257,6 +258,9 @@ export function ShowcaseReport({ assessment, recommendations }: ShowcaseReportPr
       <StickyColumn left={leftContent} right={rightContent} />
 
       <div className="max-w-3xl">
+        <section className="border-t border-border py-12">
+          <ContaminationMap assessment={assessment} />
+        </section>
         <RecommendationsShowcase recommendations={recommendations} />
         <DataCoverageBreakdown compositeScore={compositeScore} />
         <PdfDownloadButton assessmentId={assessment.id} className="py-8 border-t border-border" />
