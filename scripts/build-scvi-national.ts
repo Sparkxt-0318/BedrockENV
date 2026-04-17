@@ -43,6 +43,16 @@ function log(msg: string): void {
   appendFileSync(LOG_FILE, msg + '\n');
 }
 
+// Crash handlers — log fatal errors and save checkpoint before dying
+process.on('uncaughtException', (err) => {
+  log(`FATAL uncaughtException: ${err.message}\n${err.stack}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  log(`FATAL unhandledRejection: ${reason instanceof Error ? reason.message + '\n' + reason.stack : String(reason)}`);
+  process.exit(1);
+});
+
 // ---------------------------------------------------------------------------
 // County reference data
 // ---------------------------------------------------------------------------
@@ -448,7 +458,7 @@ function restoreResultsFromCheckpoint(
         svsComponents: r.svsComponents,
         cpiComponents: r.cpiComponents,
         coverage: r.coverage,
-        scviQuartile: 0,
+        scviQuartile: 1 as const,
       } as ScviResult,
       errors: r.errors,
       svsInputs: {} as SoilVulnerabilityInputs,
@@ -491,6 +501,15 @@ async function main() {
   }
   log('');
 
+  // Save checkpoint on SIGTERM/SIGINT
+  const handleSignal = (sig: string) => {
+    log(`Received ${sig} — saving checkpoint and exiting`);
+    saveCheckpoint(results, results.length, counties.length);
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => handleSignal('SIGTERM'));
+  process.on('SIGINT', () => handleSignal('SIGINT'));
+
   let processed = results.length;
   for (let i = 0; i < counties.length; i++) {
     const county = counties[i];
@@ -514,10 +533,8 @@ async function main() {
       log(`${tag} ${county.stateAbbr}/${county.name}: FAILED — ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // Save checkpoint every CHECKPOINT_INTERVAL counties
-    if (processed % CHECKPOINT_INTERVAL === 0) {
-      saveCheckpoint(results, processed, counties.length);
-    }
+    // Save checkpoint every county to survive crashes
+    saveCheckpoint(results, processed, counties.length);
 
     // Progress summary every LOG_INTERVAL counties
     if (processed % LOG_INTERVAL === 0) {
