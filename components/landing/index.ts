@@ -1,5 +1,4 @@
 export { Hero } from './Hero';
-export { ProblemStatement } from './ProblemStatement';
-export { HowItWorks } from './HowItWorks';
+export { LayerChapters } from './LayerChapters';
 export { DataSources } from './DataSources';
 export { CTAPro } from './CTAPro';
