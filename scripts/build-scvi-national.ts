@@ -15,7 +15,7 @@
  * Usage: npx tsx scripts/build-scvi-national.ts
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'fs';
 import { fetchSsurgoData } from '../lib/data-sources/usda-ssurgo';
 import { fetchNasaPowerData } from '../lib/data-sources/nasa-smap';
 import { fetchBrownfieldSites } from '../lib/data-sources/epa-brownfields';
@@ -30,6 +30,18 @@ import {
   type ContaminationPressureInputs,
   type ScviResult,
 } from '../lib/intelligence/scvi-scorer';
+
+// ---------------------------------------------------------------------------
+// Real-time logging (bypasses Node.js stdout buffering in nohup)
+// ---------------------------------------------------------------------------
+
+const LOG_FILE = '/tmp/scvi-national-run.log';
+writeFileSync(LOG_FILE, '');
+
+function log(msg: string): void {
+  process.stdout.write(msg + '\n');
+  appendFileSync(LOG_FILE, msg + '\n');
+}
 
 // ---------------------------------------------------------------------------
 // County reference data
@@ -78,7 +90,7 @@ class SourceCircuitBreaker {
 
     if (count >= CIRCUIT_BREAKER_THRESHOLD) {
       this.pausedUntil.set(source, Date.now() + CIRCUIT_BREAKER_PAUSE_MS);
-      console.log(`    [CIRCUIT BREAKER] ${source} paused 60s after ${count} consecutive 503s (${countyFips})`);
+      log(`    [CIRCUIT BREAKER] ${source} paused 60s after ${count} consecutive 503s (${countyFips})`);
     }
   }
 
@@ -383,20 +395,20 @@ async function main() {
   const counties = loadCounties();
   const startTime = Date.now();
 
-  console.log('='.repeat(80));
-  console.log('SCVI NATIONAL RUN — Soil Contamination Vulnerability Index');
-  console.log(`Processing ${counties.length} counties in batches of ${BATCH_SIZE}`);
-  console.log(`Retry policy: ${BATCH_MAX_RETRIES} retries, ${BATCH_BASE_BACKOFF_MS}ms base backoff + jitter`);
-  console.log(`Circuit breaker: ${CIRCUIT_BREAKER_THRESHOLD} consecutive 503s → ${CIRCUIT_BREAKER_PAUSE_MS / 1000}s pause`);
-  console.log(`Multi-point sampling: counties ≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi get 3 sample points`);
-  console.log(`Started: ${new Date().toISOString()}`);
-  console.log('='.repeat(80));
-  console.log('');
+  log('='.repeat(80));
+  log('SCVI NATIONAL RUN — Soil Contamination Vulnerability Index');
+  log(`Processing ${counties.length} counties in batches of ${BATCH_SIZE}`);
+  log(`Retry policy: ${BATCH_MAX_RETRIES} retries, ${BATCH_BASE_BACKOFF_MS}ms base backoff + jitter`);
+  log(`Circuit breaker: ${CIRCUIT_BREAKER_THRESHOLD} consecutive 503s → ${CIRCUIT_BREAKER_PAUSE_MS / 1000}s pause`);
+  log(`Multi-point sampling: counties ≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi get 3 sample points`);
+  log(`Started: ${new Date().toISOString()}`);
+  log('='.repeat(80));
+  log('');
 
   const results: CountyResult[] = [];
   const multiPointCount = counties.filter(c => c.areaSqMi >= LARGE_COUNTY_THRESHOLD_SQMI).length;
-  console.log(`${multiPointCount} counties will use multi-point sampling (≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi)`);
-  console.log('');
+  log(`${multiPointCount} counties will use multi-point sampling (≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi)`);
+  log('');
 
   for (let i = 0; i < counties.length; i++) {
     const county = counties[i];
@@ -410,11 +422,11 @@ async function main() {
       const r = result.scviResult;
       const pts = result.samplePoints > 1 ? ` ${result.samplePoints}pt` : '';
       const warns = result.errors.length > 0 ? ` [${result.errors.length}w]` : '';
-      process.stdout.write(
-        `${tag} ${county.stateAbbr}/${county.name}: SCVI=${r.scvi} SVS=${r.svs} CPI=${r.cpi}${pts}${warns}\n`
+      log(
+        `${tag} ${county.stateAbbr}/${county.name}: SCVI=${r.scvi} SVS=${r.svs} CPI=${r.cpi}${pts}${warns}`
       );
     } catch (err) {
-      console.log(`${tag} ${county.stateAbbr}/${county.name}: FAILED — ${err instanceof Error ? err.message : String(err)}`);
+      log(`${tag} ${county.stateAbbr}/${county.name}: FAILED — ${err instanceof Error ? err.message : String(err)}`);
     }
 
     // Progress summary every LOG_INTERVAL counties
@@ -423,9 +435,9 @@ async function main() {
       const rate = (i + 1) / elapsed;
       const eta = Math.round((counties.length - i - 1) / rate / 60);
       const avgScvi = Math.round(results.reduce((s, r) => s + r.scviResult.scvi, 0) / results.length);
-      console.log('');
-      console.log(`--- PROGRESS: ${i + 1}/${counties.length} (${((i + 1) / counties.length * 100).toFixed(1)}%) | ${elapsed.toFixed(0)}s elapsed | ~${eta}min remaining | avg SCVI=${avgScvi} | ${failedCounties.length} with warnings ---`);
-      console.log('');
+      log('');
+      log(`--- PROGRESS: ${i + 1}/${counties.length} (${((i + 1) / counties.length * 100).toFixed(1)}%) | ${elapsed.toFixed(0)}s elapsed | ~${eta}min remaining | avg SCVI=${avgScvi} | ${failedCounties.length} with warnings ---`);
+      log('');
 
       // Save checkpoint
       saveCheckpoint(results, i + 1, counties.length);
@@ -449,24 +461,24 @@ async function main() {
   // ---------------------------------------------------------------------------
   // Report: Summary
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log(`NATIONAL SCVI RESULTS — ${results.length} counties processed in ${elapsed} minutes`);
-  console.log('='.repeat(80));
-  console.log('');
+  log('');
+  log('='.repeat(80));
+  log(`NATIONAL SCVI RESULTS — ${results.length} counties processed in ${elapsed} minutes`);
+  log('='.repeat(80));
+  log('');
 
-  console.log(`Total counties: ${results.length} / ${counties.length}`);
-  console.log(`Counties with warnings: ${failedCounties.length}`);
-  console.log('');
+  log(`Total counties: ${results.length} / ${counties.length}`);
+  log(`Counties with warnings: ${failedCounties.length}`);
+  log('');
 
   // ---------------------------------------------------------------------------
   // Report: Top 25 highest SCVI
   // ---------------------------------------------------------------------------
-  console.log('='.repeat(80));
-  console.log('TOP 25 HIGHEST SCVI COUNTIES');
-  console.log('='.repeat(80));
-  console.log('');
-  console.log(
+  log('='.repeat(80));
+  log('TOP 25 HIGHEST SCVI COUNTIES');
+  log('='.repeat(80));
+  log('');
+  log(
     '#'.padEnd(4) +
     'County'.padEnd(28) +
     'State'.padEnd(6) +
@@ -477,12 +489,12 @@ async function main() {
     'SVI Class'.padStart(18) +
     'Pop'.padStart(12)
   );
-  console.log('-'.repeat(90));
+  log('-'.repeat(90));
 
   for (let i = 0; i < Math.min(25, sorted.length); i++) {
     const r = sorted[i];
     const s = r.scviResult;
-    console.log(
+    log(
       String(i + 1).padEnd(4) +
       r.county.name.padEnd(28) +
       r.county.stateAbbr.padEnd(6) +
@@ -498,34 +510,34 @@ async function main() {
   // ---------------------------------------------------------------------------
   // Report: Top 25 details
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log('TOP 25 DETAIL');
-  console.log('='.repeat(80));
+  log('');
+  log('='.repeat(80));
+  log('TOP 25 DETAIL');
+  log('='.repeat(80));
 
   for (let i = 0; i < Math.min(25, sorted.length); i++) {
     const r = sorted[i];
     const s = r.scviResult;
-    console.log('');
-    console.log(`#${i + 1}: ${r.county.name} County, ${r.county.stateAbbr} (pop ${r.county.population.toLocaleString()})`);
-    console.log(`  SCVI: ${s.scvi} (Q${s.scviQuartile})  |  USDA SVI: ${s.usdaSviClass}`);
-    console.log(`  SVS: ${s.svs}  |  CPI: ${s.cpi}`);
-    console.log(`  SVS: OM=${s.svsComponents.organicMatter} pH=${s.svsComponents.ph} drain=${s.svsComponents.drainage} texture=${s.svsComponents.texture} climate=${s.svsComponents.climate} urban=${s.svsComponents.urbanGap}`);
-    console.log(`  CPI: legacy=${s.cpiComponents.legacy} industrial=${s.cpiComponents.industrial} compliance=${s.cpiComponents.compliance} release=${s.cpiComponents.release}`);
-    console.log(`  Coverage: SVS ${s.coverage.svsDataPoints}/${s.coverage.svsMaxDataPoints}, CPI ${s.coverage.cpiDataPoints}/${s.coverage.cpiMaxDataPoints}`);
+    log('');
+    log(`#${i + 1}: ${r.county.name} County, ${r.county.stateAbbr} (pop ${r.county.population.toLocaleString()})`);
+    log(`  SCVI: ${s.scvi} (Q${s.scviQuartile})  |  USDA SVI: ${s.usdaSviClass}`);
+    log(`  SVS: ${s.svs}  |  CPI: ${s.cpi}`);
+    log(`  SVS: OM=${s.svsComponents.organicMatter} pH=${s.svsComponents.ph} drain=${s.svsComponents.drainage} texture=${s.svsComponents.texture} climate=${s.svsComponents.climate} urban=${s.svsComponents.urbanGap}`);
+    log(`  CPI: legacy=${s.cpiComponents.legacy} industrial=${s.cpiComponents.industrial} compliance=${s.cpiComponents.compliance} release=${s.cpiComponents.release}`);
+    log(`  Coverage: SVS ${s.coverage.svsDataPoints}/${s.coverage.svsMaxDataPoints}, CPI ${s.coverage.cpiDataPoints}/${s.coverage.cpiMaxDataPoints}`);
     if (r.errors.length > 0) {
-      console.log(`  Warnings (${r.errors.length}): ${r.errors.slice(0, 3).join('; ')}${r.errors.length > 3 ? '...' : ''}`);
+      log(`  Warnings (${r.errors.length}): ${r.errors.slice(0, 3).join('; ')}${r.errors.length > 3 ? '...' : ''}`);
     }
   }
 
   // ---------------------------------------------------------------------------
   // Report: Population in top quartile
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log('POPULATION BY SCVI QUARTILE');
-  console.log('='.repeat(80));
-  console.log('');
+  log('');
+  log('='.repeat(80));
+  log('POPULATION BY SCVI QUARTILE');
+  log('='.repeat(80));
+  log('');
 
   const popByQuartile = [0, 0, 0, 0];
   const countByQuartile = [0, 0, 0, 0];
@@ -538,45 +550,45 @@ async function main() {
 
   for (let q = 0; q < 4; q++) {
     const pct = totalPop > 0 ? ((popByQuartile[q] / totalPop) * 100).toFixed(1) : '0.0';
-    console.log(
+    log(
       `  Q${q + 1}: ${countByQuartile[q]} counties | pop ${popByQuartile[q].toLocaleString()} (${pct}% of total)`
     );
   }
-  console.log(`  Total population covered: ${totalPop.toLocaleString()}`);
+  log(`  Total population covered: ${totalPop.toLocaleString()}`);
 
   // ---------------------------------------------------------------------------
   // Report: USDA SVI class distribution
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log('USDA SVI CLASS DISTRIBUTION');
-  console.log('='.repeat(80));
+  log('');
+  log('='.repeat(80));
+  log('USDA SVI CLASS DISTRIBUTION');
+  log('='.repeat(80));
   const sviCounts: Record<string, number> = {};
   for (const r of results) {
     const cls = r.scviResult.usdaSviClass;
     sviCounts[cls] = (sviCounts[cls] || 0) + 1;
   }
   for (const [cls, count] of Object.entries(sviCounts).sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${cls}: ${count} counties (${((count / results.length) * 100).toFixed(1)}%)`);
+    log(`  ${cls}: ${count} counties (${((count / results.length) * 100).toFixed(1)}%)`);
   }
 
   // ---------------------------------------------------------------------------
   // Report: SCVI quartile distribution
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('SCVI QUARTILE DISTRIBUTION');
-  console.log('-'.repeat(40));
+  log('');
+  log('SCVI QUARTILE DISTRIBUTION');
+  log('-'.repeat(40));
   for (let q = 1; q <= 4; q++) {
-    console.log(`  Q${q}: ${countByQuartile[q - 1]} counties`);
+    log(`  Q${q}: ${countByQuartile[q - 1]} counties`);
   }
 
   // ---------------------------------------------------------------------------
   // Report: State breakdown — states with most Q4 counties
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log('STATES WITH MOST Q4 (HIGHEST RISK) COUNTIES');
-  console.log('='.repeat(80));
+  log('');
+  log('='.repeat(80));
+  log('STATES WITH MOST Q4 (HIGHEST RISK) COUNTIES');
+  log('='.repeat(80));
   const q4ByState = new Map<string, number>();
   for (const r of results) {
     if (r.scviResult.scviQuartile === 4) {
@@ -585,25 +597,25 @@ async function main() {
   }
   const stateQ4Sorted = [...q4ByState.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
   for (const [state, count] of stateQ4Sorted) {
-    console.log(`  ${state}: ${count} Q4 counties`);
+    log(`  ${state}: ${count} Q4 counties`);
   }
 
   // ---------------------------------------------------------------------------
   // Report: Data limitations and warnings
   // ---------------------------------------------------------------------------
-  console.log('');
-  console.log('='.repeat(80));
-  console.log('DATA LIMITATIONS');
-  console.log('='.repeat(80));
-  console.log('  - ndviAnomaly: No data source; urban gap uses default score=50');
-  console.log('  - TRI release volumes: one_time_release_qty underestimates actual annual totals');
-  console.log('  - Income by quartile: Census ACS unavailable at build time; omitted');
+  log('');
+  log('='.repeat(80));
+  log('DATA LIMITATIONS');
+  log('='.repeat(80));
+  log('  - ndviAnomaly: No data source; urban gap uses default score=50');
+  log('  - TRI release volumes: one_time_release_qty underestimates actual annual totals');
+  log('  - Income by quartile: Census ACS unavailable at build time; omitted');
 
   // Warning summary
   const allWarnings = results.flatMap(r => r.errors);
   if (allWarnings.length > 0) {
-    console.log('');
-    console.log(`API WARNINGS (${allWarnings.length} total across ${failedCounties.length} counties):`);
+    log('');
+    log(`API WARNINGS (${allWarnings.length} total across ${failedCounties.length} counties):`);
     const warningCounts = new Map<string, number>();
     for (const w of allWarnings) {
       const key = w.replace(/\d{5}/g, 'XXXXX').replace(/for .+$/, '...');
@@ -611,7 +623,7 @@ async function main() {
     }
     const sortedWarnings = [...warningCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
     for (const [w, count] of sortedWarnings) {
-      console.log(`  - ${w} (×${count})`);
+      log(`  - ${w} (×${count})`);
     }
   }
 
@@ -637,22 +649,23 @@ async function main() {
   mkdirSync('data/scvi-build', { recursive: true });
   const outPath = 'data/scvi-national.json';
   writeFileSync(outPath, JSON.stringify(jsonOutput, null, 2));
-  console.log('');
-  console.log(`Full results written to ${outPath}`);
+  log('');
+  log(`Full results written to ${outPath}`);
 
   if (failedCounties.length > 0) {
     const failedPath = 'data/scvi-build/failed-counties.json';
     writeFileSync(failedPath, JSON.stringify(failedCounties, null, 2));
-    console.log(`Failed counties (${failedCounties.length}) written to ${failedPath}`);
+    log(`Failed counties (${failedCounties.length}) written to ${failedPath}`);
   } else {
-    console.log('No failed counties — all sources responded for all counties.');
+    log('No failed counties — all sources responded for all counties.');
   }
 
-  console.log('');
-  console.log(`Completed in ${elapsed} minutes.`);
+  log('');
+  log(`Completed in ${elapsed} minutes.`);
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  log(`Fatal error: ${err}`);
+  console.error(err);
   process.exit(1);
 });
