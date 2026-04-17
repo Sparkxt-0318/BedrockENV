@@ -15,6 +15,8 @@
 - **Geocoding** — Census + Mapbox fallback, PWSID resolution via SDWIS
 - **Auth + billing** — Supabase auth, Stripe checkout, Pro tier gating
 - **Accessibility** — axe-core audited, ARIA meters, semantic HTML, keyboard accessible
+- **PDF report export** — @react-pdf/renderer multi-page PDF with cover, layers, recommendations, methodology
+- **Stripe payments** — $29 consumer report purchase, $99/mo Pro subscription, free preview with frosted blur overlay
 
 ## In Progress
 
@@ -22,14 +24,56 @@
 - **Air API keys** — EPA AQS, OpenAQ v3, AirNow registration (user-managed; air layer at ~50% coverage without them)
 - **Superfund static bundle** — ~1,300 active NPL sites with coordinates to supplement FRS SEMS API (addresses Picher/Tar Creek gap)
 - **Rank-order calibration** — Integration tests for relative scoring (Newark vs Flint, South LA vs Flint) need tuning after EJ layer is live
+- **Neighborhood comparison** — Compare composite scores across surrounding census tracts to contextualize a single address (spec below)
 
 ## Considering
 
 - **Historical contamination flag** — Special handling for abandoned/dissolved towns (Picher-class) where contamination predates monitoring infrastructure
 - **RSEI cancer risk** — EPA Risk-Screening Environmental Indicators for air toxics cancer risk (would improve Port Arthur scoring)
 - **CERCLIS/SEMS supplemental source** — Additional Superfund data beyond FRS facility records
-- **Report PDF export** — Server-side PDF generation for Pro users
 - **Mapbox layer visualization** — Interactive map showing Superfund sites, TRI facilities, flood zones overlaid on the report
 - **Time-series trends** — Show how contamination levels have changed over time (SDWIS violation history, air quality trends)
 - **Neighborhood comparison** — Compare scores across nearby census tracts or zip codes
 - **Mobile app** — React Native wrapper for push notifications on data updates
+
+---
+
+## Spec: Neighborhood Comparison (In-Progress)
+
+### What it does
+When a user views a report for an address, a "Neighborhood Context" section shows
+how the composite score compares to the surrounding census tracts. Displays a
+horizontal bar chart of 5-8 nearby tracts with the target address highlighted.
+
+### Data sources
+- **Census TIGER API** — Given a census tract FIPS code, fetch adjacent tracts
+  using the TIGER geographic relationship API (`/geo/tract-adjacency`)
+- **Cached assessments** — For each adjacent tract, check if we already have a
+  scored assessment in `exposure_assessments` for any address in that tract
+- **Lightweight proxy assessment** — For uncached tracts, run a centroid-based
+  assessment using the tract centroid coordinates (skip WQP, use only bundled
+  data + ECHO radius). This is a "directional" estimate, not a full assessment.
+
+### UI component
+- `NeighborhoodComparison.tsx` — horizontal bar chart with tract labels
+- Shows composite score for each tract as a colored bar (green/amber/red)
+- Target address highlighted with accent outline
+- "Your address" label pinned to the target bar
+- Expand/collapse toggle, collapsed by default on mobile
+- Placed after DataCoverageBreakdown in the showcase report
+
+### API changes
+- `GET /api/neighborhood-comparison?tract=FIPS&lat=N&lng=N` — returns adjacent
+  tract composite scores (cached or estimated)
+- Rate limited: 1 request per assessment (cached after first call)
+
+### Tests needed
+- Unit: NeighborhoodComparison component renders with mock data
+- Unit: adjacent tract centroid calculation
+- Unit: proxy assessment score estimation
+- Integration: API returns valid comparison data for a known tract
+
+### Estimated effort
+- 1 day: API route + Census TIGER integration + proxy scoring
+- 0.5 day: UI component + showcase integration
+- 0.5 day: tests + polish
