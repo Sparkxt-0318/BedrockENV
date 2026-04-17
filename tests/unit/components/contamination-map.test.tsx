@@ -52,8 +52,8 @@ describe('ContaminationMap', () => {
       soilData: {
         ssurgo: null,
         brownfields: [
-          { name: 'Test Site', latitude: 40.74, longitude: -74.17, distance: 0.5, direction: 'N', cleanupStatus: 'Active', contaminantTypes: ['Lead'] },
-          { name: 'Site 2', latitude: 40.73, longitude: -74.18, distance: 1.2, direction: 'W', cleanupStatus: 'Completed', contaminantTypes: ['PCBs'] },
+          { siteId: 'BF1', name: 'Test Site', latitude: 40.74, longitude: -74.17, distance: 0.5, direction: 'N', cleanupStatus: 'Active', contaminantTypes: ['Lead'] },
+          { siteId: 'BF2', name: 'Site 2', latitude: 40.73, longitude: -74.18, distance: 1.2, direction: 'W', cleanupStatus: 'Completed', contaminantTypes: ['PCBs'] },
         ],
         echoFacilities: null,
         floodZone: null,
@@ -83,7 +83,7 @@ describe('ContaminationMap', () => {
         superfundSites: [],
         echoFacilities: {
           facilities: [
-            { registryId: 'R1', name: 'Facility A', distance: 0.5, direction: 'N', latitude: 40.74, longitude: -74.17, programs: ['TRI'], complianceStatus: 'No Violation' },
+            { registryId: 'R1', name: 'Facility A', distance: 0.5, direction: 'N', latitude: 40.74, longitude: -74.17, programs: ['TRI'], complianceStatus: 'No Violation', significantViolation: false },
           ],
           significantViolationCount: 0,
           totalCount: 1,
