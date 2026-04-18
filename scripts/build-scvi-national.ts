@@ -475,9 +475,14 @@ async function main() {
   const counties = loadCounties();
   const startTime = Date.now();
 
+  // --limit N flag: process only N new counties then exit cleanly
+  const limitArg = process.argv.indexOf('--limit');
+  const batchLimit = limitArg !== -1 ? parseInt(process.argv[limitArg + 1], 10) : Infinity;
+
   log('='.repeat(80));
   log('SCVI NATIONAL RUN — Soil Contamination Vulnerability Index');
   log(`Processing ${counties.length} counties in batches of ${BATCH_SIZE}`);
+  if (isFinite(batchLimit)) log(`Batch limit: ${batchLimit} counties this run`);
   log(`Retry policy: ${BATCH_MAX_RETRIES} retries, ${BATCH_BASE_BACKOFF_MS}ms base backoff + jitter`);
   log(`Circuit breaker: ${CIRCUIT_BREAKER_THRESHOLD} consecutive 503s → ${CIRCUIT_BREAKER_PAUSE_MS / 1000}s pause`);
   log(`Multi-point sampling: counties ≥${LARGE_COUNTY_THRESHOLD_SQMI} sq mi get 3 sample points`);
@@ -511,11 +516,19 @@ async function main() {
   process.on('SIGINT', () => handleSignal('SIGINT'));
 
   let processed = results.length;
+  let newThisBatch = 0;
   for (let i = 0; i < counties.length; i++) {
     const county = counties[i];
     if (completedFips.has(county.fips)) continue;
 
+    // Exit cleanly after processing batchLimit new counties
+    if (newThisBatch >= batchLimit) {
+      log(`\nBatch limit of ${batchLimit} reached. Checkpoint saved. Exiting cleanly.`);
+      break;
+    }
+
     processed++;
+    newThisBatch++;
     const tag = `[${processed}/${counties.length}]`;
 
     try {
@@ -557,6 +570,16 @@ async function main() {
 
   // Final checkpoint
   saveCheckpoint(results, results.length, counties.length);
+
+  const allDone = results.length >= counties.length;
+
+  if (!allDone) {
+    const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
+    log('');
+    log(`Batch complete: ${results.length}/${counties.length} counties processed in ${elapsed} minutes`);
+    log(`Run again with --limit N to continue from checkpoint.`);
+    return;
+  }
 
   // Assign quartiles across all results
   const quartiles = assignQuartiles(results.map(r => ({ scvi: r.scviResult.scvi })));
