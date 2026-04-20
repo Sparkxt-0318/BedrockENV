@@ -134,16 +134,16 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
               <div className="px-3 py-2 rounded-[var(--radius-md)] bg-bg-surface border border-border">
                 <Mono className="text-lg">SVS</Mono>
               </div>
-              <span className="text-text-tertiary text-lg">&times;</span>
+              <span className="text-text-secondary text-lg">&times;</span>
               <div className="px-3 py-2 rounded-[var(--radius-md)] bg-bg-surface border border-border">
                 <Mono className="text-lg">CPI</Mono>
               </div>
-              <span className="text-text-tertiary text-lg">&rarr;</span>
+              <span className="text-text-secondary text-lg">&rarr;</span>
               <div className="px-3 py-2 rounded-[var(--radius-md)] bg-accent/10 border border-accent/20">
                 <Mono className="text-lg text-accent">SCVI</Mono>
               </div>
             </div>
-            <p className="text-xs text-text-tertiary text-center mt-2">
+            <p className="text-xs text-text-primary/65 text-center mt-2">
               SCVI = &radic;(SVS &times; CPI), normalized to 0&ndash;100. Geometric mean ensures both
               dimensions must be elevated for a high composite score.
             </p>
@@ -164,7 +164,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
           <div className="rounded-[var(--radius-lg)] border border-border bg-bg-surface p-4 sm:p-6">
             <SvsVsCpiScatter data={data} />
           </div>
-          <p className="text-xs text-text-tertiary mt-2">
+          <p className="text-xs text-text-primary/65 mt-2">
             Each dot is a US county. Size = population. Color = SCVI score (green → red).
             Counties in the upper-right quadrant have both vulnerable soil and high contamination pressure.
           </p>
@@ -179,22 +179,22 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-left">
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider">#</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider">County</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider text-right">SCVI</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider text-right">SVS</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider text-right">CPI</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider hidden sm:table-cell">USDA SVI</th>
-                        <th className="px-4 py-3 text-xs font-medium text-text-tertiary uppercase tracking-wider text-right hidden md:table-cell">Pop</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider">#</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider">County</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider text-right">SCVI</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider text-right">SVS</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider text-right">CPI</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider hidden sm:table-cell">USDA SVI</th>
+                        <th className="px-4 py-3 text-xs font-medium text-text-primary/65 uppercase tracking-wider text-right hidden md:table-cell">Pop</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stats.top10.map((r, i) => (
                         <tr key={r.fips} className="border-b border-border/50 hover:bg-bg-elevated/50 transition-colors">
-                          <td className="px-4 py-3 text-text-tertiary">{i + 1}</td>
+                          <td className="px-4 py-3 text-text-secondary">{i + 1}</td>
                           <td className="px-4 py-3">
                             <span className="font-medium text-text-primary">{r.county}</span>
-                            <span className="text-text-tertiary ml-1">{r.state}</span>
+                            <span className="text-text-secondary ml-1">{r.state}</span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <Mono className="text-sm">{r.scvi}</Mono>
@@ -218,7 +218,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 </div>
               </CardContent>
             </Card>
-            <p className="text-xs text-text-tertiary mt-2">
+            <p className="text-xs text-text-primary/65 mt-2">
               Virginia independent cities under 50 sq mi excluded from headline ranking due to
               geographic scale artifacts. Their concentrated industrial legacy within compact
               boundaries inflates CPI scores. See appendix for full list.
@@ -243,7 +243,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 <Mono className="text-3xl block">
                   <CountUp end={Math.round(stats.q4Pop / 1e6)} suffix="M" />
                 </Mono>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-text-primary/65 mt-1">
                   people live in Q4 counties
                 </p>
                 <p className="text-xs text-text-secondary mt-0.5">
@@ -257,7 +257,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 <Mono className="text-3xl block">
                   <CountUp end={Math.round(stats.blackRatio * 10) / 10} decimals={1} suffix="×" />
                 </Mono>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-text-primary/65 mt-1">
                   Black population share in Q4 vs Q1
                 </p>
               </CardContent>
@@ -267,7 +267,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 <Mono className="text-3xl block">
                   $<CountUp end={Math.round((stats.quartileStats[0].medianIncome - stats.quartileStats[3].medianIncome) / 1000)} suffix="k" />
                 </Mono>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-text-primary/65 mt-1">
                   income gap Q1 → Q4
                 </p>
               </CardContent>
@@ -344,7 +344,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 <Mono className="text-3xl block">
                   <CountUp end={stats.urbanGapCount} />
                 </Mono>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-text-primary/65 mt-1">
                   counties with SSURGO coverage gaps
                 </p>
               </CardContent>
@@ -354,7 +354,7 @@ export function SoilCrisisClient({ data, stats }: { data: CountySlim[]; stats: S
                 <Mono className="text-3xl block">
                   <CountUp end={stats.urbanGapQ4} />
                 </Mono>
-                <p className="text-xs text-text-tertiary mt-1">
+                <p className="text-xs text-text-primary/65 mt-1">
                   of those in the highest-risk quartile
                 </p>
                 <p className="text-xs text-text-secondary">

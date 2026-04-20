@@ -1,5 +1,33 @@
 # Scoring Pipeline Improvement Log
 
+## SCVI Intelligence Page Build (2026-04-20)
+
+### National SCVI Dataset
+- Scored all 3,140 US counties using SCVI = √(SVS × CPI) normalized 0–100
+- SVS (Soil Vulnerability Score): SSURGO organic matter, drainage, pH, texture, climate erosivity, urban data gap
+- CPI (Contamination Pressure Index): legacy industrial sites, active industrial density, compliance violations, toxic releases
+- Merged Census ACS 5-year (2022) demographics: median income, poverty rate, race/ethnicity (3,131/3,140 matched; 9 CT planning regions unmatched)
+- Quartile distribution: Q1 785 counties, Q2 785, Q3 785, Q4 785
+
+### Visualization Page (`/intelligence/soil-crisis`)
+- Server component loads `data/scvi-national.json`, computes quartile stats, passes slimmed props to client
+- D3 choropleth map (Albers projection, `counties-albers-10m.json`) with SCVI/SVS/CPI/USDA SVI toggle
+- SVS-vs-CPI scatter plot with population-sized dots and SCVI-colored gradient
+- Quartile bar charts for median income and poverty rate (animated, gradient colored)
+- 4-chapter scrollytelling research brief:
+  1. "The gap between two federal frameworks" — SSURGO vs EPA, formula explanation
+  2. "Where vulnerable soil meets contamination" — scatter plot, top-10 table
+  3. "Who lives in the highest-risk counties" — CountUp stats, income/race bar charts, EJ callout
+  4. "The urban blind spot" — SSURGO gap analysis, emerging contaminants
+- Methodology footer with 15+ data source citations and limitations
+
+### Accessibility & Polish
+- axe-core audit via Puppeteer: 1 serious violation (color-contrast, 24 instances)
+- Fixed page-specific contrast: inactive toggle buttons, legend labels, stat labels, table headers
+- Responsive rendering verified at 375/768/1024/1440px viewports + dark mode
+- Tooltip clipping prevention (bounds checking for right edge and top)
+- Top-10 table excludes VA independent cities (small jurisdictions with outlier scores)
+
 ## Autonomous Improvement Cycle 2 (2026-04-17)
 
 ### Section 1: Data Accuracy — 3 New Addresses

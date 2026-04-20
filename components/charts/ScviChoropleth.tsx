@@ -114,8 +114,12 @@ export function ScviChoropleth({ data }: ScviChoroplethProps) {
         const tooltip = tooltipRef.current;
         if (tooltip) {
           const rect = svgRef.current!.getBoundingClientRect();
-          tooltip.style.left = `${event.clientX - rect.left + 12}px`;
-          tooltip.style.top = `${event.clientY - rect.top - 10}px`;
+          let left = event.clientX - rect.left + 12;
+          let top = event.clientY - rect.top - 10;
+          if (left + 220 > rect.width) left = event.clientX - rect.left - 230;
+          if (top < 0) top = 4;
+          tooltip.style.left = `${left}px`;
+          tooltip.style.top = `${top}px`;
         }
       })
       .on('mouseleave', function () {
@@ -169,7 +173,7 @@ export function ScviChoropleth({ data }: ScviChoroplethProps) {
             className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-sm)] transition-colors ${
               mode === m.key
                 ? 'bg-accent text-white'
-                : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
+                : 'bg-bg-elevated text-text-primary/70 hover:text-text-primary'
             }`}
           >
             {m.label}
@@ -202,18 +206,18 @@ export function ScviChoropleth({ data }: ScviChoroplethProps) {
           Object.entries(SVI_CLASS_COLORS).map(([label, color]) => (
             <div key={label} className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-sm" style={{ background: color }} />
-              <span className="text-[10px] text-text-tertiary">{label}</span>
+              <span className="text-[10px] text-text-secondary">{label}</span>
             </div>
           ))
         ) : (
           <>
-            <span className="text-[10px] text-text-tertiary">Low</span>
+            <span className="text-[10px] text-text-secondary">Low</span>
             <div className="flex h-3 flex-1 rounded-sm overflow-hidden">
               {SCVI_COLORS.map((c) => (
                 <div key={c} className="flex-1" style={{ background: c }} />
               ))}
             </div>
-            <span className="text-[10px] text-text-tertiary">High</span>
+            <span className="text-[10px] text-text-secondary">High</span>
           </>
         )}
       </div>

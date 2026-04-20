@@ -18,6 +18,7 @@
 - **PDF report export** — @react-pdf/renderer multi-page PDF with cover, layers, recommendations, methodology
 - **Stripe payments** — $29 consumer report purchase, $99/mo Pro subscription, free preview with frosted blur overlay
 - **Mapbox layer visualization** — Interactive map in showcase report showing property marker, Superfund NPL sites, ECHO/TRI regulated facilities, brownfield sites, flood zones, water system markers with toggleable layers and legend
+- **SCVI national map** — Soil Contamination Vulnerability Index scoring all 3,140 US counties (√(SVS × CPI) normalized 0–100), `/intelligence/soil-crisis` page with D3 choropleth, SVS-vs-CPI scatter plot, quartile bar charts, 4-chapter scrollytelling research brief, Census ACS demographics overlay, axe-core accessibility audited
 
 ## In Progress
 
@@ -26,6 +27,7 @@
 - **Superfund static bundle** — ~1,300 active NPL sites with coordinates to supplement FRS SEMS API (addresses Picher/Tar Creek gap)
 - **Rank-order calibration** — Integration tests for relative scoring (Newark vs Flint, South LA vs Flint) need tuning after EJ layer is live
 - **Neighborhood comparison** — Compare composite scores across surrounding census tracts to contextualize a single address (spec below)
+- **Research Brief #2: Flood-Contamination Compound Map** — Overlay FEMA NFHL flood zones with EPA contamination sites to identify counties where flooding mobilizes soil contaminants
 
 ## Considering
 

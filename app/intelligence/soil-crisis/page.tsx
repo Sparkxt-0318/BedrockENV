@@ -70,9 +70,12 @@ function computeStats(data: ScviRecord[]) {
     };
   });
 
+  const isVaIndependentCity = (d: ScviRecord) =>
+    d.state === 'VA' && d.county.endsWith('city');
+
   const top10 = [...data]
     .sort((a, b) => b.scvi - a.scvi)
-    .filter((d) => d.population > 50000 || d.scvi >= 55)
+    .filter((d) => !isVaIndependentCity(d))
     .slice(0, 10);
 
   const urbanGapCount = data.filter(
@@ -137,15 +140,15 @@ export default function SoilCrisisPage() {
         <div className="flex flex-wrap gap-6 mt-8 text-sm">
           <div>
             <Mono className="text-2xl block">{stats.totalCounties.toLocaleString()}</Mono>
-            <span className="text-text-tertiary text-xs">Counties scored</span>
+            <span className="text-text-secondary text-xs">Counties scored</span>
           </div>
           <div>
             <Mono className="text-2xl block">{Math.round(stats.totalPop / 1e6)}M</Mono>
-            <span className="text-text-tertiary text-xs">Population covered</span>
+            <span className="text-text-secondary text-xs">Population covered</span>
           </div>
           <div>
             <Mono className="text-2xl block">15+</Mono>
-            <span className="text-text-tertiary text-xs">Federal data sources</span>
+            <span className="text-text-secondary text-xs">Federal data sources</span>
           </div>
         </div>
       </header>
