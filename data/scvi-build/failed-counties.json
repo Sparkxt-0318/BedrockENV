@@ -77,14 +77,2032 @@
     ]
   },
   {
-    "fips": "12103",
-    "county": "Pinellas",
-    "state": "FL",
+    "fips": "13047",
+    "county": "Catoosa",
+    "state": "GA",
     "failedSources": [
       "ECHO"
     ],
     "errors": [
       "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "13151",
+    "county": "Henry",
+    "state": "GA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "13185",
+    "county": "Lowndes",
+    "state": "GA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "13241",
+    "county": "Rabun",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13243",
+    "county": "Randolph",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13245",
+    "county": "Richmond",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13247",
+    "county": "Rockdale",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13249",
+    "county": "Schley",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13251",
+    "county": "Screven",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13253",
+    "county": "Seminole",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13255",
+    "county": "Spalding",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13257",
+    "county": "Stephens",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13259",
+    "county": "Stewart",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13261",
+    "county": "Sumter",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13263",
+    "county": "Talbot",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13265",
+    "county": "Taliaferro",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13273",
+    "county": "Terrell",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13277",
+    "county": "Tift",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13285",
+    "county": "Troup",
+    "state": "GA",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out"
+    ]
+  },
+  {
+    "fips": "13289",
+    "county": "Twiggs",
+    "state": "GA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "15005",
+    "county": "Kalawao",
+    "state": "HI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "17031",
+    "county": "Cook",
+    "state": "IL",
+    "failedSources": [
+      "Superfund",
+      "ECHO"
+    ],
+    "errors": [
+      "Superfund: FRS Superfund request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "17097",
+    "county": "Lake",
+    "state": "IL",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "18097",
+    "county": "Marion",
+    "state": "IN",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "21035",
+    "county": "Calloway",
+    "state": "KY",
+    "failedSources": [
+      "SSURGO",
+      "POWER",
+      "Brownfields",
+      "Superfund",
+      "TRI"
+    ],
+    "errors": [
+      "SSURGO: HTTP 503: Service Unavailable",
+      "POWER: HTTP 503: Service Unavailable",
+      "Brownfields: HTTP 503: Service Unavailable",
+      "Superfund: FRS API returned HTTP 503",
+      "TRI: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "23007",
+    "county": "Franklin",
+    "state": "ME",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "24027",
+    "county": "Howard",
+    "state": "MD",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "24041",
+    "county": "Talbot",
+    "state": "MD",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "24510",
+    "county": "Baltimore city",
+    "state": "MD",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "26001",
+    "county": "Alcona",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26003",
+    "county": "Alger",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26005",
+    "county": "Allegan",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26019",
+    "county": "Benzie",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26029",
+    "county": "Charlevoix",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26069",
+    "county": "Iosco",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26083",
+    "county": "Keweenaw",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26095",
+    "county": "Luce",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26101",
+    "county": "Manistee",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26103",
+    "county": "Marquette",
+    "state": "MI",
+    "failedSources": [
+      "ECHO",
+      "SSURGO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 403",
+      "SSURGO: USDA SDA returned a malformed response",
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26105",
+    "county": "Mason",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26113",
+    "county": "Missaukee",
+    "state": "MI",
+    "failedSources": [
+      "Brownfields"
+    ],
+    "errors": [
+      "Brownfields: EPA NEPAssist returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "26121",
+    "county": "Muskegon",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26127",
+    "county": "Oceana",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "26129",
+    "county": "Ogemaw",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "26131",
+    "county": "Ontonagon",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "26133",
+    "county": "Osceola",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "26139",
+    "county": "Ottawa",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "26141",
+    "county": "Presque Isle",
+    "state": "MI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "27031",
+    "county": "Cook",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response",
+      "SSURGO: USDA SDA returned a malformed response",
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "27061",
+    "county": "Itasca",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "27063",
+    "county": "Jackson",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "27065",
+    "county": "Kanabec",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "27071",
+    "county": "Koochiching",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "27073",
+    "county": "Lac qui Parle",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "27075",
+    "county": "Lake",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "27123",
+    "county": "Ramsey",
+    "state": "MN",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "27137",
+    "county": "St. Louis",
+    "state": "MN",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "28141",
+    "county": "Tishomingo",
+    "state": "MS",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS API returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "29007",
+    "county": "Audrain",
+    "state": "MO",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "29510",
+    "county": "St. Louis city",
+    "state": "MO",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "30033",
+    "county": "Garfield",
+    "state": "MT",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: TRI Envirofacts returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "30047",
+    "county": "Lake",
+    "state": "MT",
+    "failedSources": [
+      "Brownfields"
+    ],
+    "errors": [
+      "Brownfields: EPA NEPAssist error 500: Service NEPAssist/NEPAVELayersPublic_fgdb/MapServer not started "
+    ]
+  },
+  {
+    "fips": "30089",
+    "county": "Sanders",
+    "state": "MT",
+    "failedSources": [
+      "Brownfields"
+    ],
+    "errors": [
+      "Brownfields: EPA NEPAssist returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "30105",
+    "county": "Valley",
+    "state": "MT",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS API returned HTTP 403",
+      "Superfund: FRS API returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "31013",
+    "county": "Box Butte",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31015",
+    "county": "Boyd",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31017",
+    "county": "Brown",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31019",
+    "county": "Buffalo",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31021",
+    "county": "Burt",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31023",
+    "county": "Butler",
+    "state": "NE",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "31087",
+    "county": "Hitchcock",
+    "state": "NE",
+    "failedSources": [
+      "Superfund"
+    ],
+    "errors": [
+      "Superfund: FRS API returned HTTP 403"
+    ]
+  },
+  {
+    "fips": "32007",
+    "county": "Elko",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32009",
+    "county": "Esmeralda",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32011",
+    "county": "Eureka",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32013",
+    "county": "Humboldt",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32015",
+    "county": "Lander",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO",
+      "Superfund"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "Superfund: FRS API returned HTTP 403",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32017",
+    "county": "Lincoln",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32019",
+    "county": "Lyon",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "32021",
+    "county": "Mineral",
+    "state": "NV",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted",
+      "SSURGO: This operation was aborted"
+    ]
+  },
+  {
+    "fips": "34017",
+    "county": "Hudson",
+    "state": "NJ",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "34039",
+    "county": "Union",
+    "state": "NJ",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "35001",
+    "county": "Bernalillo",
+    "state": "NM",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "35007",
+    "county": "Colfax",
+    "state": "NM",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500",
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "35061",
+    "county": "Valencia",
+    "state": "NM",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36005",
+    "county": "Bronx",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36029",
+    "county": "Erie",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36037",
+    "county": "Genesee",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36045",
+    "county": "Jefferson",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36047",
+    "county": "Kings",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36055",
+    "county": "Monroe",
+    "state": "NY",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "36059",
+    "county": "Nassau",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36061",
+    "county": "New York",
+    "state": "NY",
+    "failedSources": [
+      "Superfund",
+      "ECHO"
+    ],
+    "errors": [
+      "Superfund: Bad control character in string literal in JSON at position 77",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36063",
+    "county": "Niagara",
+    "state": "NY",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "36067",
+    "county": "Onondaga",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36069",
+    "county": "Ontario",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36073",
+    "county": "Orleans",
+    "state": "NY",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "36081",
+    "county": "Queens",
+    "state": "NY",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "36111",
+    "county": "Ulster",
+    "state": "NY",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: fetch failed"
+    ]
+  },
+  {
+    "fips": "36117",
+    "county": "Wayne",
+    "state": "NY",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "37089",
+    "county": "Henderson",
+    "state": "NC",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "37097",
+    "county": "Iredell",
+    "state": "NC",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "37101",
+    "county": "Johnston",
+    "state": "NC",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "37119",
+    "county": "Mecklenburg",
+    "state": "NC",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "37151",
+    "county": "Randolph",
+    "state": "NC",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: fetch failed"
+    ]
+  },
+  {
+    "fips": "38041",
+    "county": "Hettinger",
+    "state": "ND",
+    "failedSources": [
+      "TRI"
+    ],
+    "errors": [
+      "TRI: terminated"
+    ]
+  },
+  {
+    "fips": "38103",
+    "county": "Wells",
+    "state": "ND",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "39035",
+    "county": "Cuyahoga",
+    "state": "OH",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "39043",
+    "county": "Erie",
+    "state": "OH",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "39049",
+    "county": "Franklin",
+    "state": "OH",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "39085",
+    "county": "Lake",
+    "state": "OH",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "39151",
+    "county": "Stark",
+    "state": "OH",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40075",
+    "county": "Kiowa",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40077",
+    "county": "Latimer",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40081",
+    "county": "Lincoln",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: fetch failed"
+    ]
+  },
+  {
+    "fips": "40083",
+    "county": "Logan",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40087",
+    "county": "McClain",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40089",
+    "county": "McCurtain",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40107",
+    "county": "Okfuskee",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40109",
+    "county": "Oklahoma",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "40135",
+    "county": "Sequoyah",
+    "state": "OK",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: fetch failed"
+    ]
+  },
+  {
+    "fips": "42003",
+    "county": "Allegheny",
+    "state": "PA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "42049",
+    "county": "Erie",
+    "state": "PA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "42101",
+    "county": "Philadelphia",
+    "state": "PA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "45019",
+    "county": "Charleston",
+    "state": "SC",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "47037",
+    "county": "Davidson",
+    "state": "TN",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "47093",
+    "county": "Knox",
+    "state": "TN",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48349",
+    "county": "Navarro",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48351",
+    "county": "Newton",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48353",
+    "county": "Nolan",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48355",
+    "county": "Nueces",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48365",
+    "county": "Panola",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48367",
+    "county": "Parker",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48373",
+    "county": "Polk",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48375",
+    "county": "Potter",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48377",
+    "county": "Presidio",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48379",
+    "county": "Rains",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48381",
+    "county": "Randall",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48383",
+    "county": "Reagan",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out",
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48385",
+    "county": "Real",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48387",
+    "county": "Red River",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48397",
+    "county": "Rockwall",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48431",
+    "county": "Sterling",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: fetch failed"
+    ]
+  },
+  {
+    "fips": "48453",
+    "county": "Travis",
+    "state": "TX",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "48495",
+    "county": "Winkler",
+    "state": "TX",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: fetch failed"
+    ]
+  },
+  {
+    "fips": "49019",
+    "county": "Grand",
+    "state": "UT",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: fetch failed"
+    ]
+  },
+  {
+    "fips": "51077",
+    "county": "Grayson",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51079",
+    "county": "Greene",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51099",
+    "county": "King George",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51143",
+    "county": "Pittsylvania",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51145",
+    "county": "Powhatan",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51147",
+    "county": "Prince Edward",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51149",
+    "county": "Prince George",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51165",
+    "county": "Rockingham",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: fetch failed"
+    ]
+  },
+  {
+    "fips": "51173",
+    "county": "Smyth",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51195",
+    "county": "Wise",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51510",
+    "county": "Alexandria city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51520",
+    "county": "Bristol city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51530",
+    "county": "Buena Vista city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51540",
+    "county": "Charlottesville city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51600",
+    "county": "Fairfax city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51610",
+    "county": "Falls Church city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51630",
+    "county": "Fredericksburg city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51640",
+    "county": "Galax city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51650",
+    "county": "Hampton city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51660",
+    "county": "Harrisonburg city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51730",
+    "county": "Petersburg city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO request timed out"
+    ]
+  },
+  {
+    "fips": "51735",
+    "county": "Poquoson city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51740",
+    "county": "Portsmouth city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51750",
+    "county": "Radford city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51760",
+    "county": "Richmond city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51770",
+    "county": "Roanoke city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51775",
+    "county": "Salem city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "51790",
+    "county": "Staunton city",
+    "state": "VA",
+    "failedSources": [
+      "ECHO"
+    ],
+    "errors": [
+      "ECHO: ECHO search returned HTTP 500"
+    ]
+  },
+  {
+    "fips": "53009",
+    "county": "Clallam",
+    "state": "WA",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55059",
+    "county": "Kenosha",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55061",
+    "county": "Kewaunee",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55071",
+    "county": "Manitowoc",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55079",
+    "county": "Milwaukee",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55089",
+    "county": "Ozaukee",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
+    ]
+  },
+  {
+    "fips": "55101",
+    "county": "Racine",
+    "state": "WI",
+    "failedSources": [
+      "SSURGO"
+    ],
+    "errors": [
+      "SSURGO: USDA SDA returned a malformed response"
     ]
   }
 ]
