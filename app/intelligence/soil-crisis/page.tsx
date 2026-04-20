@@ -1,131 +1,170 @@
 import type { Metadata } from 'next';
+import { readFileSync, existsSync } from 'fs';
+import path from 'path';
 import Link from 'next/link';
 import { Display, Body, Label, Mono } from '@/components/ui/Type';
-import { Card, CardContent } from '@/components/ui/Card';
+import { SoilCrisisClient } from './SoilCrisisClient';
 
 export const metadata: Metadata = {
-  title: 'National Soil Contamination Analysis | Bedrock Intelligence',
+  title: 'National Soil Contamination Vulnerability Index | Bedrock Intelligence',
   description:
-    'County-level soil contamination vulnerability index across all US counties.',
+    'An independent analysis of soil contamination vulnerability across all 3,140 US counties, integrating USDA soil data with EPA contamination records.',
 };
 
+interface ScviRecord {
+  fips: string;
+  county: string;
+  state: string;
+  population: number;
+  scvi: number;
+  svs: number;
+  cpi: number;
+  quartile: number;
+  usdaSviClass: string;
+  svsComponents: Record<string, number>;
+  cpiComponents: Record<string, number>;
+  demographics?: {
+    medianIncome: number | null;
+    povertyRate: number | null;
+    pctWhite: number | null;
+    pctBlack: number | null;
+    pctHispanic: number | null;
+  } | null;
+}
+
+function loadData(): ScviRecord[] | null {
+  const p = path.join(process.cwd(), 'data', 'scvi-national.json');
+  if (!existsSync(p)) return null;
+  return JSON.parse(readFileSync(p, 'utf-8'));
+}
+
+function computeStats(data: ScviRecord[]) {
+  const q = (n: 1 | 2 | 3 | 4) => data.filter((d) => d.quartile === n);
+  const totalPop = data.reduce((s, d) => s + d.population, 0);
+
+  function weightedMean(records: ScviRecord[], field: keyof NonNullable<ScviRecord['demographics']>) {
+    let popSum = 0;
+    let valSum = 0;
+    for (const r of records) {
+      const v = r.demographics?.[field];
+      if (v == null) continue;
+      popSum += r.population;
+      valSum += r.population * (v as number);
+    }
+    return popSum > 0 ? valSum / popSum : 0;
+  }
+
+  const quartileStats = ([1, 2, 3, 4] as const).map((n) => {
+    const subset = q(n);
+    const pop = subset.reduce((s, d) => s + d.population, 0);
+    return {
+      quartile: n,
+      counties: subset.length,
+      population: pop,
+      popPct: (100 * pop) / totalPop,
+      medianIncome: weightedMean(subset, 'medianIncome'),
+      povertyRate: weightedMean(subset, 'povertyRate'),
+      pctBlack: weightedMean(subset, 'pctBlack'),
+      pctHispanic: weightedMean(subset, 'pctHispanic'),
+      pctWhite: weightedMean(subset, 'pctWhite'),
+    };
+  });
+
+  const top10 = [...data]
+    .sort((a, b) => b.scvi - a.scvi)
+    .filter((d) => d.population > 50000 || d.scvi >= 55)
+    .slice(0, 10);
+
+  const urbanGapCount = data.filter(
+    (d) => d.svsComponents?.urbanGap > 0
+  ).length;
+  const urbanGapQ4 = data.filter(
+    (d) => d.svsComponents?.urbanGap > 0 && d.quartile === 4
+  ).length;
+
+  const blackRatio = quartileStats[3].pctBlack / (quartileStats[0].pctBlack || 1);
+
+  return {
+    totalCounties: data.length,
+    totalPop,
+    q4Pop: quartileStats[3].population,
+    q4PopPct: quartileStats[3].popPct,
+    quartileStats,
+    top10,
+    urbanGapCount,
+    urbanGapQ4,
+    blackRatio,
+  };
+}
+
 export default function SoilCrisisPage() {
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <Link
-        href="/intelligence"
-        className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-8"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          className="shrink-0"
-        >
-          <path
-            d="M10 12L6 8L10 4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        Back to Intelligence
-      </Link>
+  const data = loadData();
 
-      <div className="mb-12">
-        <Display className="text-4xl mb-4">
-          National Soil Contamination Vulnerability Index
-        </Display>
-        <Body className="text-lg">
-          Processing county-level environmental data across 3,140+ US counties
-        </Body>
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+        <Display className="text-4xl mb-4">Data Processing</Display>
+        <Body>The national SCVI dataset is still being compiled.</Body>
       </div>
+    );
+  }
 
-      {/* Processing indicator */}
-      <Card className="mb-8">
-        <CardContent className="flex items-center gap-4 py-6">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-20" />
-            <span className="relative inline-flex h-5 w-5 rounded-full bg-accent/20 items-center justify-center">
-              <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-            </span>
+  const stats = computeStats(data);
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero */}
+      <header className="mx-auto max-w-6xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
+        <Link
+          href="/intelligence"
+          className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-8"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to Intelligence
+        </Link>
+
+        <Label as="div" className="block mb-3">Bedrock Research Brief · April 2026</Label>
+        <Display className="text-4xl sm:text-5xl mb-4 max-w-3xl">
+          The Soil Contamination Vulnerability Index
+        </Display>
+        <Body className="text-lg max-w-2xl">
+          An independent analysis of soil contamination vulnerability across {stats.totalCounties.toLocaleString()} US
+          counties, bridging the gap between federal soil science and environmental compliance data.
+        </Body>
+
+        <div className="flex flex-wrap gap-6 mt-8 text-sm">
+          <div>
+            <Mono className="text-2xl block">{stats.totalCounties.toLocaleString()}</Mono>
+            <span className="text-text-tertiary text-xs">Counties scored</span>
           </div>
           <div>
-            <p className="font-medium text-text-primary">
-              Research in progress
-            </p>
-            <p className="text-sm text-text-secondary">
-              Data processing began April 2026. Results will appear here
-              automatically.
-            </p>
+            <Mono className="text-2xl block">{Math.round(stats.totalPop / 1e6)}M</Mono>
+            <span className="text-text-tertiary text-xs">Population covered</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Methodology note */}
-      <section className="mb-12">
-        <Label as="h2" className="mb-4 block">Methodology</Label>
-        <Card>
-          <CardContent>
-            <p className="text-sm text-text-secondary leading-relaxed mb-4">
-              The Soil Contamination Vulnerability Index (SCVI) is a composite
-              metric combining two core dimensions for each US county:
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="p-3 rounded-[var(--radius-md)] bg-bg-elevated">
-                <Mono className="text-sm block mb-1">SVS</Mono>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  Soil Vulnerability Score — derived from USDA SSURGO soil
-                  properties including texture, drainage class, organic matter,
-                  pH, and cation exchange capacity. Measures inherent
-                  susceptibility to contaminant retention and transport.
-                </p>
-              </div>
-              <div className="p-3 rounded-[var(--radius-md)] bg-bg-elevated">
-                <Mono className="text-sm block mb-1">CPI</Mono>
-                <p className="text-xs text-text-secondary leading-relaxed">
-                  Contamination Pressure Index — derived from EPA Brownfields
-                  density, ECHO facility compliance, TRI release volumes, and
-                  Superfund proximity. Measures anthropogenic contamination
-                  pressure on county soils.
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-text-tertiary mt-4">
-              SCVI = SVS &times; CPI, normalized to a 0&ndash;100 scale.
-              Counties are assigned to quartiles (Q1&ndash;Q4) where Q4
-              represents the highest vulnerability.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Data scope */}
-      <section>
-        <Label as="h2" className="mb-4 block">Data Scope</Label>
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="text-center py-5">
-              <Mono className="text-2xl block mb-1">3,140+</Mono>
-              <p className="text-xs text-text-tertiary">US Counties</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center py-5">
-              <Mono className="text-2xl block mb-1">15+</Mono>
-              <p className="text-xs text-text-tertiary">Federal Sources</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="text-center py-5">
-              <Mono className="text-2xl block mb-1">Q2 2026</Mono>
-              <p className="text-xs text-text-tertiary">Est. Completion</p>
-            </CardContent>
-          </Card>
+          <div>
+            <Mono className="text-2xl block">15+</Mono>
+            <span className="text-text-tertiary text-xs">Federal data sources</span>
+          </div>
         </div>
-      </section>
+      </header>
+
+      {/* Client-rendered interactive sections */}
+      <SoilCrisisClient
+        data={data.map((d) => ({
+          fips: d.fips,
+          county: d.county,
+          state: d.state,
+          population: d.population,
+          scvi: d.scvi,
+          svs: d.svs,
+          cpi: d.cpi,
+          quartile: d.quartile,
+          usdaSviClass: d.usdaSviClass,
+        }))}
+        stats={stats}
+      />
     </div>
   );
 }
