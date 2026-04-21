@@ -119,6 +119,8 @@
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
+  --color-media-text-on-dark: var(--media-text-on-dark);
+  --color-media-text-muted-on-dark: var(--media-text-muted-on-dark);
 }
 
 body {
