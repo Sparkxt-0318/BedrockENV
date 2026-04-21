@@ -12,10 +12,29 @@ interface ShowcaseIntroProps {
 export function ShowcaseIntro({ assessment }: ShowcaseIntroProps) {
   const { compositeScore, address } = assessment;
   const layerCount = compositeScore.layersIncluded.length;
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  const hasSatellite = mapboxToken && address.latitude && address.longitude;
+
+  const satelliteUrl = hasSatellite
+    ? `https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/${address.longitude},${address.latitude},14,0/1200x600@2x?access_token=${mapboxToken}`
+    : null;
 
   return (
-    <section className="min-h-[70vh] flex items-end pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-3xl">
+    <section className="relative min-h-[70vh] flex items-end pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      {satelliteUrl && (
+        <>
+          <img
+            src={satelliteUrl}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ filter: 'grayscale(100%) contrast(1.1) brightness(0.9)', opacity: 0.15 }}
+          />
+          <div className="absolute inset-0 bg-bg-primary/85" />
+        </>
+      )}
+      <div className="relative z-10 mx-auto w-full max-w-3xl">
         <ScrollReveal>
           <span className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.1em] text-text-tertiary">
             Environmental Exposure Report

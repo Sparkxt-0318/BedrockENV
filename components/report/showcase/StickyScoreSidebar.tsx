@@ -19,6 +19,14 @@ const CONFIDENCE_MAP = {
   area: 'low',
 } as const;
 
+const LAYER_MOTIF: Record<ExposureLayer, { src: string; label: string }> = {
+  water: { src: '/media/hero-delta', label: 'Mississippi River Delta — NASA Worldview' },
+  soil: { src: '/media/chapter-soil', label: 'Center-pivot irrigation — NASA Worldview' },
+  air: { src: '/media/chapter-air', label: 'LA basin — NASA Worldview' },
+  proximity: { src: '/media/chapter-flood', label: 'Hurricane Harvey flooding — NASA Worldview' },
+  ej: { src: '/media/blue-marble', label: 'Blue Marble — NASA Worldview' },
+};
+
 interface StickyScoreSidebarProps {
   compositeScore: CompositeScore;
   activeLayer: ExposureLayer | null;
@@ -33,6 +41,8 @@ export function StickyScoreSidebar({
   const currentScore = activeLayer
     ? layerScores[activeLayer]
     : null;
+
+  const motif = activeLayer ? LAYER_MOTIF[activeLayer] : null;
 
   return (
     <div className="p-6 rounded-[var(--radius-lg)] border border-border bg-bg-surface">
@@ -67,6 +77,25 @@ export function StickyScoreSidebar({
             coverage={compositeScore.coverage}
             sufficient={compositeScore.sufficient}
           />
+        </div>
+      )}
+
+      {motif && (
+        <div className="mt-4 overflow-hidden rounded-[var(--radius-md)]">
+          <picture>
+            <source srcSet={`${motif.src}.webp`} type="image/webp" />
+            <img
+              src={`${motif.src}.jpg`}
+              alt={motif.label}
+              loading="lazy"
+              decoding="async"
+              className="h-[120px] w-full object-cover"
+              style={{ filter: 'grayscale(80%) contrast(1.05) brightness(0.95)' }}
+            />
+          </picture>
+          <p className="mt-1 font-[family-name:var(--font-mono)] text-[9px] text-text-tertiary">
+            {motif.label}
+          </p>
         </div>
       )}
 
