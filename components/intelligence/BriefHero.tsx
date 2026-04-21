@@ -16,12 +16,12 @@ export function BriefHero({ image, label, title, description, stats }: BriefHero
       <DuotoneImage
         src={image}
         alt=""
-        intensity={0.78}
+        intensity={0.5}
         className="absolute inset-0 h-full w-full"
         priority
       />
       <div className="absolute inset-0" style={{
-        background: 'linear-gradient(to top, rgba(13,31,28,0.97) 0%, rgba(13,31,28,0.5) 50%, transparent 100%)',
+        background: 'linear-gradient(to top, rgba(13,31,28,0.92) 0%, rgba(13,31,28,0.3) 50%, transparent 100%)',
       }} />
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-10 pt-32 sm:px-6 lg:px-8">
         <Link

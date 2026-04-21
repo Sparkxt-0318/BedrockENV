@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { placeholders } from '@/lib/media/placeholders';
 
 interface KenBurnsHeroProps {
@@ -11,7 +11,15 @@ interface KenBurnsHeroProps {
 
 export function KenBurnsHero({ image, children, className = '' }: KenBurnsHeroProps) {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const handleLoad = useCallback(() => setLoaded(true), []);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, []);
 
   const key = image.replace(/\.(webp|jpg)$/, '');
   const lqip = placeholders[key];
@@ -32,6 +40,7 @@ export function KenBurnsHero({ image, children, className = '' }: KenBurnsHeroPr
         <picture>
           <source srcSet={`/media/${key}.webp`} type="image/webp" />
           <img
+            ref={imgRef}
             src={`/media/${key}.jpg`}
             alt=""
             aria-hidden="true"
@@ -39,20 +48,15 @@ export function KenBurnsHero({ image, children, className = '' }: KenBurnsHeroPr
             loading="eager"
             decoding="sync"
             className="ken-burns-animate h-full w-full object-cover"
-            style={{ filter: 'grayscale(100%) contrast(1.1) brightness(0.9)' }}
+            style={{ filter: 'grayscale(100%) sepia(100%) hue-rotate(115deg) saturate(0.4) brightness(0.65) contrast(1.2)' }}
           />
         </picture>
       </div>
 
-      <div className="duotone-overlay absolute inset-0" style={{
-        '--dt-intensity': 0.7,
-        '--dt-intensity-dark': 0.82,
-      } as React.CSSProperties} />
-
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to top, rgba(13,31,28,0.95) 0%, rgba(13,31,28,0.4) 40%, transparent 70%)',
+          background: 'linear-gradient(to top, rgba(13,31,28,0.92) 0%, rgba(13,31,28,0.3) 40%, transparent 70%)',
         }}
       />
 

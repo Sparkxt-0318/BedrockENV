@@ -65,14 +65,14 @@ export function ScrollChapter({
         <DuotoneImage
           src={image}
           alt=""
-          intensity={0.82}
+          intensity={0.55}
           className="absolute inset-0 h-full w-full"
         />
       )}
 
       {hasImage && (
         <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to bottom, rgba(13,31,28,0.3) 0%, rgba(13,31,28,0.6) 100%)',
+          background: 'linear-gradient(to bottom, rgba(13,31,28,0.15) 0%, rgba(13,31,28,0.4) 100%)',
         }} />
       )}
 

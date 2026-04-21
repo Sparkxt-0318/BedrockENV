@@ -27,12 +27,12 @@ export function IntelligenceClient({ briefs, upcoming }: { briefs: Brief[]; upco
         <DuotoneImage
           src="blue-marble"
           alt=""
-          intensity={0.9}
+          intensity={0.6}
           className="absolute inset-0 h-full w-full"
           priority
         />
         <div className="absolute inset-0" style={{
-          background: 'linear-gradient(to top, rgba(13,31,28,0.98) 0%, rgba(13,31,28,0.5) 50%, transparent 100%)',
+          background: 'linear-gradient(to top, rgba(13,31,28,0.92) 0%, rgba(13,31,28,0.3) 50%, transparent 100%)',
         }} />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-12 pt-32 sm:px-6 lg:px-8">
           <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/70 mb-4">
@@ -128,16 +128,9 @@ function BriefThumbnail({ image }: { image: string }) {
           loading="lazy"
           decoding="async"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          style={{ filter: 'grayscale(100%) contrast(1.1) brightness(0.9)' }}
+          style={{ filter: 'grayscale(100%) sepia(100%) hue-rotate(115deg) saturate(0.4) brightness(0.65) contrast(1.2)' }}
         />
       </picture>
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(26,62,42,0.6), rgba(13,31,28,0.85))',
-          mixBlendMode: 'screen',
-        }}
-      />
     </div>
   );
 }

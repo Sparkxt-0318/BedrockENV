@@ -21,7 +21,7 @@ export function LandingClient() {
   return (
     <>
       {/* Hero — Ken Burns delta satellite */}
-      <KenBurnsHero image="hero-delta">
+      <KenBurnsHero image="hero-florida">
         <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/60 mb-6">
           Environmental Exposure Intelligence
         </p>
