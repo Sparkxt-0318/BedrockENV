@@ -35,7 +35,7 @@ export function LandingClient() {
 
       {/* Chapter: Soil */}
       <ScrollChapter image="chapter-soil" duotone>
-        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/50 mb-4">
+        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/70 mb-4">
           Soil & Land
         </p>
         <div className="flex items-baseline justify-center gap-2">
@@ -44,17 +44,17 @@ export function LandingClient() {
             className="text-[clamp(4rem,10vw,6rem)] font-medium leading-none"
           />
         </div>
-        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/80">
+        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/90">
           counties scored for soil contamination vulnerability — a first.
         </p>
-        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/40">
+        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/60">
           USDA SSURGO · EPA Brownfields · FEMA NFHL
         </cite>
       </ScrollChapter>
 
       {/* Chapter: Water/Air */}
       <ScrollChapter image="chapter-air" duotone>
-        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/50 mb-4">
+        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/70 mb-4">
           Water & Air
         </p>
         <div className="flex items-baseline justify-center gap-2">
@@ -64,17 +64,17 @@ export function LandingClient() {
           />
           <span className="font-[family-name:var(--font-mono)] text-[clamp(2rem,5vw,3rem)]">M</span>
         </div>
-        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/80">
+        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/90">
           Americans with PFAS-contaminated drinking water systems.
         </p>
-        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/40">
+        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/60">
           EPA UCMR 5 · SDWIS · USGS Water Quality Portal
         </cite>
       </ScrollChapter>
 
       {/* Chapter: Redlining — dark background, no image */}
       <ScrollChapter className="bg-[#0D1F1C]">
-        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/50 mb-4">
+        <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/70 mb-4">
           Environmental Justice
         </p>
         <div className="flex items-baseline justify-center gap-2">
@@ -83,7 +83,7 @@ export function LandingClient() {
             className="text-[clamp(4rem,10vw,6rem)] font-medium leading-none"
           />
         </div>
-        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/80">
+        <p className="mt-4 font-[family-name:var(--font-sans)] text-[clamp(1rem,2.5vw,1.25rem)] leading-relaxed max-w-xl mx-auto text-white/90">
           years later, redlined neighborhoods still have 2.3&times; the poverty rate.
         </p>
         <div className="mt-8 flex items-center justify-center gap-6">
@@ -96,19 +96,19 @@ export function LandingClient() {
                     grade === 'A' ? '#4daf4a' : grade === 'B' ? '#377eb8' : grade === 'C' ? '#ffbf00' : '#e41a1c',
                 }}
               />
-              <span className="font-[family-name:var(--font-mono)] text-sm text-white/60">
+              <span className="font-[family-name:var(--font-mono)] text-sm text-white/80">
                 Grade {grade}
               </span>
             </div>
           ))}
         </div>
-        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/40">
+        <cite className="mt-6 block not-italic font-[family-name:var(--font-mono)] text-[11px] text-white/60">
           U. Richmond Mapping Inequality · Census ACS 2022 · 300 cities
         </cite>
       </ScrollChapter>
 
       {/* Chapter: Data Sources */}
-      <section className="relative min-h-[70vh] flex items-center border-t border-border bg-bg-primary">
+      <section className="relative min-h-[70vh] flex items-center bg-bg-elevated">
         <div className="mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 text-center">
           <ScrollReveal>
             <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-text-tertiary mb-8">

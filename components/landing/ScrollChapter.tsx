@@ -24,8 +24,8 @@ export function ScrollChapter({
   const reveal = useCallback(() => {
     const el = contentRef.current;
     if (!el) return;
-    el.classList.remove('opacity-0', 'translate-y-8');
-    el.classList.add('opacity-100', 'translate-y-0');
+    el.style.opacity = '1';
+    el.style.translate = 'none';
   }, []);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export function ScrollChapter({
 
       <div
         ref={contentRef}
-        className="relative z-10 mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 text-center opacity-0 translate-y-8 transition-all duration-700 motion-reduce:transition-none"
+        className="scroll-reveal-target relative z-10 mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 text-center transition-all duration-700 motion-reduce:transition-none"
       >
         <div className={hasImage || !light ? 'text-[var(--media-text-on-dark)]' : 'text-text-primary'}>
           {children}

@@ -25,7 +25,7 @@ export function AddressSearchDock({ variant = 'hero' }: AddressSearchDockProps) 
     <form onSubmit={handleSubmit} className="w-full">
       <div className="relative">
         <svg
-          className={`absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none ${onDark ? 'text-white/40' : 'text-text-tertiary'}`}
+          className={`absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 pointer-events-none ${onDark ? 'text-white/70' : 'text-text-tertiary'}`}
           width="20"
           height="20"
           viewBox="0 0 24 24"
@@ -46,7 +46,7 @@ export function AddressSearchDock({ variant = 'hero' }: AddressSearchDockProps) 
           placeholder="Enter any U.S. address"
           className={`w-full pl-12 sm:pl-14 pr-36 sm:pr-44 py-4 sm:py-5 rounded-[var(--radius-lg)] border text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-accent transition-shadow ${
             onDark
-              ? 'border-white/20 bg-white/10 text-white placeholder:text-white/40 backdrop-blur-sm'
+              ? 'border-white/30 bg-white/10 text-white placeholder:text-white/60 backdrop-blur-sm'
               : 'border-border bg-bg-surface text-text-primary placeholder:text-text-tertiary'
           }`}
           aria-label="Property address"
@@ -60,7 +60,7 @@ export function AddressSearchDock({ variant = 'hero' }: AddressSearchDockProps) 
           {loading ? 'Scanning…' : 'Check exposure'}
         </button>
       </div>
-      <p className={`mt-3 text-sm ${onDark ? 'text-white/50' : 'text-text-tertiary'}`}>
+      <p className={`mt-3 text-sm ${onDark ? 'text-white/70' : 'text-text-tertiary'}`}>
         Free for any U.S. address. No account required.
       </p>
     </form>

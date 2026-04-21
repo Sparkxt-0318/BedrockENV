@@ -149,6 +149,19 @@ body {
   }
 }
 
+/* No-JS fallback: show content immediately when JS hasn't loaded */
+.scroll-reveal-target {
+  opacity: 0;
+  translate: 0 2rem;
+}
+
+@media (scripting: none) {
+  .scroll-reveal-target {
+    opacity: 1;
+    translate: none;
+  }
+}
+
 /* Ken Burns hero animation */
 @keyframes ken-burns {
   from { transform: scale(1) translate(0, 0); }
@@ -157,6 +170,7 @@ body {
 
 .ken-burns-animate {
   animation: ken-burns 20s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {

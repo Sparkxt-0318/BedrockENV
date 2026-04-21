@@ -35,7 +35,7 @@ export function IntelligenceClient({ briefs, upcoming }: { briefs: Brief[]; upco
           background: 'linear-gradient(to top, rgba(13,31,28,0.98) 0%, rgba(13,31,28,0.5) 50%, transparent 100%)',
         }} />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-12 pt-32 sm:px-6 lg:px-8">
-          <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/50 mb-4">
+          <p className="font-[family-name:var(--font-mono)] text-[12px] uppercase tracking-[3px] text-white/70 mb-4">
             Bedrock Intelligence
           </p>
           <h1 className="font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,3rem)] leading-[1.15] text-white max-w-2xl">

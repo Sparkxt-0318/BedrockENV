@@ -49,7 +49,7 @@ export function DuotoneImage({
           onLoad={handleLoad}
           loading={priority ? 'eager' : 'lazy'}
           decoding={priority ? 'sync' : 'async'}
-          className="absolute inset-0 h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 motion-reduce:transition-none ${loaded ? 'opacity-100' : 'opacity-0'}`}
           style={{ filter: 'grayscale(100%) contrast(1.1) brightness(0.9)' }}
         />
       </picture>
