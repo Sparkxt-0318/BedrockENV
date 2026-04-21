@@ -1,15 +1,5 @@
-import { Hero } from '@/components/landing/Hero';
-import { LayerChapters } from '@/components/landing/LayerChapters';
-import { DataSources } from '@/components/landing/DataSources';
-import { CTAPro } from '@/components/landing/CTAPro';
+import { LandingClient } from '@/components/landing/LandingClient';
 
 export default function Home() {
-  return (
-    <>
-      <Hero />
-      <LayerChapters />
-      <DataSources />
-      <CTAPro />
-    </>
-  );
+  return <LandingClient />;
 }
