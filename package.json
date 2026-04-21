@@ -50,6 +50,7 @@
     "jsdom": "^29.0.2",
     "msw": "^2.13.2",
     "puppeteer": "^24.42.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
