@@ -25,6 +25,13 @@ const briefs = [
     href: '/intelligence/flood-contamination',
   },
   {
+    title: 'Redlining & Environmental Contamination',
+    description:
+      'Do neighborhoods redlined by the federal government in the 1930s still have higher contamination today? A 300-city analysis linking HOLC maps to present-day demographics and lead exposure risk.',
+    status: 'Published' as const,
+    href: '/intelligence/redlining',
+  },
+  {
     title: 'Water System Risk Atlas',
     description:
       'Nationwide assessment of public water system risk factors including PFAS detection, violation history, and infrastructure age.',

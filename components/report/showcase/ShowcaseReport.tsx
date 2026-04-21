@@ -14,6 +14,7 @@ import { DisclaimerBanner } from '@/components/report/DisclaimerBanner';
 import { PdfDownloadButton } from '@/components/report/PdfDownloadButton';
 import { ContaminationMap } from '@/components/report/ContaminationMap';
 import { CfciCountyContext } from '@/components/report/CfciCountyContext';
+import { HolcContext } from '@/components/report/HolcContext';
 
 interface ShowcaseReportProps {
   assessment: ExposureAssessment;
@@ -244,6 +245,11 @@ export function ShowcaseReport({ assessment, recommendations }: ShowcaseReportPr
             <CfciCountyContext
               fipsState={assessment.address.fipsState}
               fipsCounty={assessment.address.fipsCounty}
+            />
+          )}
+          {ch.layer === 'ej' && assessment.address.censusTract && (
+            <HolcContext
+              censusTract={`${assessment.address.fipsState}${assessment.address.fipsCounty}${assessment.address.censusTract}`}
             />
           )}
         </div>
