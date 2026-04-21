@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { DuotoneImage } from '@/components/media/DuotoneImage';
 
 interface ScrollChapterProps {
@@ -18,11 +18,18 @@ export function ScrollChapter({
   className = '',
   light = false,
 }: ScrollChapterProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const reveal = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    el.classList.remove('opacity-0', 'translate-y-8');
+    el.classList.add('opacity-100', 'translate-y-0');
+  }, []);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = sectionRef.current;
     if (!el) return;
 
     const prefersReducedMotion = window.matchMedia(
@@ -30,14 +37,14 @@ export function ScrollChapter({
     ).matches;
 
     if (prefersReducedMotion) {
-      setVisible(true);
+      reveal();
       return;
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setVisible(true);
+          reveal();
           observer.disconnect();
         }
       },
@@ -45,13 +52,13 @@ export function ScrollChapter({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [reveal]);
 
   const hasImage = image && duotone;
 
   return (
     <section
-      ref={ref}
+      ref={sectionRef}
       className={`relative flex min-h-screen items-center overflow-hidden ${className}`}
     >
       {hasImage && (
@@ -70,9 +77,8 @@ export function ScrollChapter({
       )}
 
       <div
-        className={`relative z-10 mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 text-center transition-all duration-700 motion-reduce:transition-none ${
-          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}
+        ref={contentRef}
+        className="relative z-10 mx-auto w-full max-w-4xl px-4 py-24 sm:px-6 lg:px-8 text-center opacity-0 translate-y-8 transition-all duration-700 motion-reduce:transition-none"
       >
         <div className={hasImage || !light ? 'text-[var(--media-text-on-dark)]' : 'text-text-primary'}>
           {children}

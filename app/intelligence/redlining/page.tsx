@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
-import Link from 'next/link';
-import { Display, Body, Label, Mono } from '@/components/ui/Type';
+import { Display, Body } from '@/components/ui/Type';
 import { RedliningClient } from './RedliningClient';
+import { BriefHero } from '@/components/intelligence/BriefHero';
 
 export const metadata: Metadata = {
   title: 'Redlining & Environmental Contamination | Bedrock Intelligence',
@@ -102,54 +102,17 @@ export default function RedliningPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="mx-auto max-w-6xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
-        <Link
-          href="/intelligence"
-          className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-8"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-            <path
-              d="M10 12L6 8L10 4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Back to Intelligence
-        </Link>
-
-        <Label as="div" className="block mb-3">
-          Bedrock Research Brief · April 2026
-        </Label>
-        <Display className="text-4xl sm:text-5xl mb-4 max-w-3xl">
-          Drawn in Red, Measured in Parts Per Billion
-        </Display>
-        <Body className="text-lg max-w-2xl">
-          A national analysis of how 1930s federal redlining maps predict present-day
-          environmental contamination, demographic inequality, and lead exposure risk
-          across {meta.totalCities} US cities.
-        </Body>
-
-        <div className="flex flex-wrap gap-6 mt-8 text-sm">
-          <div>
-            <Mono className="text-2xl block">
-              {meta.totalHolcNeighborhoods.toLocaleString()}
-            </Mono>
-            <span className="text-text-secondary text-xs">HOLC neighborhoods analyzed</span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">{povertyRatio}&times;</Mono>
-            <span className="text-text-secondary text-xs">
-              D-vs-A poverty rate nationally
-            </span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">{incomeGap}%</Mono>
-            <span className="text-text-secondary text-xs">income gap, Grade D vs A</span>
-          </div>
-        </div>
-      </header>
+      <BriefHero
+        image="chapter-air"
+        label="Bedrock Research Brief · April 2026"
+        title="Drawn in Red, Measured in Parts Per Billion"
+        description={`A national analysis of how 1930s federal redlining maps predict present-day environmental contamination, demographic inequality, and lead exposure risk across ${meta.totalCities} US cities.`}
+        stats={[
+          { value: meta.totalHolcNeighborhoods.toLocaleString(), label: 'HOLC neighborhoods analyzed' },
+          { value: `${povertyRatio}×`, label: 'D-vs-A poverty rate nationally' },
+          { value: `${incomeGap}%`, label: 'income gap, Grade D vs A' },
+        ]}
+      />
 
       <RedliningClient
         nationalStats={nationalStats}

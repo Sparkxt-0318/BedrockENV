@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
-import Link from 'next/link';
-import { Display, Body, Label, Mono } from '@/components/ui/Type';
+import { Display, Body } from '@/components/ui/Type';
 import { FloodContaminationClient } from './FloodContaminationClient';
+import { BriefHero } from '@/components/intelligence/BriefHero';
 
 export const metadata: Metadata = {
   title: 'National Flood-Contamination Compound Risk Map | Bedrock Intelligence',
@@ -155,56 +155,17 @@ export default function FloodContaminationPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="mx-auto max-w-6xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
-        <Link
-          href="/intelligence"
-          className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-8"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-            <path
-              d="M10 12L6 8L10 4"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Back to Intelligence
-        </Link>
-
-        <Label as="div" className="block mb-3">
-          Bedrock Research Brief · April 2026
-        </Label>
-        <Display className="text-4xl sm:text-5xl mb-4 max-w-3xl">
-          The Flood-Contamination Compound Map
-        </Display>
-        <Body className="text-lg max-w-2xl">
-          An independent analysis of where FEMA flood exposure intersects with EPA contamination
-          pressure across {stats.totalCounties.toLocaleString()} US counties — mapping the compound
-          risk that neither agency publishes on its own.
-        </Body>
-
-        <div className="flex flex-wrap gap-6 mt-8 text-sm">
-          <div>
-            <Mono className="text-2xl block">{stats.totalCounties.toLocaleString()}</Mono>
-            <span className="text-text-secondary text-xs">Counties scored</span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">
-              {Math.round(stats.severeOrHighPop / 1e6)}M
-            </Mono>
-            <span className="text-text-secondary text-xs">People in high-CFCI counties</span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">
-              {Math.round(stats.q4UninsuredStructures / 1e6).toFixed(1)}M
-            </Mono>
-            <span className="text-text-secondary text-xs">
-              Uninsured SFHA homes in Q4 counties
-            </span>
-          </div>
-        </div>
-      </header>
+      <BriefHero
+        image="chapter-flood"
+        label="Bedrock Research Brief · April 2026"
+        title="The Flood-Contamination Compound Map"
+        description={`An independent analysis of where FEMA flood exposure intersects with EPA contamination pressure across ${stats.totalCounties.toLocaleString()} US counties — mapping the compound risk that neither agency publishes on its own.`}
+        stats={[
+          { value: stats.totalCounties.toLocaleString(), label: 'Counties scored' },
+          { value: `${Math.round(stats.severeOrHighPop / 1e6)}M`, label: 'People in high-CFCI counties' },
+          { value: `${Math.round(stats.q4UninsuredStructures / 1e6).toFixed(1)}M`, label: 'Uninsured SFHA homes in Q4 counties' },
+        ]}
+      />
 
       <FloodContaminationClient
         data={data.map((d) => ({

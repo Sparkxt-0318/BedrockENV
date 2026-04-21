@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
-import Link from 'next/link';
-import { Display, Body, Label, Mono } from '@/components/ui/Type';
+import { Display, Body } from '@/components/ui/Type';
 import { SoilCrisisClient } from './SoilCrisisClient';
+import { BriefHero } from '@/components/intelligence/BriefHero';
 
 export const metadata: Metadata = {
   title: 'National Soil Contamination Vulnerability Index | Bedrock Intelligence',
@@ -116,42 +116,17 @@ export default function SoilCrisisPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
-      <header className="mx-auto max-w-6xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
-        <Link
-          href="/intelligence"
-          className="inline-flex items-center gap-1 text-sm text-text-tertiary hover:text-text-secondary transition-colors mb-8"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back to Intelligence
-        </Link>
-
-        <Label as="div" className="block mb-3">Bedrock Research Brief · April 2026</Label>
-        <Display className="text-4xl sm:text-5xl mb-4 max-w-3xl">
-          The Soil Contamination Vulnerability Index
-        </Display>
-        <Body className="text-lg max-w-2xl">
-          An independent analysis of soil contamination vulnerability across {stats.totalCounties.toLocaleString()} US
-          counties, bridging the gap between federal soil science and environmental compliance data.
-        </Body>
-
-        <div className="flex flex-wrap gap-6 mt-8 text-sm">
-          <div>
-            <Mono className="text-2xl block">{stats.totalCounties.toLocaleString()}</Mono>
-            <span className="text-text-secondary text-xs">Counties scored</span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">{Math.round(stats.totalPop / 1e6)}M</Mono>
-            <span className="text-text-secondary text-xs">Population covered</span>
-          </div>
-          <div>
-            <Mono className="text-2xl block">15+</Mono>
-            <span className="text-text-secondary text-xs">Federal data sources</span>
-          </div>
-        </div>
-      </header>
+      <BriefHero
+        image="chapter-soil"
+        label="Bedrock Research Brief · April 2026"
+        title="The Soil Contamination Vulnerability Index"
+        description={`An independent analysis of soil contamination vulnerability across ${stats.totalCounties.toLocaleString()} US counties, bridging the gap between federal soil science and environmental compliance data.`}
+        stats={[
+          { value: stats.totalCounties.toLocaleString(), label: 'Counties scored' },
+          { value: `${Math.round(stats.totalPop / 1e6)}M`, label: 'Population covered' },
+          { value: '15+', label: 'Federal data sources' },
+        ]}
+      />
 
       {/* Client-rendered interactive sections */}
       <SoilCrisisClient
