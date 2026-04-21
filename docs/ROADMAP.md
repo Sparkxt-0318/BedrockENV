@@ -19,6 +19,7 @@
 - **Stripe payments** — $29 consumer report purchase, $99/mo Pro subscription, free preview with frosted blur overlay
 - **Mapbox layer visualization** — Interactive map in showcase report showing property marker, Superfund NPL sites, ECHO/TRI regulated facilities, brownfield sites, flood zones, water system markers with toggleable layers and legend
 - **SCVI national map** — Soil Contamination Vulnerability Index scoring all 3,140 US counties (√(SVS × CPI) normalized 0–100), `/intelligence/soil-crisis` page with D3 choropleth, SVS-vs-CPI scatter plot, quartile bar charts, 4-chapter scrollytelling research brief, Census ACS demographics overlay, axe-core accessibility audited
+- **CFCI national map** — Compound Flood-Contamination Index scoring 3,131 US counties (√(FloodExposureScore × CPI) normalized 0–100), fused from FEMA NFIP residential SFHA penetration rates and the SCVI contamination-pressure layer. `/intelligence/flood-contamination` page with D3 choropleth (CFCI / Flood / CPI toggle), FER-vs-CPI scatter, quartile adaptation-gap and poverty bars, 4-chapter scrollytelling brief, and per-county context panel in the soil chapter of individual reports. Identifies ~783 Q4 counties (~73M residents) where flood exposure and contamination compound.
 
 ## In Progress
 
@@ -27,7 +28,7 @@
 - **Superfund static bundle** — ~1,300 active NPL sites with coordinates to supplement FRS SEMS API (addresses Picher/Tar Creek gap)
 - **Rank-order calibration** — Integration tests for relative scoring (Newark vs Flint, South LA vs Flint) need tuning after EJ layer is live
 - **Neighborhood comparison** — Compare composite scores across surrounding census tracts to contextualize a single address (spec below)
-- **Research Brief #2: Flood-Contamination Compound Map** — Overlay FEMA NFHL flood zones with EPA contamination sites to identify counties where flooding mobilizes soil contaminants
+- **Research Brief #3: Water System Risk Atlas** — Nationwide assessment of public water system risk factors including PFAS detection patterns, violation history, and infrastructure-age proxies at the PWSID level
 
 ## Considering
 

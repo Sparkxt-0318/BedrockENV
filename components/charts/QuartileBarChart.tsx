@@ -76,6 +76,8 @@ export function QuartileBarChart({
       .call((g) => g.selectAll('.tick line').attr('x2', w).attr('stroke', 'var(--border)').attr('stroke-dasharray', '2,3'))
       .call((g) => g.selectAll('.tick text').attr('fill', 'var(--text-tertiary)').style('font-size', '10px'));
 
+    const safeY = (v: number) => Math.max(0, Math.min(h, y(Math.max(0, v))));
+
     g.selectAll('rect')
       .data(data)
       .join('rect')
@@ -89,15 +91,15 @@ export function QuartileBarChart({
       .duration(600)
       .delay((_, i) => i * 80)
       .ease(d3.easeCubicOut)
-      .attr('y', (d) => y(d.value))
-      .attr('height', (d) => h - y(d.value));
+      .attr('y', (d) => safeY(d.value))
+      .attr('height', (d) => Math.max(0, h - safeY(d.value)));
 
     g.selectAll('.bar-label')
       .data(data)
       .join('text')
       .attr('class', 'bar-label')
       .attr('x', (d) => x(d.label)! + x.bandwidth() / 2)
-      .attr('y', (d) => y(d.value) - 6)
+      .attr('y', (d) => safeY(d.value) - 6)
       .attr('text-anchor', 'middle')
       .attr('fill', 'var(--text-secondary)')
       .style('font-size', '11px')

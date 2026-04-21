@@ -14,8 +14,15 @@ const briefs = [
     title: 'Soil Contamination Vulnerability Index',
     description:
       'County-level soil contamination vulnerability scores across all 3,140+ US counties, combining soil vulnerability with contamination pressure indicators.',
-    status: 'Processing' as const,
+    status: 'Published' as const,
     href: '/intelligence/soil-crisis',
+  },
+  {
+    title: 'Flood-Contamination Compound Risk Map',
+    description:
+      'National map of counties where FEMA flood exposure intersects with EPA contamination pressure — the compound risk neither agency publishes.',
+    status: 'Published' as const,
+    href: '/intelligence/flood-contamination',
   },
   {
     title: 'Water System Risk Atlas',
@@ -33,7 +40,15 @@ const briefs = [
   },
 ];
 
-function StatusIndicator({ status }: { status: 'Processing' | 'Coming Soon' }) {
+function StatusIndicator({ status }: { status: 'Published' | 'Processing' | 'Coming Soon' }) {
+  if (status === 'Published') {
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] bg-accent/10 text-accent">
+        {status}
+      </span>
+    );
+  }
+
   if (status === 'Processing') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] bg-accent/10 text-accent">
@@ -47,7 +62,7 @@ function StatusIndicator({ status }: { status: 'Processing' | 'Coming Soon' }) {
   }
 
   return (
-    <span className="inline-flex items-center px-2.5 py-1 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] bg-bg-elevated text-text-tertiary">
+    <span className="inline-flex items-center px-2.5 py-1 text-[11px] font-[family-name:var(--font-mono)] font-medium rounded-[var(--radius-sm)] bg-bg-elevated text-text-secondary">
       {status}
     </span>
   );

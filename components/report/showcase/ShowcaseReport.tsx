@@ -13,6 +13,7 @@ import { StickyColumn } from '@/components/ui/StickyColumn';
 import { DisclaimerBanner } from '@/components/report/DisclaimerBanner';
 import { PdfDownloadButton } from '@/components/report/PdfDownloadButton';
 import { ContaminationMap } from '@/components/report/ContaminationMap';
+import { CfciCountyContext } from '@/components/report/CfciCountyContext';
 
 interface ShowcaseReportProps {
   assessment: ExposureAssessment;
@@ -230,15 +231,22 @@ export function ShowcaseReport({ assessment, recommendations }: ShowcaseReportPr
   const leftContent = (
     <>
       {layerChapters.map((ch) => (
-        <LayerChapterShowcase
-          key={ch.layer}
-          layer={ch.layer}
-          title={ch.title}
-          layerScore={ch.ls}
-          heroStat={ch.heroStat}
-          dataPoints={ch.dataPoints}
-          onVisible={handleLayerVisible}
-        />
+        <div key={ch.layer}>
+          <LayerChapterShowcase
+            layer={ch.layer}
+            title={ch.title}
+            layerScore={ch.ls}
+            heroStat={ch.heroStat}
+            dataPoints={ch.dataPoints}
+            onVisible={handleLayerVisible}
+          />
+          {ch.layer === 'soil' && assessment.address.fipsState && assessment.address.fipsCounty && (
+            <CfciCountyContext
+              fipsState={assessment.address.fipsState}
+              fipsCounty={assessment.address.fipsCounty}
+            />
+          )}
+        </div>
       ))}
     </>
   );
