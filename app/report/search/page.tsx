@@ -3,12 +3,9 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { useExposureAssessment } from '@/hooks/useExposureAssessment';
-import { useReportAccess } from '@/hooks/useReportAccess';
 import { Card, CardContent, Skeleton } from '@/components/ui';
 import { ExposureReportView } from '@/components/report/ExposureReportView';
 import { ShowcaseReport } from '@/components/report/showcase/ShowcaseReport';
-import { ShowcaseIntro } from '@/components/report/showcase/ShowcaseIntro';
-import { FreePreviewOverlay } from '@/components/report/FreePreviewOverlay';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import type { TriggeredRecommendation } from '@/lib/recommendations/types';
 
@@ -19,7 +16,6 @@ function ReportSearchContent() {
   const { assessment, loading, error, warnings, fetchAssessment } =
     useExposureAssessment();
   const [recommendations, setRecommendations] = useState<TriggeredRecommendation[]>([]);
-  const { unlocked, loading: accessLoading } = useReportAccess(assessment?.id);
 
   useEffect(() => {
     if (address) {
@@ -28,7 +24,7 @@ function ReportSearchContent() {
   }, [address, fetchAssessment]);
 
   useEffect(() => {
-    if (!assessment || !unlocked) return;
+    if (!assessment) return;
     fetch('/api/generate-narrative', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,7 +33,7 @@ function ReportSearchContent() {
       .then((res) => res.json())
       .then((data) => setRecommendations(data.recommendations || []))
       .catch(() => setRecommendations([]));
-  }, [assessment, unlocked]);
+  }, [assessment]);
 
   if (!address) {
     return (
@@ -52,7 +48,7 @@ function ReportSearchContent() {
     );
   }
 
-  if (loading || accessLoading) {
+  if (loading) {
     return <LoadingSkeleton address={address} />;
   }
 
@@ -81,16 +77,6 @@ function ReportSearchContent() {
 
   if (!assessment) return null;
 
-  if (!unlocked) {
-    const topFinding = getTopFinding(assessment);
-    return (
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <ShowcaseIntro assessment={assessment} />
-        <FreePreviewOverlay assessmentId={assessment.id} topFinding={topFinding} />
-      </div>
-    );
-  }
-
   if (mode === 'doc') {
     return <ExposureReportView assessment={assessment} warnings={warnings} />;
   }
@@ -100,30 +86,6 @@ function ReportSearchContent() {
   );
 }
 
-function getTopFinding(assessment: import('@/types/exposure').ExposureAssessment): string | undefined {
-  const { compositeScore } = assessment;
-  const layers = compositeScore.layersIncluded;
-  let highestLayer = layers[0];
-  let highestScore = 0;
-  for (const layer of layers) {
-    const ls = compositeScore.layerScores[layer];
-    if (ls && ls.available && ls.score > highestScore) {
-      highestScore = ls.score;
-      highestLayer = layer;
-    }
-  }
-  const labels: Record<string, string> = {
-    water: 'Water contamination',
-    air: 'Air quality concerns',
-    proximity: 'Toxic facility proximity',
-    soil: 'Soil & land risks',
-    ej: 'Environmental justice burden',
-  };
-  if (highestScore > 0) {
-    return `${labels[highestLayer] || highestLayer} scored ${highestScore}/100 — highest risk layer detected.`;
-  }
-  return undefined;
-}
 
 function LoadingSkeleton({ address }: { address: string }) {
   return (
