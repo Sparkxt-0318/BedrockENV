@@ -35,27 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    const isPro = profile?.subscription_tier === 'pro';
-
-    const { data: purchasedReport } = await supabase
-      .from('reports')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('assessment_id', assessmentId)
-      .in('report_type', ['consumer', 'pro'])
-      .limit(1)
-      .maybeSingle();
-
-    if (!isPro && !purchasedReport) {
-      return NextResponse.json({ error: 'Report not purchased' }, { status: 403 });
-    }
-
     const { data: assessmentRow } = await supabase
       .from('exposure_assessments')
       .select('*')

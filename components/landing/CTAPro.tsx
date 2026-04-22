@@ -21,9 +21,14 @@ export function CTAPro() {
               href="/auth/signup"
               className="inline-flex px-6 py-3 rounded-[var(--radius-md)] bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors"
             >
-              Start free trial
+              Get started free
             </Link>
-            <span className="text-sm text-text-tertiary">$99/mo · Cancel anytime</span>
+            <Link
+              href="/intelligence"
+              className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+            >
+              View research briefs &rarr;
+            </Link>
           </div>
         </ScrollReveal>
       </div>

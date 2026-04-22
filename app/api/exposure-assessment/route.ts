@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchFullAssessment } from '@/lib/data-sources';
-import { checkRateLimit, hashIp, UserTier } from '@/lib/rate-limit';
+import { hashIp } from '@/lib/rate-limit';
 import { createServerClient } from '@supabase/ssr';
 import { SCORING_VERSION } from '@/lib/scoring/version';
 
-/**
- * GET /api/exposure-assessment?address=...
- *
- * Orchestrator endpoint: geocodes the address, fetches all data layers,
- * computes scores, and returns a complete ExposureAssessment.
- *
- * Features:
- * - Supabase caching: reuses recent assessments for the same normalized address
- * - Pro tier detection: checks user subscription_tier in profiles table
- * - Rate limited: anonymous 3/day, authenticated free 10/month, pro unlimited
- * - Graceful degradation: returns partial data when individual APIs fail
- */
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get('address');
 
@@ -26,14 +14,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Determine user tier for rate limiting
-  let tier: UserTier = 'anonymous';
   let userId: string | null = null;
-  let identifier = hashIp(
+  const identifier = hashIp(
     request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? '127.0.0.1'
   );
 
-  // Helper to create Supabase server client for this request
   function getSupabase() {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       return null;
@@ -50,72 +35,24 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Check if user is authenticated + detect pro tier
   const supabase = getSupabase();
   if (supabase) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         userId = user.id;
-        identifier = user.id;
-        tier = 'authenticated';
-
-        // Check subscription tier from profiles table
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.subscription_tier === 'pro') {
-          tier = 'pro';
-        }
       }
     } catch {
-      // Auth check failed — fall through to anonymous
+      // Auth check failed — continue as anonymous
     }
   }
 
-  // Rate limit check.
-  //
-  // Integration tests need to issue several assessment requests against a
-  // local dev server in one run. When NODE_ENV !== 'production' and the
-  // request includes `x-bedrock-test-bypass: <token>` matching the
-  // `BEDROCK_TEST_BYPASS_TOKEN` env var, skip the rate limiter entirely.
-  // The bypass is guarded so it is impossible to trip in production even
-  // if the env var leaks.
-  const bypassToken = process.env.BEDROCK_TEST_BYPASS_TOKEN;
-  const bypassHeader = request.headers.get('x-bedrock-test-bypass');
   const isTestBypass =
     process.env.NODE_ENV !== 'production' &&
-    !!bypassToken &&
-    bypassHeader === bypassToken;
-
-  const rateLimit = isTestBypass
-    ? { allowed: true, remaining: Infinity, resetAt: 0 }
-    : checkRateLimit(identifier, tier);
-  if (!rateLimit.allowed) {
-    const resetDate = new Date(rateLimit.resetAt).toLocaleDateString();
-    return NextResponse.json(
-      {
-        error: tier === 'anonymous'
-          ? `You've reached the limit of 3 free searches per day. Create a free account for 10 searches/month, or try again after ${resetDate}.`
-          : `You've reached your search limit. Upgrade to Pro for unlimited searches, or try again after ${resetDate}.`,
-        rateLimited: true,
-      },
-      {
-        status: 429,
-        headers: {
-          'X-RateLimit-Remaining': String(rateLimit.remaining),
-          'X-RateLimit-Reset': String(rateLimit.resetAt),
-        },
-      }
-    );
-  }
+    !!process.env.BEDROCK_TEST_BYPASS_TOKEN &&
+    request.headers.get('x-bedrock-test-bypass') === process.env.BEDROCK_TEST_BYPASS_TOKEN;
 
   // Check Supabase cache for recent assessment of same address (within 24h).
-  // The integration test bypass header also skips the read cache so runs
-  // exercise the current scoring pipeline instead of stale rows.
   if (supabase && !isTestBypass) {
     try {
       const normalizedSearch = address.trim().toUpperCase();
@@ -184,10 +121,6 @@ export async function GET(request: NextRequest) {
             createdAt: cached.created_at,
           },
           cached: true,
-          rateLimit: {
-            remaining: rateLimit.remaining,
-            tier,
-          },
         });
       }
     } catch {
@@ -257,10 +190,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     data: result.assessment,
     warnings: result.errors.length > 0 ? result.errors : undefined,
-    rateLimit: {
-      remaining: rateLimit.remaining,
-      tier,
-    },
   });
 }
 

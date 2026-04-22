@@ -31,6 +31,15 @@ export function LandingClient() {
         <div className="mt-12 max-w-2xl">
           <AddressSearchDock variant="hero" />
         </div>
+        <div className="mt-6">
+          <Link
+            href="/intelligence"
+            className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
+          >
+            <span>Explore Bedrock Intelligence</span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
       </KenBurnsHero>
 
       {/* Chapter: Soil */}
@@ -142,15 +151,15 @@ export function LandingClient() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
               <Link
                 href="/intelligence"
-                className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)] border border-border bg-bg-surface text-text-primary hover:border-border-strong hover:shadow-sm transition-all text-sm font-medium"
               >
-                View research briefs &rarr;
+                Bedrock Intelligence &rarr;
               </Link>
               <Link
                 href="/auth/signup"
-                className="text-sm text-accent hover:underline"
+                className="text-sm text-text-secondary hover:text-text-primary transition-colors"
               >
-                Pro accounts from $99/mo
+                Create free account
               </Link>
             </div>
           </ScrollReveal>

@@ -1,78 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { Button, Card, CardContent } from '@/components/ui';
-import { useSubscription } from '@/hooks/useSubscription';
+import { Card, CardContent } from '@/components/ui';
 import { useProfile } from '@/hooks/useProfile';
-import { PLANS } from '@/lib/stripe/plans';
 
 export default function ProDashboard() {
-  const { loading: subLoading, error, subscribePro } = useSubscription();
-  const { profile, reports, searchCount, loading: profileLoading, isPro } = useProfile();
-
-  const loading = subLoading || profileLoading;
-  const monthlyLimit = isPro ? Infinity : 10;
+  const { reports, searchCount, loading } = useProfile();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <h1 className="font-[family-name:var(--font-instrument-serif)] text-3xl text-text-primary mb-2">
-        Bedrock Pro
+        Dashboard
       </h1>
       <p className="text-text-secondary mb-8">
-        {isPro
-          ? 'Your professional dashboard for unlimited environmental exposure reports.'
-          : 'Unlimited environmental exposure reports for real estate professionals.'}
+        Your environmental exposure reports and account.
       </p>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Plan card */}
-        <Card>
-          <CardContent className="py-8">
-            {isPro ? (
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-medium mb-3">
-                  Active Subscription
-                </div>
-                <p className="text-sm text-text-secondary">
-                  You have unlimited access to all reports and features.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="text-center mb-6">
-                  <p className="text-sm text-text-secondary mb-1">Professional Plan</p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="font-[family-name:var(--font-instrument-serif)] text-5xl text-text-primary">
-                      ${PLANS.proMonthly.price}
-                    </span>
-                    <span className="text-text-tertiary">/month</span>
-                  </div>
-                  <p className="text-sm text-text-tertiary mt-1">Cancel anytime</p>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  {PLANS.proMonthly.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-text-primary">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                <Button size="lg" className="w-full" loading={loading} onClick={subscribePro}>
-                  Start free trial
-                </Button>
-                {error && (
-                  <p className="text-sm text-exposure-high mt-2 text-center">{error}</p>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Right column: Reports + Account */}
         <div>
           {/* Quick search */}
           <div className="mb-6">
@@ -115,7 +59,7 @@ export default function ProDashboard() {
                             {report.address_normalized || 'Unknown address'}
                           </p>
                           <p className="text-xs text-text-tertiary">
-                            {new Date(report.created_at).toLocaleDateString()} · {report.report_type}
+                            {new Date(report.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         {report.composite_score != null && (
@@ -130,30 +74,18 @@ export default function ProDashboard() {
               )}
             </CardContent>
           </Card>
+        </div>
 
-          {/* Account */}
-          <h2 className="text-lg font-semibold text-text-primary mt-8 mb-4">Account</h2>
+        {/* Account */}
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Account</h2>
           <Card>
             <CardContent className="py-4">
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">Plan</span>
-                  <span className="text-text-primary font-medium">
-                    {isPro ? (
-                      <span className="text-accent">Pro</span>
-                    ) : 'Free'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-text-secondary">Reports this month</span>
                   <span className="text-text-primary font-medium">
-                    {searchCount} / {isPro ? '∞' : monthlyLimit}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Reports purchased</span>
-                  <span className="text-text-primary font-medium">
-                    {profile?.reports_purchased ?? 0}
+                    {loading ? '...' : searchCount}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -173,6 +105,15 @@ export default function ProDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="mt-6">
+            <Link
+              href="/intelligence"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-md)] border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors text-sm w-full justify-center"
+            >
+              View Intelligence Briefs →
+            </Link>
+          </div>
         </div>
       </div>
     </div>
