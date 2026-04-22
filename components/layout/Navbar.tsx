@@ -28,6 +28,9 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
+          <Link href="/intelligence" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
+            Intelligence
+          </Link>
           <Link href="/methodology" className="text-sm text-text-secondary hover:text-text-primary transition-colors">
             Methodology
           </Link>
@@ -85,6 +88,9 @@ export function Navbar() {
       {mobileOpen && (
         <div className="border-t border-border bg-bg-surface px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
+            <Link href="/intelligence" className="text-sm text-text-secondary py-2" onClick={() => setMobileOpen(false)}>
+              Intelligence
+            </Link>
             <Link href="/methodology" className="text-sm text-text-secondary py-2" onClick={() => setMobileOpen(false)}>
               Methodology
             </Link>
