@@ -1,5 +1,27 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-04-27)
+
+### Session setup
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` with the six-area continuous improvement routine.
+- Wired it into `CLAUDE.md` via `@docs/AUTONOMOUS_IMPROVEMENT.md` so it loads at every session start.
+- Installed `gitleaks` v8.30.1 binary (was missing from PATH; was blocking all commits).
+
+### Area 5: Code health
+**Findings:**
+- 6 tests in `tests/unit/components/payment-flow.test.tsx` were failing because `FreePreviewOverlay` was intentionally reduced to `return null` (payment-gating removed), but the tests still tested the full overlay UI. These are dead tests for dead code — removed them.
+- `lib/ai/narrator.ts` (196 lines), `lib/ai/prompts/free-summary.ts`, `lib/ai/prompts/system.ts`, and `lib/net/proxy.ts` had 0% coverage.
+
+**Actions taken:**
+- Removed 6 stale `FreePreviewOverlay` tests; kept `Payment Plans` describe block in same file.
+- Added `tests/unit/ai/prompts.test.ts` — 10 tests for `buildFreeSummaryPrompt` (address, score, confidence, water/soil present/null, layers list) and 3 tests for `SYSTEM_PROMPT` constant.
+- Added `tests/unit/ai/narrator.test.ts` — 10 tests for fallback narrative (no API key, all branches: sufficient/insufficient, PFAS detail, brownfield count, address inclusion) + 4 tests for API paths (fetch failure, non-OK status, empty response, successful response).
+- Added `tests/unit/net/proxy.test.ts` — 4 tests for `installProxyDispatcherOnce` (no-proxy no-throw, idempotency, HTTPS_PROXY env var, lowercase https_proxy).
+
+**Results:** 432 → 456 tests passing, line coverage 61% → 65%. PR: commit `043451b` on `claude/epic-goodall-I9MH5`.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
