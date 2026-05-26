@@ -1,4 +1,8 @@
 @AGENTS.md
+@docs/AUTONOMOUS_IMPROVEMENT.md
+
+## Session start
+Read `docs/AUTONOMOUS_IMPROVEMENT.md` before beginning any assigned work. Run its routine whenever you have spare cycles (waiting on test runs, between pushes, after completing an assigned task while awaiting the next instruction).
 
 ## gstack
 
