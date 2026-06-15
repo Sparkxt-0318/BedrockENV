@@ -1,73 +1,32 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render } from '@testing-library/react';
 import { FreePreviewOverlay } from '@/components/report/FreePreviewOverlay';
 
-vi.mock('@/hooks/useSubscription', () => ({
-  useSubscription: () => ({
-    purchaseReport: vi.fn(),
-    subscribePro: vi.fn(),
-    loading: false,
-    error: null,
-  }),
-}));
-
-vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({
-    user: null,
-    loading: false,
-  }),
-}));
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
-}));
-
+// Reports are fully free — FreePreviewOverlay is a no-op stub.
+// These tests verify it renders without throwing.
 describe('FreePreviewOverlay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders unlock CTA with price', () => {
-    render(<FreePreviewOverlay assessmentId="test-123" />);
-    const buttons = screen.getAllByText(/Unlock full report/);
-    expect(buttons.length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /\$29/ })).toBeTruthy();
+  it('renders without error for basic usage', () => {
+    const { container } = render(<FreePreviewOverlay assessmentId="test-123" />);
+    expect(container).toBeTruthy();
   });
 
-  it('shows top finding when provided', () => {
-    render(
+  it('renders without error when topFinding is provided', () => {
+    const { container } = render(
       <FreePreviewOverlay
         assessmentId="test-123"
         topFinding="Water contamination scored 85/100 — highest risk layer detected."
       />
     );
-    expect(screen.getByText(/Water contamination scored 85/)).toBeTruthy();
-    expect(screen.getByText('Top finding')).toBeTruthy();
+    expect(container).toBeTruthy();
   });
 
-  it('shows sign in link for anonymous users', () => {
-    render(<FreePreviewOverlay assessmentId="test-123" />);
-    expect(screen.getByText('Sign in')).toBeTruthy();
-  });
-
-  it('shows Pro upsell link', () => {
-    render(<FreePreviewOverlay assessmentId="test-123" />);
-    expect(screen.getByText(/Or go Pro/)).toBeTruthy();
-  });
-
-  it('renders blurred placeholder content behind overlay', () => {
+  it('renders nothing (reports are free, no gate needed)', () => {
     const { container } = render(<FreePreviewOverlay assessmentId="test-123" />);
-    const blurredElements = container.querySelectorAll('[aria-hidden="true"]');
-    const blurred = Array.from(blurredElements).find(
-      (el) => el.getAttribute('style')?.includes('blur')
-    );
-    expect(blurred).toBeTruthy();
-  });
-
-  it('displays one-time purchase label', () => {
-    render(<FreePreviewOverlay assessmentId="test-123" />);
-    expect(screen.getByText('One-time purchase')).toBeTruthy();
+    expect(container.firstChild).toBeNull();
   });
 });
 

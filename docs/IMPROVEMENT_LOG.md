@@ -1,5 +1,29 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-06-15
+
+### Area 5: Code Health — Tests Fixed + Added
+- **Fixed 6 failing tests** in `tests/unit/components/payment-flow.test.tsx`. The `FreePreviewOverlay` component was gutted to a no-op when reports were made free (commit `821f5f9`), but its tests still expected payment UI to render. Updated tests to reflect current behavior (component returns null — no payment gate needed).
+- **Added 10 new tests** in `tests/unit/stripe/client.test.ts` covering `getStripe`, `createCheckoutSession`, and `createSubscriptionSession` from `lib/stripe/client.ts`. Used `vi.doMock` (not hoisted `vi.mock`) with a regular constructor function to properly mock Stripe.
+- **Test totals**: 432 passing → 445 passing (0 failing). `lib/stripe` coverage: 5.88% → ~85%.
+
+### Area 6: Documentation — Data Source Files Created
+Created `data/sources/` directory (previously missing entirely) with documentation for 9 data sources:
+- `epa-ucmr5.md` — PFAS bundled data, MCL values, refresh cadence
+- `epa-sdwis.md` — SDWIS violations, data lag from states, known historical gaps
+- `epa-echo.md` — ECHO facilities, two-step API flow, SNC classification
+- `epa-superfund.md` — NPL sites, critical FRS coverage gap (Tar Creek/Picher), static bundle need
+- `fema-nfhl.md` — Flood zones, unmapped ambiguity, NFHL service path gotcha
+- `usda-ssurgo.md` — Soil chemistry, urban data gap, WKT coordinate order gotcha
+- `nonattainment.md` — EPA Green Book, county-level resolution, bundle refresh procedure
+- `epa-ejscreen.md` — EJ percentiles, currently non-functional, priority integration
+- `usgs-wqp.md` — Ambient water monitoring, bounding box approach, variable data density
+
+### Area 6: Permanent Routine File
+Created `docs/AUTONOMOUS_IMPROVEMENT.md` with the full routine spec. Will be read at session start before assigned work.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
