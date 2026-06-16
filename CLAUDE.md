@@ -1,5 +1,9 @@
 @AGENTS.md
 
+## Session start
+
+At the start of every session, before doing any assigned work, read `docs/AUTONOMOUS_IMPROVEMENT.md`. Run the routine described there whenever you have spare cycles (waiting on test runs, between pushes, after completing an assigned task while awaiting the next instruction).
+
 ## gstack
 
 Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
