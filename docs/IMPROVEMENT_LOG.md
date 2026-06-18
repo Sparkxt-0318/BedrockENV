@@ -1,5 +1,36 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — Session Start (2026-06-18)
+
+### Area 6: Documentation
+- **Created `docs/AUTONOMOUS_IMPROVEMENT.md`** — permanent six-area routine definition checked into the repo.
+- **Created `docs/PENDING_DECISIONS.md`** — captures 7 open judgment calls (EJ API keys, Air API keys, Superfund static bundle, UCMR5 refresh, embeddable widget, batch assessment, historical contamination flag). Each entry includes options and a recommendation.
+- **Created `data/sources/` directory** with documentation for 5 bundled datasets: `ucmr5-by-pwsid.md`, `nonattainment.md`, `scvi-national.md`, `cfci-national.md`, `holc-crosswalk.md`.
+
+### Area 5: Code Health — File Size Audit
+Files exceeding 400-line threshold:
+
+| File | Lines | Type | Action |
+|---|---|---|---|
+| `tests/integration/run-all.ts` | 969 | test | defer (test files OK) |
+| `scripts/build-scvi-national.ts` | 803 | script | defer (scripts OK) |
+| `scripts/build-redlining-data.ts` | 613 | script | defer |
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | UI component | refactor in next cycle |
+| `components/report/ContaminationMap.tsx` | 513 | UI component | refactor in next cycle |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 | UI component | refactor in next cycle |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | lib | refactor in next cycle |
+| `types/exposure.ts` | 426 | types | review in next cycle |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 | UI component | refactor in next cycle |
+
+### Area 1: Data Accuracy — UCMR5 Staleness Flag
+Current `ucmr5-by-pwsid.json` generated 2026-04-13 from EPA release 2026-02-12.
+A Q2 2026 EPA release may now be available (current date 2026-06-18). See PD-004 in `PENDING_DECISIONS.md`.
+
+### PR Link
+See commit on branch `claude/epic-goodall-6y2mm8`.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
