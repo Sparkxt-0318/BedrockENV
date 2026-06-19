@@ -1,4 +1,8 @@
 @AGENTS.md
+@docs/AUTONOMOUS_IMPROVEMENT.md
+
+## Session start
+At the start of every session, read `docs/AUTONOMOUS_IMPROVEMENT.md` before doing any assigned work. Run the improvement routine during spare cycles (waiting on tests, between pushes, after assigned task is complete).
 
 ## gstack
 
