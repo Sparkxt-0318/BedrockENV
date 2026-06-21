@@ -1,4 +1,7 @@
 @AGENTS.md
+@docs/AUTONOMOUS_IMPROVEMENT.md
+
+<!-- Read docs/AUTONOMOUS_IMPROVEMENT.md at the start of every session before doing assigned work, and run its routine whenever you have spare cycles. -->
 
 ## gstack
 
