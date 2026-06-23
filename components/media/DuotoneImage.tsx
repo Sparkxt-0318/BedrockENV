@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { placeholders } from '@/lib/media/placeholders';
 
 interface DuotoneImageProps {
@@ -19,12 +19,9 @@ export function DuotoneImage({
   priority = false,
 }: DuotoneImageProps) {
   const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const handleLoad = useCallback(() => setLoaded(true), []);
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
+  const imgCallbackRef = useCallback((node: HTMLImageElement | null) => {
+    if (node?.complete && node.naturalWidth > 0) {
       setLoaded(true);
     }
   }, []);
@@ -52,7 +49,7 @@ export function DuotoneImage({
       <picture>
         <source srcSet={`/media/${key}.webp`} type="image/webp" />
         <img
-          ref={imgRef}
+          ref={imgCallbackRef}
           src={`/media/${key}.jpg`}
           alt={alt}
           onLoad={handleLoad}

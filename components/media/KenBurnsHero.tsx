@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { placeholders } from '@/lib/media/placeholders';
 
 interface KenBurnsHeroProps {
@@ -11,12 +11,9 @@ interface KenBurnsHeroProps {
 
 export function KenBurnsHero({ image, children, className = '' }: KenBurnsHeroProps) {
   const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const handleLoad = useCallback(() => setLoaded(true), []);
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
+  const imgCallbackRef = useCallback((node: HTMLImageElement | null) => {
+    if (node?.complete && node.naturalWidth > 0) {
       setLoaded(true);
     }
   }, []);
@@ -40,7 +37,7 @@ export function KenBurnsHero({ image, children, className = '' }: KenBurnsHeroPr
         <picture>
           <source srcSet={`/media/${key}.webp`} type="image/webp" />
           <img
-            ref={imgRef}
+            ref={imgCallbackRef}
             src={`/media/${key}.jpg`}
             alt=""
             aria-hidden="true"
