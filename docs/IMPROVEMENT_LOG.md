@@ -1,5 +1,39 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — Session Start (2026-06-24)
+
+### Area 6: Documentation — data/sources/ created
+
+**Finding:** `data/sources/` directory did not exist. The improvement routine requires every data source to have a markdown file documenting coverage, gaps, refresh cadence, and known limitations.
+
+**Action:** Created `data/sources/` with 15 source documentation files covering all data sources integrated into the scoring engine:
+- `epa-ucmr5.md` — PFAS occurrence (UCMR 5 bundle)
+- `epa-sdwis.md` — Drinking water violations
+- `usgs-wqp.md` — Ambient PFAS fallback
+- `epa-lead.md` — Census ACS housing-age lead proxy
+- `usda-ssurgo.md` — Soil properties
+- `epa-brownfields.md` — Contaminated site proximity
+- `fema-nfhl.md` — Flood zones
+- `nasa-power.md` — Climate aridity data
+- `openaq.md` — Real-time PM2.5 (requires API key)
+- `epa-aqs.md` — Annual air quality summaries (requires API key)
+- `epa-echo.md` — RCRA/TRI facility compliance
+- `epa-superfund.md` — NPL site proximity (FRS SEMS gap documented)
+- `epa-ejscreen.md` — EJ Index (currently non-functional — no API key)
+- `cdc-svi.md` — Social vulnerability (currently non-functional — no API key)
+- `epa-nonattainment.md` — Green Book NAAQS designations (bundled)
+- `holc-redlining.md` — University of Richmond HOLC crosswalk
+
+**Key findings surfaced while writing docs:**
+1. EJScreen and CDC SVI are both non-functional (no API credentials) — the entire EJ layer (15% of composite) returns 0 for all addresses. Highest-priority integration gap.
+2. Superfund FRS SEMS API misses known NPL sites (Tar Creek/Picher); static bundle of ~1,300 NPL sites from EPA CSV download is the recommended fix.
+3. OpenAQ and EPA AQS both require API keys not in the environment; air layer is at ~50% coverage.
+4. NASA POWER precipitation trend flag (intended +10 boost for declining precipitation) is currently inactive — implementation gap.
+
+**PR:** [pending]
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
