@@ -1,5 +1,69 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-06-27)
+
+### Section 6: Documentation — Data Source Registry Created
+
+Created `data/sources/` directory with 16 Markdown files documenting every
+data source used in scoring. Each file covers: what it covers, what it doesn't,
+refresh cadence, and known limitations.
+
+Files created:
+- `ucmr5.md` — EPA UCMR 5 PFAS bundled data
+- `sdwis.md` — EPA Safe Drinking Water violations
+- `echo.md` — EPA ECHO enforcement/compliance
+- `superfund.md` — EPA Superfund NPL via FRS API
+- `tri.md` — EPA Toxic Release Inventory
+- `ejscreen.md` — EPA EJScreen environmental justice indices
+- `fema-nfhl.md` — FEMA National Flood Hazard Layer
+- `ssurgo.md` — USDA SSURGO soil survey
+- `wqp.md` — USGS Water Quality Portal ambient monitoring
+- `cdc-svi.md` — CDC Social Vulnerability Index
+- `aqs.md` — EPA Air Quality System (annual PM2.5/ozone)
+- `brownfields.md` — EPA Brownfields via NEPAssist ArcGIS
+- `lead-risk.md` — Lead risk proxy (Census ACS B25034)
+- `nasa-power.md` — NASA POWER precipitation/temperature proxy
+- `nonattainment.md` — EPA Green Book nonattainment designations (bundled)
+- `openaq.md` — OpenAQ ambient air quality
+
+Key findings documented across sources:
+- Brownfields API (NEPAssist ArcGIS) is the #1 fragility risk — HTTP 503 confirmed
+  multiple times; crushes soil scores to near-zero when down
+- EJScreen integration is In-Progress (returns 0 currently)
+- FRS Superfund API misses known NPL sites (Camp Lejeune, Picher) — static bundle
+  recommended in ROADMAP
+- NASA POWER file was named `nasa-smap.ts` but actually queries POWER (not SMAP);
+  documented as POWER in the source registry
+
+### Section 5: Code Health — File Size Audit
+
+Files exceeding 400-line threshold:
+| File | Lines | Action |
+|------|-------|--------|
+| `tests/integration/run-all.ts` | 969 | Integration test — low refactor priority |
+| `scripts/build-scvi-national.ts` | 803 | Build script — acceptable as standalone |
+| `scripts/build-redlining-data.ts` | 613 | Build script — acceptable as standalone |
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | **Refactor candidate** |
+| `scripts/build-scvi-nj-pilot.ts` | 550 | Build script — acceptable |
+| `components/report/ContaminationMap.tsx` | 513 | **Refactor candidate** |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 | Near threshold |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | Complex but well-commented |
+| `types/exposure.ts` | 426 | Types file — monolith is acceptable |
+
+ContaminationMap refactor (extract `useMapboxInit` hook) is the highest-impact
+split: 330 lines of imperative Mapbox init can be separated from ~180 lines of
+JSX/controls. Filed as next code-health PR target.
+
+### Section 1: Data Accuracy — Deferred
+Live API calls require network access to production endpoints. Flagged for
+next interactive session with live API credentials available.
+
+### AUTONOMOUS_IMPROVEMENT.md Created
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` as the permanent session-start routine
+to be read at the beginning of every session.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
