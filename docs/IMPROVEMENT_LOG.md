@@ -363,3 +363,53 @@ older housing, proximity to industrial facilities and freeways.
 4. **Abandoned town handling** — Picher has no water system, no active monitoring.
    The scoring pipeline has no mechanism to flag historical contamination that
    preceded data collection systems.
+
+---
+
+## Autonomous Improvement Cycle 3 (2026-07-01)
+
+### Section 5: Code Health — CFCI Test Coverage
+
+`lib/intelligence/cfci-scorer.ts` was a shipped feature (CFCI national index, used on
+`/intelligence/flood-contamination`) with 0% test coverage. Added 22 unit tests covering
+all three exported functions:
+
+| Function | Tests | Coverage |
+|---|---|---|
+| `computeCfci` | 11 | Input clamping, non-finite handling, classification boundaries, zero-factor multiplication |
+| `classifyCfci` | 4 | All four tiers (Severe/High/Elevated/Low) with boundary values |
+| `assignCfciQuartiles` | 7 | Even distribution, index ordering, single record, empty array, ties |
+
+All 22 tests pass. PR: https://github.com/Sparkxt-0318/BedrockENV/pull/46
+
+### Section 6: Documentation — data/sources/ directory
+
+Created `data/sources/` directory (previously missing per routine requirement).
+Added 9 source documentation files, each with: what it covers, what it doesn't,
+refresh cadence (with source URLs), and known limitations.
+
+| File | Data source |
+|---|---|
+| `ucmr5.md` | EPA UCMR 5 PFAS detections (bundled + API) |
+| `epa-nonattainment.md` | EPA Green Book nonattainment areas (bundled) |
+| `holc-crosswalk.md` | University of Richmond HOLC redlining crosswalk (bundled) |
+| `fema-flood.md` | FEMA NFIP residential penetration rates + NFHL (bundled + API) |
+| `usda-ssurgo.md` | USDA SSURGO soil survey (live API) |
+| `epa-echo.md` | EPA ECHO facilities + TRI releases (live API) |
+| `epa-sdwis.md` | EPA Safe Drinking Water Information System (live API) |
+| `epa-superfund.md` | EPA FRS/SEMS National Priorities List (live API) |
+| `census-acs.md` | Census ACS 5-year estimates + geocoder (bundled + API) |
+
+PR: https://github.com/Sparkxt-0318/BedrockENV/pull/47
+
+### Permanent routine file added
+
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` — the six-area routine is now a checked-in
+artifact that future sessions will read at startup. PR: https://github.com/Sparkxt-0318/BedrockENV/pull/45
+
+### Next cycle priorities
+
+- EJ layer remains non-functional — requires EJScreen API access or CDC SVI bundle
+- Superfund static bundle (~1,300 NPL sites) would fix ~10% Superfund detection gap
+- Files over 400 lines awaiting refactor: RedliningClient.tsx (556), ContaminationMap.tsx (513), FloodContaminationClient.tsx (491), SoilCrisisClient.tsx (426), usda-ssurgo.ts (436)
+- 8 remaining data sources need `data/sources/<name>.md` files: NASA SMAP, OpenAQ/AQS, CDC SVI, EJScreen, USGS WQP, EPA Brownfields, geocoding, lib/ai narrator
