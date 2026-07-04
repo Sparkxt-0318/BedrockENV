@@ -129,8 +129,8 @@ export async function fetchEjScreenData(
     };
 
     const data: EjScreenData = {
-      ejIndex: pn('S_E_PCTILE') ?? pn('P_LDPNT_D2'),
-      ejIndexSupplemental: pn('S_E_SUPP_PCTILE') ?? pn('S_P_LDPNT_D5'),
+      ejIndex: pn('S_E_PCTILE') ?? pn('P_EJ_D2'),
+      ejIndexSupplemental: pn('S_E_SUPP_PCTILE') ?? pn('P_EJS_D2'),
       pm25Pctile: pn('S_PM25_PCTILE') ?? pn('P_PM25'),
       ozonePctile: pn('S_OZONE_PCTILE') ?? pn('P_OZONE'),
       dieselPmPctile: pn('S_DSLPM_PCTILE') ?? pn('P_DSLPM'),

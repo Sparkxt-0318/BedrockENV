@@ -1,5 +1,42 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-07-04
+
+### Area 3: New Features — EJ Layer Field Name Bug
+
+**Finding:** EJ layer scores return 0 for every address. Root cause identified: `lib/data-sources/epa-ejscreen.ts` line 132 used `P_LDPNT_D2` (lead paint percentile, District 2) as the fallback field for `ejIndex` instead of `P_EJ_D2` (EJ Index national percentile). Line 133 used `S_P_LDPNT_D5` (another lead paint field) as the fallback for `ejIndexSupplemental` instead of `P_EJS_D2`. This is a copy-paste error from the lead paint field block above. When the primary `S_E_PCTILE` key is absent (older API schema version), the fallback resolves to the wrong metric, causing the EJ scorer to receive incorrect input and produce near-zero scores.
+
+**Action taken:** Fixed both field name fallbacks in `epa-ejscreen.ts`.
+
+**PR:** TBD (committed to `claude/epic-goodall-v4rueg`)
+
+---
+
+### Area 6: Documentation — Data Bundle Docs
+
+**Finding:** `data/README.md` documented only `ucmr5-by-pwsid.json` out of 10 data files. Eight bundles (nonattainment, us-counties-ref, census-tract-demographics, holc-crosswalk, flood-by-county, scvi-national, cfci-national, redlining-analysis, scvi-nj-pilot) had no documented upstream source, refresh cadence, generator script, or field schema.
+
+**Action taken:** Added full documentation sections for all 8 undocumented bundles to `data/README.md`, covering upstream source URLs, refresh cadence, build commands, known limitations, and JSON field schemas.
+
+**PR:** TBD (committed to `claude/epic-goodall-v4rueg`)
+
+---
+
+### Area 5: Code Health — Findings (Not yet addressed)
+
+- `node_modules` not installed in this container — cannot run `pnpm test:coverage`
+- Modules with no test file: `lib/ai/narrator.ts`, `lib/scoring/cfci-scorer.ts`, `lib/scoring/engine.ts`, `lib/scoring/normalizer.ts`, `lib/scoring/weights.ts`
+- Files over 400 lines: `RedliningClient.tsx` (556), `FloodContaminationClient.tsx` (491), `SoilCrisisClient.tsx` (426), `ContaminationMap.tsx` (513), `usda-ssurgo.ts` (436)
+- Major package gaps: `@types/node` 20→26, `eslint` 9→10, `typescript` 5→6 (defer to monthly audit when node_modules available)
+
+---
+
+### Area 1: Data Accuracy — Status
+
+Live API calls unavailable in this container. Previous cycle findings still apply: EJ layer fix (above) is the primary data-accuracy action. Brownfields 503 pattern remains a known transient issue.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
