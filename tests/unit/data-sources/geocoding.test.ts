@@ -277,6 +277,138 @@ describe('geocodeAddress (mocked fetch)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// geocodeAddress — additional mocked edge cases
+// ---------------------------------------------------------------------------
+
+describe('geocodeAddress — Mapbox + FCC enrichment paths (mocked)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  });
+
+  it('returns null when Mapbox returns empty features array', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Census address geocoder → empty
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // Mapbox → returns empty features
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ features: [] }),
+        })
+    );
+
+    const result = await geocodeAddress('nowhere land 00000');
+    expect(result).toBeNull();
+  });
+
+  it('falls back to FCC when Census coordinate enrichment returns no county FIPS', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Call 1: Census address geocoder → empty
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // Call 2: Mapbox → success (no county FIPS via Mapbox)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => makeMapboxResponse({ regionCode: 'US-TX', lng: -94.1, lat: 29.9 }),
+        })
+        // Call 3: Census coordinate enrichment → no fipsCounty (no County FIPS in response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            result: {
+              geographies: {
+                'Census Tracts': [{ STATE: '48', TRACT: '000100' }], // no COUNTY field
+                '2020 Census Blocks': [{ STATE: '48', TRACT: '000100', BLKGRP: '1' }],
+              },
+            },
+          }),
+        })
+        // Call 4: FCC census area API → provides county FIPS
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              { county_fips: '48245' }, // Jefferson County, TX (Port Arthur area)
+            ],
+          }),
+        })
+    );
+
+    const result = await geocodeAddress('Port Arthur, TX 77640');
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    expect(result!.fipsState).toBe('48');
+    expect(result!.fipsCounty).toBe('245');
+  });
+
+  it('returns Mapbox result without county FIPS when both Census coordinate and FCC enrichment fail', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Census address geocoder → empty
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // Mapbox → success
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => makeMapboxResponse({ regionCode: 'US-TX', lng: -94.1, lat: 29.9 }),
+        })
+        // Census coordinate enrichment → returns no state (enrichment skipped)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            result: {
+              geographies: {}, // empty
+            },
+          }),
+        })
+        // FCC census → empty results
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ results: [] }),
+        })
+    );
+
+    const result = await geocodeAddress('Port Arthur, TX');
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    // No county FIPS available from either enrichment source
+    expect(result!.fipsCounty).toBe('');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // geocodeAddress — live network (skipped if no connectivity)
 // ---------------------------------------------------------------------------
 
