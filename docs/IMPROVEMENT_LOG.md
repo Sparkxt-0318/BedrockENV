@@ -1,5 +1,38 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-05)
+
+### Section 6: Documentation — Permanent Routine File
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` as the permanent session-start instruction file for the autonomous improvement routine.
+
+### Section 5: Code Health — Test Coverage
+Identified files at 0% coverage that contain testable pure logic:
+- `lib/intelligence/cfci-scorer.ts`: 0% → 100% (added 20 tests: computeCfci, classifyCfci, assignCfciQuartiles including edge cases for NaN, Infinity, clamping, rounding, quartile assignment)
+- `lib/data-sources/geocoding.ts`: 61.53% → higher (added 3 mocked tests covering uncovered branches: Mapbox empty-features path, FCC county-FIPS fallback when Census coordinate enrichment returns no county, combined failure path where both enrichments fail)
+
+Total tests: 434 → 457 (+23). All 38 test files pass.
+
+Coverage notes for files NOT addressed (infrastructure requiring real credentials — not feasible to unit-test without API mocks that provide no value):
+- `lib/ai/narrator.ts` (0%): Claude API calls — integration test territory
+- `lib/stripe/client.ts` (0%): Stripe API — requires Stripe test mode
+- `lib/supabase/*.ts` (0%): DB client — integration test territory
+- `lib/pdf/templates/exposure-report.tsx` (10%): React-PDF rendering — not easily unit-testable
+- `lib/intelligence/cfci-scorer.ts` (0%): NOW COVERED ✓
+
+### Section 5: Code Health — Large Files Flagged (>400 lines)
+Files exceeding the 400-line refactor threshold — logged in `docs/PENDING_DECISIONS.md`:
+- `app/intelligence/redlining/RedliningClient.tsx` (556 lines)
+- `components/report/ContaminationMap.tsx` (513 lines)
+- `app/intelligence/flood-contamination/FloodContaminationClient.tsx` (491 lines)
+- `lib/data-sources/usda-ssurgo.ts` (436 lines)
+- `app/intelligence/soil-crisis/SoilCrisisClient.tsx` (426 lines)
+
+### Section 3: Roadmap Review
+No new items added this cycle. Highest-impact in-progress item remains **Neighborhood Comparison** (~2 days effort). EJ layer and Superfund static bundle are still the primary data accuracy blockers.
+
+### Section 5: Code Health — Dependencies
+Reviewed `pnpm outdated`. Non-security updates noted (major: @types/node 20→26, eslint 9→10, typescript 5→6, puppeteer 24→25). Deferred — these are major-version bumps with potential breaking changes. No CVEs or security advisories identified. Scheduled for monthly audit.
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
