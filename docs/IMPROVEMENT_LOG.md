@@ -1,5 +1,42 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-07)
+
+### Section 6: Documentation — data/sources/ created
+Created `data/sources/` directory with 15 data source documentation files (one per federal data source integrated into the scoring pipeline). Previously, no source documentation existed. Files cover: epa-ucmr5, epa-sdwis, usgs-wqp, census-acs, usda-ssurgo, epa-brownfields, fema-nfhl, nasa-power, epa-echo, openaq, epa-aqs, epa-green-book, epa-frs-sems, epa-ejscreen, cdc-svi, holc-redlining. Each file documents: what the source covers, what it doesn't, how Bedrock uses it, refresh cadence, known limitations, and source URL.
+
+Also created `docs/AUTONOMOUS_IMPROVEMENT.md` (improvement routine definition) and `docs/PENDING_DECISIONS.md` (5 judgment calls flagged for user review).
+
+### Section 1: Data Accuracy — systemic gap audit
+Ran audit against current codebase (no live API calls due to missing node_modules). Key findings:
+- **No static Superfund bundle**: all NPL lookups are live FRS SEMS API only. Picher/Camp Lejeune false negatives persist.
+- **EJ layer**: Implementation IS complete (EJScreen + CDC SVI scorers coded); the "returns 0" symptom is from API timeout/unavailability, not missing code. Field-name mappings may have drifted from current EJScreen API schema — needs validation.
+- **Brownfields API 503**: No static fallback. Continues to crush soil scores intermittently.
+- **FRS nplStatus hardcoded**: `epa-superfund.ts:113` sets `nplStatus: 'listed'` for all returned SEMS facilities unconditionally. The FRS API doesn't expose NPL status in the basic response. Impact: map popup displays incorrect status labels; scoring unaffected (scorer doesn't filter on nplStatus).
+- **PENDING_DECISIONS items**: 5 judgment calls documented in `docs/PENDING_DECISIONS.md`.
+
+### Section 5: Code Health — large file audit
+Large files identified (>400 lines):
+- `tests/integration/run-all.ts` — 969 lines (integration test orchestrator)
+- `scripts/build-scvi-national.ts` — 803 lines (one-shot build script)
+- `scripts/build-redlining-data.ts` — 613 lines
+- `RedliningClient.tsx` — 556 lines (UI component)
+- `scripts/build-scvi-nj-pilot.ts` — 550 lines
+- `ContaminationMap.tsx` — 513 lines
+- `tests/unit/intelligence/scvi-scorer.test.ts` — 504 lines
+- `FloodContaminationClient.tsx` — 491 lines
+- `usda-ssurgo.ts` — 436 lines
+- `types/exposure.ts` — 426 lines
+- `SoilCrisisClient.tsx` — 426 lines
+
+Decision: defer refactoring of intelligence page clients and build scripts (working, rarely touched). ContaminationMap.tsx flagged for split on next feature change. See PENDING_DECISIONS.md #4.
+
+Dependency security note: `next` is 8 patch releases behind latest (16.2.2 → 16.2.10), `undici` 8.1.0 → 8.7.0, `stripe` 22.0.0 → 22.3.0. Patch updates recommended. Major version upgrades (TypeScript 5→6, ESLint 9→10) deferred to coordinated effort.
+
+PR: (see PR link when created)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
