@@ -33,7 +33,7 @@ Decision: defer refactoring of intelligence page clients and build scripts (work
 
 Dependency security note: `next` is 8 patch releases behind latest (16.2.2 → 16.2.10), `undici` 8.1.0 → 8.7.0, `stripe` 22.0.0 → 22.3.0. Patch updates recommended. Major version upgrades (TypeScript 5→6, ESLint 9→10) deferred to coordinated effort.
 
-PR: (see PR link when created)
+PR: https://github.com/Sparkxt-0318/BedrockENV/pull/52
 
 ---
 
