@@ -33,6 +33,7 @@
 
 ## Considering
 
+- **Public SCVI API** — `/api/intelligence/scvi` route already built with state/quartile/limit filtering; needs API docs and intentional exposure decision (see PENDING_DECISIONS.md PD-001)
 - **Historical contamination flag** — Special handling for abandoned/dissolved towns (Picher-class) where contamination predates monitoring infrastructure
 - **RSEI cancer risk** — EPA Risk-Screening Environmental Indicators for air toxics cancer risk (would improve Port Arthur scoring)
 - **CERCLIS/SEMS supplemental source** — Additional Superfund data beyond FRS facility records

@@ -1,5 +1,70 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — Initial Routine Setup (2026-07-11)
+
+### Overview
+First run of the formalized autonomous improvement routine (docs/AUTONOMOUS_IMPROVEMENT.md). No live assessments possible this cycle (no API keys in environment). Focused on code health, documentation gaps, and dead-code identification.
+
+### Area 1: Data accuracy
+No live assessments run (no API keys). Prior cycle findings remain the canonical ground-truth reference (see "Autonomous Improvement Cycle 2" entry below). Key open issues:
+- EJ layer returns 0 for all addresses — accounts for 15-25 point under-scoring at urban/disadvantaged addresses
+- Brownfields API (503) has been the most common transient failure, crushing soil scores
+- Superfund static bundle still unbuilt — Picher OK and Camp Lejeune NC miss NPL detection via FRS API
+
+### Area 2: Design quality
+Not audited this cycle (no browser/Playwright access). Marked for next cycle with browser access.
+
+### Area 3: New features
+EJ layer identified as highest-impact unfinished item (ROADMAP "in-progress"). Neighborhood comparison remains specced but unbuilt. No competitive landscape changes to report since June 2026 MARKET_INTEL update (6 weeks ago, within monthly cadence).
+
+### Area 4: Market intelligence
+No new entries — MARKET_INTEL.md was last updated June 2026 (within monthly cadence). Next update due August 2026.
+
+### Area 5: Code health
+Six files exceed 400-line threshold:
+| File | Lines |
+|------|-------|
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 |
+| `components/report/ContaminationMap.tsx` | 513 |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 |
+| `lib/data-sources/usda-ssurgo.ts` | 436 |
+| `types/exposure.ts` | 426 |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 |
+
+These are noted as refactor candidates for future cycles. No immediate breakage — size alone doesn't warrant a PR.
+
+Two routes with no UI call sites identified:
+- `/api/intelligence/scvi` — well-built, filterable API, no client caller. See PENDING_DECISIONS.md PD-001.
+- `/api/billing-portal` — Stripe standby infrastructure. See PENDING_DECISIONS.md PD-002.
+
+No unused exports found in lib/utils.ts, lib/net/, or lib/media/.
+
+### Area 6: Documentation
+**Gap identified**: `data/sources/` directory did not exist. Created docs for 5 key sources:
+- `data/sources/epa-ucmr5.md`
+- `data/sources/epa-sdwis.md`
+- `data/sources/epa-echo.md`
+- `data/sources/epa-frs-superfund.md`
+- `data/sources/nonattainment.md`
+- `data/sources/usda-ssurgo.md`
+
+**Gap identified**: `SCORING_VERSION = 4` is not displayed on the methodology page or in report footers. See PENDING_DECISIONS.md PD-003.
+
+**Created**: `docs/PENDING_DECISIONS.md` for items requiring user judgment.
+
+**Created**: `docs/AUTONOMOUS_IMPROVEMENT.md` (the routine document itself).
+
+### Actions taken
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md`
+- Created `docs/PENDING_DECISIONS.md` with PD-001, PD-002, PD-003
+- Created `data/sources/` directory with 6 source documentation files
+- Updated `docs/IMPROVEMENT_LOG.md` (this entry)
+
+### PR
+See: PR for branch `claude/epic-goodall-kxxkai`
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
