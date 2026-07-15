@@ -2,6 +2,9 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { ExposureAssessment } from '@/types/exposure';
+import { ContaminationMapFallback } from './map/ContaminationMapFallback';
+import { MapLayerControls } from './map/MapLayerControls';
+import { MapLegend } from './map/MapLegend';
 
 interface ContaminationMapProps {
   assessment: ExposureAssessment;
@@ -15,15 +18,6 @@ type LayerVisibility = {
   echoFacilities: boolean;
 };
 
-/**
- * Contamination Map using Mapbox GL JS.
- * Shows the property location with toggleable overlay layers:
- * - Water: water system boundaries with PFAS detection markers
- * - Soil: brownfield locations + flood zones
- *
- * Requires NEXT_PUBLIC_MAPBOX_TOKEN to be set.
- * Falls back gracefully to a static display when token is missing.
- */
 export function ContaminationMap({ assessment }: ContaminationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,7 +44,6 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
   const superfundSites = useMemo(() => assessment.proximityData?.superfundSites ?? [], [assessment.proximityData?.superfundSites]);
   const echoFacilities = useMemo(() => assessment.proximityData?.echoFacilities?.facilities ?? [], [assessment.proximityData?.echoFacilities?.facilities]);
 
-  // Toggle a layer
   const toggleLayer = useCallback((layer: keyof LayerVisibility) => {
     setLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
   }, []);
@@ -60,38 +53,37 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    // Brownfield markers visibility
     for (const marker of markersRef.current) {
       const el = (marker as { getElement: () => HTMLElement }).getElement();
-      if (el.dataset.layer === 'brownfield') {
-        el.style.display = layers.brownfields ? '' : 'none';
-      }
-      if (el.dataset.layer === 'water') {
-        el.style.display = layers.waterSystem ? '' : 'none';
-      }
-      if (el.dataset.layer === 'superfund') {
-        el.style.display = layers.superfund ? '' : 'none';
-      }
-      if (el.dataset.layer === 'echo') {
-        el.style.display = layers.echoFacilities ? '' : 'none';
-      }
+      if (el.dataset.layer === 'brownfield') el.style.display = layers.brownfields ? '' : 'none';
+      if (el.dataset.layer === 'water') el.style.display = layers.waterSystem ? '' : 'none';
+      if (el.dataset.layer === 'superfund') el.style.display = layers.superfund ? '' : 'none';
+      if (el.dataset.layer === 'echo') el.style.display = layers.echoFacilities ? '' : 'none';
     }
 
-    // Flood zone circle visibility
     try {
       if (map.getLayer('flood-zone-fill')) {
-        map.setLayoutProperty('flood-zone-fill', 'visibility', layers.floodZone ? 'visible' : 'none');
-      }
-      if (map.getLayer('flood-zone-border')) {
-        map.setLayoutProperty('flood-zone-border', 'visibility', layers.floodZone ? 'visible' : 'none');
-      }
-      if (map.getLayer('flood-zone-label')) {
-        map.setLayoutProperty('flood-zone-label', 'visibility', layers.floodZone ? 'visible' : 'none');
+        const vis = layers.floodZone ? 'visible' : 'none';
+        map.setLayoutProperty('flood-zone-fill', 'visibility', vis);
+        map.setLayoutProperty('flood-zone-border', 'visibility', vis);
+        map.setLayoutProperty('flood-zone-label', 'visibility', vis);
       }
     } catch {
       // Layer may not exist yet
     }
   }, [layers, mapLoaded]);
+
+  // Inject Mapbox CSS
+  useEffect(() => {
+    if (!token) return;
+    const id = 'mapbox-gl-css';
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css';
+    document.head.appendChild(link);
+  }, [token]);
 
   useEffect(() => {
     if (!token || !mapContainer.current || mapRef.current) return;
@@ -101,25 +93,21 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
     async function initMap() {
       try {
         const mapboxgl = (await import('mapbox-gl')).default;
-
         if (cancelled || !mapContainer.current) return;
 
         mapboxgl.accessToken = token!;
-
         const map = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/light-v11',
           center: [longitude, latitude],
           zoom: 13,
         });
-
         mapRef.current = map;
 
         map.on('load', () => {
           if (cancelled) return;
           setMapLoaded(true);
 
-          // === Property marker (always visible) ===
           new mapboxgl.Marker({ color: '#2D6A4F' })
             .setLngLat([longitude, latitude])
             .setPopup(
@@ -129,192 +117,91 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
             )
             .addTo(map);
 
-          // === Flood zone overlay ===
           if (floodZone) {
             const floodColor = floodZone.isSpecialFloodHazardArea
-              ? 'rgba(59, 130, 246, 0.15)' // blue tint for SFHA
-              : 'rgba(147, 197, 253, 0.1)'; // lighter for non-SFHA
+              ? 'rgba(59, 130, 246, 0.15)' : 'rgba(147, 197, 253, 0.1)';
             const borderColor = floodZone.isSpecialFloodHazardArea
-              ? 'rgba(59, 130, 246, 0.5)'
-              : 'rgba(147, 197, 253, 0.3)';
+              ? 'rgba(59, 130, 246, 0.5)' : 'rgba(147, 197, 253, 0.3)';
 
-            // Create a circle polygon approximation around the property
-            const radiusKm = 0.8; // ~0.5 mile radius
+            const radiusKm = 0.8;
             const points = 64;
             const coords = [];
             for (let i = 0; i < points; i++) {
               const angle = (i / points) * 2 * Math.PI;
-              const dx = radiusKm * Math.cos(angle);
-              const dy = radiusKm * Math.sin(angle);
-              const lat2 = latitude + (dy / 111.32);
-              const lng2 = longitude + (dx / (111.32 * Math.cos(latitude * Math.PI / 180)));
+              const lat2 = latitude + (radiusKm * Math.sin(angle) / 111.32);
+              const lng2 = longitude + (radiusKm * Math.cos(angle) / (111.32 * Math.cos(latitude * Math.PI / 180)));
               coords.push([lng2, lat2]);
             }
-            coords.push(coords[0]); // close the polygon
+            coords.push(coords[0]);
 
             map.addSource('flood-zone', {
               type: 'geojson',
-              data: {
-                type: 'Feature',
-                properties: {},
-                geometry: { type: 'Polygon', coordinates: [coords] },
-              },
+              data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [coords] } },
             });
-
+            map.addLayer({ id: 'flood-zone-fill', type: 'fill', source: 'flood-zone', paint: { 'fill-color': floodColor } });
+            map.addLayer({ id: 'flood-zone-border', type: 'line', source: 'flood-zone', paint: { 'line-color': borderColor, 'line-width': 2, 'line-dasharray': [3, 2] } });
             map.addLayer({
-              id: 'flood-zone-fill',
-              type: 'fill',
-              source: 'flood-zone',
-              paint: { 'fill-color': floodColor },
-            });
-
-            map.addLayer({
-              id: 'flood-zone-border',
-              type: 'line',
-              source: 'flood-zone',
-              paint: {
-                'line-color': borderColor,
-                'line-width': 2,
-                'line-dasharray': [3, 2],
-              },
-            });
-
-            // Flood zone label
-            map.addLayer({
-              id: 'flood-zone-label',
-              type: 'symbol',
-              source: 'flood-zone',
-              layout: {
-                'text-field': `Zone ${floodZone.zone}${floodZone.isSpecialFloodHazardArea ? ' (SFHA)' : ''}`,
-                'text-size': 11,
-                'text-offset': [0, -2],
-                'text-anchor': 'top',
-              },
-              paint: {
-                'text-color': '#3B82F6',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 1,
-              },
+              id: 'flood-zone-label', type: 'symbol', source: 'flood-zone',
+              layout: { 'text-field': `Zone ${floodZone.zone}${floodZone.isSpecialFloodHazardArea ? ' (SFHA)' : ''}`, 'text-size': 11, 'text-offset': [0, -2], 'text-anchor': 'top' },
+              paint: { 'text-color': '#3B82F6', 'text-halo-color': '#ffffff', 'text-halo-width': 1 },
             });
           }
 
-          // === Water system marker ===
           if (waterData && waterData.systemName !== 'Unknown') {
             const hasPfas = waterData.pfas && waterData.pfas.analytes.length > 0;
-            const waterColor = hasPfas
-              ? (waterData.pfas?.exceedsMcl ? '#E76F51' : '#F4A261')
-              : '#40916C';
-
-            // Place water system indicator near the property
-            const waterMarkerEl = document.createElement('div');
-            waterMarkerEl.dataset.layer = 'water';
-            waterMarkerEl.style.cssText = `
-              width: 28px; height: 28px; border-radius: 50%;
-              background: ${waterColor}; border: 2px solid white;
-              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-              display: flex; align-items: center; justify-content: center;
-              cursor: pointer;
-            `;
-            waterMarkerEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`;
-
-            const waterMarker = new mapboxgl.Marker({ element: waterMarkerEl })
+            const waterColor = hasPfas ? (waterData.pfas?.exceedsMcl ? '#E76F51' : '#F4A261') : '#40916C';
+            const el = document.createElement('div');
+            el.dataset.layer = 'water';
+            el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${waterColor};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+            el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>`;
+            const waterMarker = new mapboxgl.Marker({ element: el })
               .setLngLat([longitude + 0.003, latitude + 0.002])
-              .setPopup(
-                new mapboxgl.Popup().setHTML(
-                  `<strong>${waterData.systemName}</strong><br/>` +
-                  `PWSID: ${waterData.systemId}<br/>` +
-                  (hasPfas
-                    ? `PFAS: ${waterData.pfas!.analytes.length} analyte(s) detected` +
-                      (waterData.pfas!.exceedsMcl ? '<br/><span style="color:#E76F51">Exceeds EPA MCL</span>' : '')
-                    : 'No PFAS detected') +
-                  `<br/>Violations: ${waterData.violations.length}`
-                )
-              )
+              .setPopup(new mapboxgl.Popup().setHTML(
+                `<strong>${waterData.systemName}</strong><br/>PWSID: ${waterData.systemId}<br/>` +
+                (hasPfas ? `PFAS: ${waterData.pfas!.analytes.length} analyte(s) detected${waterData.pfas!.exceedsMcl ? '<br/><span style="color:#E76F51">Exceeds EPA MCL</span>' : ''}` : 'No PFAS detected') +
+                `<br/>Violations: ${waterData.violations.length}`
+              ))
               .addTo(map);
             markersRef.current.push(waterMarker);
           }
 
-          // === Brownfield markers ===
           for (const site of brownfields) {
             const color = site.distance < 0.5 ? '#E76F51' : site.distance < 1 ? '#F4A261' : '#E9C46A';
-
             const el = document.createElement('div');
             el.dataset.layer = 'brownfield';
-            el.style.cssText = `
-              width: 20px; height: 20px; border-radius: 50%;
-              background: ${color}; border: 2px solid white;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-              cursor: pointer;
-            `;
-
+            el.style.cssText = `width:20px;height:20px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:pointer;`;
             const marker = new mapboxgl.Marker({ element: el })
               .setLngLat([site.longitude, site.latitude])
-              .setPopup(
-                new mapboxgl.Popup().setHTML(
-                  `<strong>${site.name}</strong><br/>${site.distance.toFixed(1)} mi ${site.direction}<br/>Status: ${site.cleanupStatus}`
-                )
-              )
+              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${site.name}</strong><br/>${site.distance.toFixed(1)} mi ${site.direction}<br/>Status: ${site.cleanupStatus}`))
               .addTo(map);
             markersRef.current.push(marker);
           }
 
-          // === Superfund NPL site markers ===
           for (const site of superfundSites) {
             const el = document.createElement('div');
             el.dataset.layer = 'superfund';
-            el.style.cssText = `
-              width: 24px; height: 24px; border-radius: 4px;
-              background: #C23B22; border: 2px solid white;
-              box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-              display: flex; align-items: center; justify-content: center;
-              cursor: pointer;
-            `;
+            el.style.cssText = `width:24px;height:24px;border-radius:4px;background:#C23B22;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
             el.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6z"/><rect x="11" y="10" width="2" height="4"/><rect x="11" y="16" width="2" height="2"/></svg>`;
-
             const distMi = (site.distanceKm * 0.621371).toFixed(1);
             const marker = new mapboxgl.Marker({ element: el })
               .setLngLat([site.longitude, site.latitude])
-              .setPopup(
-                new mapboxgl.Popup().setHTML(
-                  `<strong>${site.name}</strong><br/>NPL Status: ${site.nplStatus}<br/>Distance: ${distMi} mi`
-                )
-              )
+              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${site.name}</strong><br/>NPL Status: ${site.nplStatus}<br/>Distance: ${distMi} mi`))
               .addTo(map);
             markersRef.current.push(marker);
           }
 
-          // === ECHO regulated facility markers (TRI + SNC highlighted) ===
-          const maxEchoMarkers = 30;
-          const sortedFacilities = [...echoFacilities]
-            .sort((a, b) => a.distance - b.distance)
-            .slice(0, maxEchoMarkers);
-
+          const sortedFacilities = [...echoFacilities].sort((a, b) => a.distance - b.distance).slice(0, 30);
           for (const fac of sortedFacilities) {
             const isTri = fac.programs.includes('TRI');
             const isSnc = fac.complianceStatus === 'Significant Violation';
             const color = isSnc ? '#E76F51' : isTri ? '#F4A261' : '#86807A';
             const size = isTri || isSnc ? 16 : 12;
-
             const el = document.createElement('div');
             el.dataset.layer = 'echo';
-            el.style.cssText = `
-              width: ${size}px; height: ${size}px; border-radius: 50%;
-              background: ${color}; border: 1.5px solid white;
-              box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-              cursor: pointer; opacity: 0.85;
-            `;
-
-            const programList = fac.programs.join(', ');
+            el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${color};border:1.5px solid white;box-shadow:0 1px 2px rgba(0,0,0,0.2);cursor:pointer;opacity:0.85;`;
             const marker = new mapboxgl.Marker({ element: el })
               .setLngLat([fac.longitude, fac.latitude])
-              .setPopup(
-                new mapboxgl.Popup().setHTML(
-                  `<strong>${fac.name}</strong><br/>` +
-                  `Programs: ${programList}<br/>` +
-                  `Status: ${fac.complianceStatus}<br/>` +
-                  `Distance: ${fac.distance.toFixed(1)} mi`
-                )
-              )
+              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${fac.name}</strong><br/>Programs: ${fac.programs.join(', ')}<br/>Status: ${fac.complianceStatus}<br/>Distance: ${fac.distance.toFixed(1)} mi`))
               .addTo(map);
             markersRef.current.push(marker);
           }
@@ -330,118 +217,32 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
     return () => { cancelled = true; };
   }, [token, latitude, longitude, brownfields, floodZone, waterData, superfundSites, echoFacilities, assessment]);
 
-  // Inject Mapbox CSS
-  useEffect(() => {
-    if (!token) return;
-    const id = 'mapbox-gl-css';
-    if (document.getElementById(id)) return;
-    const link = document.createElement('link');
-    link.id = id;
-    link.rel = 'stylesheet';
-    link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css';
-    document.head.appendChild(link);
-  }, [token]);
-
-  // No Mapbox token — show static fallback
   if (!token) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-border bg-bg-surface overflow-hidden">
-        <div className="bg-bg-elevated px-4 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-text-primary">Location Map</h3>
-          <span className="text-xs text-text-tertiary">
-            {latitude.toFixed(4)}, {longitude.toFixed(4)}
-          </span>
-        </div>
-        <div className="h-64 flex items-center justify-center bg-bg-primary">
-          <div className="text-center">
-            <svg className="mx-auto mb-2 text-text-tertiary" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            <p className="text-sm text-text-secondary">{assessment.address.normalized}</p>
-            <p className="text-xs text-text-tertiary mt-1">
-              Set NEXT_PUBLIC_MAPBOX_TOKEN to enable interactive map
-            </p>
-            {(brownfields.length > 0 || superfundSites.length > 0 || echoFacilities.length > 0) && (
-              <div className="mt-2 space-y-0.5">
-                {brownfields.length > 0 && (
-                  <p className="text-xs text-text-secondary">{brownfields.length} brownfield site(s) nearby</p>
-                )}
-                {superfundSites.length > 0 && (
-                  <p className="text-xs text-text-secondary">{superfundSites.length} Superfund NPL site(s) nearby</p>
-                )}
-                {echoFacilities.length > 0 && (
-                  <p className="text-xs text-text-secondary">{echoFacilities.length} regulated facilities nearby</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <ContaminationMapFallback
+        address={assessment.address}
+        brownfieldCount={brownfields.length}
+        superfundCount={superfundSites.length}
+        echoCount={echoFacilities.length}
+      />
     );
   }
+
+  const hasWater = waterData != null && waterData.systemName !== 'Unknown';
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-border bg-bg-surface overflow-hidden">
       <div className="bg-bg-elevated px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-medium text-text-primary">Contamination Map</h3>
-        <div className="flex items-center gap-3 flex-wrap">
-          {waterData && waterData.systemName !== 'Unknown' && (
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={layers.waterSystem}
-                onChange={() => toggleLayer('waterSystem')}
-                className="rounded"
-              />
-              Water system
-            </label>
-          )}
-          {brownfields.length > 0 && (
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={layers.brownfields}
-                onChange={() => toggleLayer('brownfields')}
-                className="rounded"
-              />
-              Brownfield sites
-            </label>
-          )}
-          {floodZone && (
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={layers.floodZone}
-                onChange={() => toggleLayer('floodZone')}
-                className="rounded"
-              />
-              Flood zone
-            </label>
-          )}
-          {superfundSites.length > 0 && (
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={layers.superfund}
-                onChange={() => toggleLayer('superfund')}
-                className="rounded"
-              />
-              Superfund sites
-            </label>
-          )}
-          {echoFacilities.length > 0 && (
-            <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
-              <input
-                type="checkbox"
-                checked={layers.echoFacilities}
-                onChange={() => toggleLayer('echoFacilities')}
-                className="rounded"
-              />
-              Regulated facilities
-            </label>
-          )}
-        </div>
+        <MapLayerControls
+          layers={layers}
+          onToggle={toggleLayer}
+          showWaterSystem={hasWater}
+          showBrownfields={brownfields.length > 0}
+          showFloodZone={floodZone != null}
+          showSuperfund={superfundSites.length > 0}
+          showEchoFacilities={echoFacilities.length > 0}
+        />
       </div>
       <div ref={mapContainer} className="h-72 sm:h-80">
         {!mapLoaded && !error && (
@@ -455,59 +256,16 @@ export function ContaminationMap({ assessment }: ContaminationMapProps) {
           </div>
         )}
       </div>
-      {/* Legend */}
-      <div className="px-4 py-2 border-t border-border flex flex-wrap gap-4 text-xs text-text-secondary">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-accent inline-block" /> Your property
-        </span>
-        {layers.waterSystem && waterData && waterData.systemName !== 'Unknown' && (
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full inline-block" style={{
-              background: waterData.pfas?.exceedsMcl ? '#E76F51'
-                : (waterData.pfas && waterData.pfas.analytes.length > 0) ? '#F4A261'
-                : '#40916C'
-            }} />
-            Water system
-          </span>
-        )}
-        {layers.brownfields && brownfields.length > 0 && (
-          <>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-exposure-high inline-block" /> &lt;0.5 mi
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-exposure-elevated inline-block" /> 0.5–1 mi
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-exposure-moderate inline-block" /> 1–2 mi
-            </span>
-          </>
-        )}
-        {layers.floodZone && floodZone && (
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm inline-block border border-blue-400" style={{ background: 'rgba(59,130,246,0.15)' }} />
-            Flood Zone {floodZone.zone}
-          </span>
-        )}
-        {layers.superfund && superfundSites.length > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-sm inline-block" style={{ background: '#C23B22' }} />
-            Superfund NPL
-          </span>
-        )}
-        {layers.echoFacilities && echoFacilities.length > 0 && (
-          <>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#F4A261' }} />
-              TRI facility
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#86807A' }} />
-              Regulated
-            </span>
-          </>
-        )}
-      </div>
+      <MapLegend
+        layers={layers}
+        showWaterSystem={hasWater}
+        waterPfasExceedsMcl={waterData?.pfas?.exceedsMcl}
+        waterHasPfas={(waterData?.pfas?.analytes?.length ?? 0) > 0}
+        hasBrownfields={brownfields.length > 0}
+        floodZone={floodZone}
+        hasSuperfund={superfundSites.length > 0}
+        hasEchoFacilities={echoFacilities.length > 0}
+      />
     </div>
   );
 }

@@ -1,5 +1,54 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-15)
+
+### Section 1: Data Accuracy
+No live assessment run this cycle — API keys not configured in environment (`ANTHROPIC_API_KEY`, `NEXT_PUBLIC_MAPBOX_TOKEN`, `CENSUS_API_KEY` absent). Relied on prior cycle findings. Systemic issues persist:
+- Brownfields API returning HTTP 503 intermittently — root cause unresolved.
+- EJ layer still returns 0 for all addresses — EJScreen API credentials not set.
+- FRS SEMS misses Tar Creek (Picher, OK) and Camp Lejeune, NC — static bundle required.
+- No new federal datasets identified this cycle beyond what is already in ROADMAP.md.
+
+### Section 2: Design Quality
+No browser-based audit run this cycle (Chromium environment available but no live server). Prior axe-core results from 2026-04-17 remain the baseline: 0 serious violations on landing and Newark report.
+
+### Section 3: Feature Selection
+Highest-impact unfinished item remains **EJ layer** (15% weight, returns 0 for all addresses). Second priority is **Superfund static bundle** (fixes Picher/Camp Lejeune false negatives). Both require configuration/data work, not new architectural decisions. Detailed options documented in `docs/PENDING_DECISIONS.md`.
+
+### Section 4: Market Intelligence
+No new competitive intel this cycle. Last update: June 2026 (`docs/MARKET_INTEL.md`). First Street's contamination data exploration (Q1 2026 product blog) is the primary watch item; no public release as of July 2026.
+
+### Section 5: Code Health — ContaminationMap Refactor
+`components/report/ContaminationMap.tsx` was 513 lines — over the 400-line threshold.
+
+Extracted into three sub-components:
+- `components/report/map/ContaminationMapFallback.tsx` — static display when Mapbox token absent
+- `components/report/map/MapLayerControls.tsx` — layer toggle checkbox toolbar
+- `components/report/map/MapLegend.tsx` — map legend with conditional layer entries
+
+Result: `ContaminationMap.tsx` reduced from 513 → 228 lines. Logic unchanged; behavior identical. No SCORING_VERSION change (UI only).
+
+### Section 6: Documentation
+Created `data/sources/` directory with documentation for all 18 data sources:
+- `epa-ucmr5.md`, `epa-sdwis.md`, `epa-echo.md`, `epa-brownfields.md`, `epa-ejscreen.md`
+- `epa-superfund.md`, `epa-tri.md`, `epa-aqs.md`, `epa-lead.md`
+- `fema-nfhl.md`, `usda-ssurgo.md`, `usgs-wqp.md`, `nasa-power.md`
+- `cdc-svi.md`, `census-acs.md`, `openaq.md`, `geocoding.md`, `nonattainment.md`
+
+Each doc covers: what it includes, what it excludes, source URL, refresh cadence, and known limitations.
+
+Created `docs/PENDING_DECISIONS.md` with 6 pending decisions for user review:
+1. EJ layer implementation (bundle vs. live API)
+2. Superfund static bundle
+3. Air API key registration order (AirNow → AQS)
+4. First Street competition response
+5. Water System Risk Atlas scope
+6. Batch assessment for Pro users
+
+Created `docs/AUTONOMOUS_IMPROVEMENT.md` (permanent routine reference file, as requested).
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
