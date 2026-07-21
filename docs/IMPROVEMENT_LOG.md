@@ -1,5 +1,25 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-21)
+
+### Section 6: Documentation — AUTONOMOUS_IMPROVEMENT.md
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` as a permanent reference file for the autonomous improvement routine. This file documents all six areas of focus, hard rules, and reporting expectations so it is loaded at the start of every session.
+
+### Section 5: Code Health — Stripe Client Tests
+- **Finding**: `lib/stripe/client.ts` had 0% test coverage (5.88% for the stripe module overall). `createCheckoutSession` and `createSubscriptionSession` are critical billing paths with zero unit tests.
+- **Action**: Added `tests/unit/stripe/stripe-client.test.ts` with 7 tests covering `getStripe` singleton behavior, `createCheckoutSession` (payment mode with full params, extra metadata, omitted userId), and `createSubscriptionSession` (subscription mode with full params, omitted userId).
+- **Result**: Stripe module statement coverage lifted from 5.88% → ~85%. Total test suite: 38 files, 441 tests, all passing.
+- **Files over 400 lines identified for future PRs**:
+  - `components/report/ContaminationMap.tsx` (513 lines)
+  - `app/intelligence/redlining/RedliningClient.tsx` (556 lines)
+  - `app/intelligence/flood-contamination/FloodContaminationClient.tsx` (491 lines)
+  - `lib/data-sources/usda-ssurgo.ts` (436 lines)
+
+### Section 1: Data Accuracy — Status
+- Live API assessment skipped (no API keys in current environment). Verified scoring pipeline tests pass cleanly; v4 scoring logic intact.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
@@ -246,7 +266,7 @@ with no civilian census data.
 ### Full Coverage Table (SCORING_VERSION 3, FULL_WEIGHTS)
 
 | Address              | Comp | Water | Soil | Air | Prox | EJ  | Coverage | Notes |
-|----------------------|------|-------|------|-----|------|-----|----------|-------|
+|----------------------|------|-------|------|-----|------|-----|----------|
 | Port Arthur TX       |   58 |    68 |   56 |  61 |   45 |  0* |     76%  | Refinery corridor, SO2+Ozone nonattainment |
 | Newark NJ            |   56 |    59 |   44 |  61 |   56 |  0* |     85%  | Industrial + brownfields + lead |
 | South LA (90002)     |   52 |    46 |   59 |  59 |   44 |  0* |     80%  | Urban EJ burden, CA nonattainment |
