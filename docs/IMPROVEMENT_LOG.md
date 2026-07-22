@@ -1,5 +1,64 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-07-22
+
+### Setup
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent routine file to be read at session start and run during spare cycles.
+
+### Area 1: Data Accuracy
+No live assessment run this cycle (scheduled task, no API calls made to avoid uncontrolled spend). Previous cycle's systemic findings remain the primary accuracy issues:
+- EJ layer non-functional (all addresses score 0 on EJ component; 15% weight)
+- Brownfields API (NEPAssist) intermittently 503 (kills soil scores)
+- FRS Superfund radius search misses Camp Lejeune and Picher/Tar Creek
+
+### Area 3: New Features
+No implementation this cycle. Most impactful unfinished items documented in `docs/PENDING_DECISIONS.md`:
+1. EJ layer static bundle (highest impact — fixes 15-25 point scoring gap for disadvantaged communities)
+2. Superfund static NPL bundle (~1,300 sites, fixes Camp Lejeune / Picher false negatives)
+3. Water System Risk Atlas Research Brief #4
+
+### Area 5: Code Health
+Files over 400 lines identified (no refactor this cycle — each requires a dedicated PR):
+- `app/intelligence/redlining/RedliningClient.tsx` — 556 lines
+- `app/intelligence/flood-contamination/FloodContaminationClient.tsx` — 491 lines
+- `app/intelligence/soil-crisis/SoilCrisisClient.tsx` — 426 lines
+- `lib/data-sources/usda-ssurgo.ts` — 436 lines
+
+These are all complex, domain-specific files. Refactoring requires targeted extraction (e.g., separate D3 chart components, extract scoring sub-functions).
+
+### Area 6: Documentation
+**Created `data/sources/` directory** (was missing). Added 12 source documentation files covering all 15 data sources:
+- `epa-ucmr5.md` — PFAS occurrence in drinking water systems
+- `epa-sdwis.md` — Safe Drinking Water Information System violations
+- `epa-echo.md` — Enforcement and Compliance History Online
+- `epa-ejscreen.md` — Environmental Justice Screening Tool
+- `cdc-svi.md` — Social Vulnerability Index
+- `fema-nfhl.md` — National Flood Hazard Layer
+- `usgs-wqp.md` — Water Quality Portal
+- `epa-brownfields.md` — Brownfields contaminated land
+- `epa-superfund.md` — National Priorities List (Superfund NPL)
+- `epa-nonattainment.md` — Green Book nonattainment designations
+- `epa-aqs.md` — Air Quality System monitoring
+- `openaq.md` — Open Air Quality global data
+- `epa-tri.md` — Toxics Release Inventory
+- `census-acs-lead.md` — Housing age as lead risk proxy
+- `usda-ssurgo.md` — Soil Survey Geographic Database
+- `nasa-power.md` — Climate precipitation/temperature data
+- `holc-maps.md` — 1930s HOLC redlining maps (Mapping Inequality)
+- `geocoding.md` — Census Bureau Geocoder + Mapbox fallback
+
+**Created `docs/PENDING_DECISIONS.md`** — 5 decisions requiring owner input:
+1. EJ layer implementation path (static bundle recommended)
+2. Superfund static NPL bundle (static bundle recommended)
+3. Embeddable widget / API (defer until EJ layer is live)
+4. Batch assessment for Pro users (start with multi-address UI)
+5. UCMR 5 bundle rebuild (owner to check for new quarterly release)
+
+### PR
+- PR: TBD (single PR for this cycle: docs/AUTONOMOUS_IMPROVEMENT.md + data/sources/* + docs/PENDING_DECISIONS.md)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
