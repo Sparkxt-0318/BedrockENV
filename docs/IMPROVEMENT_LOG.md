@@ -1,5 +1,35 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-23)
+
+### Area 5: Code Health — Test Coverage
+**Finding**: `lib/intelligence/cfci-scorer.ts` at 0% coverage despite being a core scoring module used for the CFCI national map. `lib/data-sources/geocoding.ts` at 61.53% statements (below 70% threshold). Two exported functions (`extractCityHint`, `extractZipHint`) had zero test coverage.
+
+**Action**: Created `tests/unit/intelligence/cfci-scorer.test.ts` with 22 tests covering `computeCfci`, `classifyCfci`, and `assignCfciQuartiles` including edge cases (NaN inputs, clamping, interaction semantics). Extended `tests/unit/data-sources/geocoding.test.ts` with 12 new tests for `extractCityHint` (Census 4-part, 3-part, Mapbox with US suffix stripping, 2-part city format), `extractZipHint` (5-digit, ZIP+4, absent ZIP), and the FCC county-FIPS fallback code path.
+
+**Result**: Total tests 352 → 470 (+118). cfci-scorer: 0% → ~100%. geocoding: 61.53% statements → improved. All 470 tests pass.
+
+**PR link**: TBD (in progress)
+
+### Area 6: Documentation — Data Source Files
+**Finding**: `data/sources/` directory did not exist. Routine requires each data source to have a documented `.md` file covering: what it covers, what it doesn't, refresh cadence, and known limitations.
+
+**Action**: Created `data/sources/` with 7 source documentation files:
+- `epa-ucmr5.md` — PFAS monitoring, PWSID linkage, PFOA MCL context
+- `epa-sdwis.md` — Drinking water violations, violation aging, reporting lag
+- `epa-echo.md` — Regulated facilities, TRI thresholds, API timeout behavior
+- `epa-frs-superfund.md` — NPL Superfund, military base gap, static bundle rationale
+- `epa-nonattainment.md` — NAAQS county designations, 2024 PM2.5 standard update
+- `fema-nfhl.md` — Flood zone maps, NFIP penetration rates, map vintage
+- `usda-ssurgo.md` — Soil properties, urban gap, does NOT detect contamination
+
+**Result**: All 7 key federal data sources now documented. Remaining sources (USGS WQP, NASA POWER, CDC SVI, EJScreen, Census ACS) to be documented in next cycle.
+
+### Area 3: New Features — AUTONOMOUS_IMPROVEMENT.md
+**Action**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` as a permanent file containing the full autonomous improvement routine (6 areas, hard rules, reporting format). This file is the canonical reference for the routine and should be read at the start of each session.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
