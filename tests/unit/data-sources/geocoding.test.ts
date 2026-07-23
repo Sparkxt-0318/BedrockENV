@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { geocodeAddress, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import { geocodeAddress, extractCityHint, extractZipHint, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import type { GeocodedAddress } from '@/types/exposure';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,4 +305,213 @@ describe('geocodeAddress (live network)', () => {
     const result = await geocodeAddress('aslkdjfaslkdjf not a real place 99999');
     expect(result).toBeNull();
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// extractCityHint
+// ---------------------------------------------------------------------------
+
+function makeGeocodedAddress(normalized: string, source: 'census' | 'mapbox' = 'census'): GeocodedAddress {
+  return {
+    raw: normalized,
+    normalized,
+    latitude: 0,
+    longitude: 0,
+    fipsState: '',
+    fipsCounty: '',
+    censusTract: '',
+    censusBlockGroup: '',
+    source,
+  };
+}
+
+describe('extractCityHint', () => {
+  it('extracts city from Census 4-part format', () => {
+    const g = makeGeocodedAddress('1000 OCEAN DR, MIAMI BEACH, FL, 33139');
+    expect(extractCityHint(g)).toBe('MIAMI BEACH');
+  });
+
+  it('extracts city from Census 3-part format (state + zip combined)', () => {
+    const g = makeGeocodedAddress('123 MAIN ST, NEWARK, NJ 07105');
+    expect(extractCityHint(g)).toBe('NEWARK');
+  });
+
+  it('strips "United States" suffix before extracting city (Mapbox long format)', () => {
+    const g = makeGeocodedAddress('Water Street, Hoosick Falls, New York 12090, United States');
+    expect(extractCityHint(g)).toBe('Hoosick Falls');
+  });
+
+  it('strips "US" suffix before extracting city', () => {
+    const g = makeGeocodedAddress('123 ELM ST, FLINT, MI 48503, US');
+    expect(extractCityHint(g)).toBe('FLINT');
+  });
+
+  it('extracts city from Mapbox 2-part format ("City, State Zip")', () => {
+    const g = makeGeocodedAddress('Newark, New Jersey 07105');
+    expect(extractCityHint(g)).toBe('Newark');
+  });
+
+  it('returns null for 2-part format where first part starts with a digit', () => {
+    // "123 Main St, City State" — first part is a street address, not a city
+    const g = makeGeocodedAddress('123 Main St, Gary IN 46401');
+    expect(extractCityHint(g)).toBeNull();
+  });
+
+  it('falls back to raw when normalized is empty', () => {
+    const g: GeocodedAddress = {
+      raw: '500 OAK AVE, SALINAS, CA, 93901',
+      normalized: '',
+      latitude: 0, longitude: 0,
+      fipsState: '', fipsCounty: '', censusTract: '', censusBlockGroup: '',
+      source: 'census',
+    };
+    expect(extractCityHint(g)).toBe('SALINAS');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractZipHint
+// ---------------------------------------------------------------------------
+
+describe('extractZipHint', () => {
+  it('extracts 5-digit ZIP from Census address', () => {
+    const g = makeGeocodedAddress('1000 OCEAN DR, MIAMI BEACH, FL, 33139');
+    expect(extractZipHint(g)).toBe('33139');
+  });
+
+  it('extracts ZIP from ZIP+4 format (returns only 5 digits)', () => {
+    const g = makeGeocodedAddress('1600 PENNSYLVANIA AVE NW, WASHINGTON, DC 20500-0004');
+    expect(extractZipHint(g)).toBe('20500');
+  });
+
+  it('extracts ZIP from Mapbox format', () => {
+    const g = makeGeocodedAddress('Newark, New Jersey 07105, United States');
+    expect(extractZipHint(g)).toBe('07105');
+  });
+
+  it('returns null when no ZIP is present', () => {
+    const g = makeGeocodedAddress('123 MAIN ST, SOMEWHERE, TX');
+    expect(extractZipHint(g)).toBeNull();
+  });
+
+  it('falls back to raw when normalized is absent', () => {
+    const g: GeocodedAddress = {
+      raw: '100 ELM ST, FLINT, MI 48503',
+      normalized: '',
+      latitude: 0, longitude: 0,
+      fipsState: '', fipsCounty: '', censusTract: '', censusBlockGroup: '',
+      source: 'census',
+    };
+    expect(extractZipHint(g)).toBe('48503');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FCC county-FIPS fallback path
+// ---------------------------------------------------------------------------
+
+describe('geocodeAddress — FCC fallback for county FIPS', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  });
+
+  it('uses FCC API when Census coordinate lookup returns no fipsCounty', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // 1: Census address → no match
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // 2: Mapbox → success (no county in context)
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            features: [{
+              geometry: { coordinates: [-83.687, 43.013] },
+              properties: {
+                full_address: 'Flint, Michigan 48503, United States',
+                context: {
+                  region: { region_code: 'US-MI' },
+                },
+              },
+            }],
+          }),
+        })
+        // 3: Census coordinate lookup → returns state but NO county
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            result: {
+              geographies: {
+                'Census Tracts': [{ STATE: '26', COUNTY: '', TRACT: '010100' }],
+                '2020 Census Blocks': [{ STATE: '26', COUNTY: '', TRACT: '010100', BLKGRP: '1' }],
+              },
+            },
+          }),
+        })
+        // 4: FCC fallback → provides county FIPS
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            results: [{ county_fips: '26049' }],
+          }),
+        })
+    );
+
+    const result = await geocodeAddress('Flint, MI');
+
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    expect(result!.fipsState).toBe('26');
+    expect(result!.fipsCounty).toBe('049');
+  });
+
+  it('returns Mapbox result with empty county FIPS when both Census coordinate and FCC lookups fail', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // 1: Census address → no match
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // 2: Mapbox → success
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({
+            features: [{
+              geometry: { coordinates: [-97.0, 35.5] },
+              properties: {
+                full_address: 'Picher, Oklahoma, United States',
+                context: { region: { region_code: 'US-OK' } },
+              },
+            }],
+          }),
+        })
+        // 3: Census coordinate lookup → network error
+        .mockRejectedValueOnce(new Error('timeout'))
+        // 4: FCC → empty results
+        .mockResolvedValueOnce({
+          ok: true, status: 200,
+          json: async () => ({ results: [] }),
+        })
+    );
+
+    const result = await geocodeAddress('Picher, OK');
+
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    expect(result!.fipsState).toBe('40');
+    expect(result!.fipsCounty).toBe('');
+  });
 });
