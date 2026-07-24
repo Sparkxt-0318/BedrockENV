@@ -1,6 +1,67 @@
 # Scoring Pipeline Improvement Log
 
-## SCVI Intelligence Page Build (2026-04-20)
+## Autonomous Improvement Cycle 3 (2026-07-24)
+
+### Session summary
+First session since April 2026. Routine added as permanent file `docs/AUTONOMOUS_IMPROVEMENT.md`
+per task instruction. Three areas actioned this cycle: documentation, code health, and pending decisions.
+
+### Area 6: Documentation — data/sources/ directory created
+
+Created `data/sources/` with coverage documentation for 7 data sources (the routine requirement
+that "every data source needs a `data/sources/<name>.md` file"):
+
+| File | Data source |
+|------|-------------|
+| `data/sources/epa-ucmr5.md` | EPA UCMR 5 PFAS occurrence data |
+| `data/sources/epa-sdwis.md` | EPA Safe Drinking Water Information System |
+| `data/sources/usda-ssurgo.md` | USDA SSURGO soil survey |
+| `data/sources/epa-echo.md` | EPA ECHO regulated facilities |
+| `data/sources/epa-brownfields.md` | EPA Brownfields database |
+| `data/sources/epa-superfund.md` | EPA Superfund NPL (FRS SEMS) |
+| `data/sources/nonattainment.md` | EPA Green Book nonattainment areas |
+| `data/sources/fema-nfhl.md` | FEMA National Flood Hazard Layer |
+| `data/sources/census-acs.md` | Census Bureau ACS 5-Year Estimates |
+
+Remaining sources to document in next cycle: openaq.md, epa-aqs.md, usgs-wqp.md,
+nasa-smap.md, holc-crosswalk.md, scvi-national.md, cfci-national.md.
+
+### Area 5: Code Health — usda-ssurgo.ts refactored
+
+`lib/data-sources/usda-ssurgo.ts` was 436 lines (threshold: 400). Extracted:
+- `parseSdaResponse` — SDA JSON/COLUMNNAME response parser
+- `aggregateRows` — weighted component/horizon aggregation
+- `unmappedPlaceholder`, `classifyTexture`, helpers
+
+Into new module: `lib/data-sources/usda-ssurgo-aggregate.ts` (219 lines).
+Main file now 117 lines. All 5 import sites unchanged (public API: `fetchSsurgoData`).
+
+**`types/exposure.ts`** (426 lines) deferred — see `docs/PENDING_DECISIONS.md` item #1.
+
+### Area 5: Code Health — test suite blocked
+
+`pnpm test:coverage` could not run this cycle: `node_modules` not installed in the
+container. Coverage audit deferred.
+
+### Area 3: Feature planning — no new action taken
+
+ROADMAP.md is current from April 2026. Priority items unchanged:
+1. EJ layer (CDC SVI static bundle, see PENDING_DECISIONS #2)
+2. Superfund static bundle (see PENDING_DECISIONS #4)
+3. UCMR 5 bundle refresh (3 years stale, see PENDING_DECISIONS #3)
+4. Air API key registration (requires human action, see PENDING_DECISIONS #5)
+
+### Area 1: Data accuracy — deferred
+
+Live API assessments require network access to EPA endpoints. Three-address sample
+deferred to next cycle when network access is available.
+
+### Area 4: Market intelligence — deferred
+
+MARKET_INTEL.md was last updated June 2026. Current session is July 2026 — less than
+one month gap. Next monthly update due August 2026.
+
+### SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
 - Scored all 3,140 US counties using SCVI = √(SVS × CPI) normalized 0–100
