@@ -1,5 +1,32 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-25)
+
+### Section 0: Setup
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent routine spec as instructed.
+
+### Section 5: Code Health — Test Coverage
+Pre-cycle coverage: **61.22%** statements / 54.96% branches.
+
+Two zero-coverage library modules identified:
+- `lib/intelligence/cfci-scorer.ts` (0%) — Compound Flood-Contamination Index scorer
+- `lib/scoring/normalizer.ts` (0%) — Linear, log, and step normalization utilities
+
+Added 28 tests for `cfci-scorer.ts` covering:
+- `computeCfci`: clamps, edge cases (NaN/Infinity inputs), classification boundaries, the √(FES×CPI) multiplication semantics
+- `classifyCfci`: all four classification thresholds (Low/Elevated/High/Severe)
+- `assignCfciQuartiles`: sort-order preservation, empty array, single record, even distribution
+
+Added 21 tests for `normalizer.ts` covering:
+- `linearNormalize`: min/max boundaries, clamping, non-zero min, equal min/max, rounding
+- `logNormalize`: zero/negative inputs, max clamping, monotonicity, log-compression behavior
+- `stepNormalize`: below-threshold, boundary, mid-tier, above-all-thresholds, empty thresholds
+
+Total tests: 352 → **483** (131 added, passing 483/483).
+PR: (to be linked)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
