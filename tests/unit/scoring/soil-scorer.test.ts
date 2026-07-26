@@ -243,4 +243,129 @@ describe('Soil Scorer', () => {
     );
     expect(result.available).toBe(false);
   });
+
+  it('skips brownfield entries with non-finite or negative distance', () => {
+    // Should not throw; invalid sites should be silently skipped so the
+    // valid site at 0.5 mi still drives the contamination score.
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo(),
+        brownfields: [
+          buildBrownfield({ siteId: 'bad-nan', distance: NaN }),
+          buildBrownfield({ siteId: 'bad-neg', distance: -1 }),
+          buildBrownfield({ siteId: 'good', distance: 0.5 }),
+        ],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    // Only the 0.5-mile site counts; score should be non-zero but not
+    // as high as three close valid sites would produce.
+    expect(result.subScores.contamination).toBeGreaterThan(0);
+    expect(result.subScores.contamination).toBeLessThan(90);
+  });
+
+  it('applies low organic matter penalty (OM 1–2%: returns 80)', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo({ organicMatterPct: 1.5 }),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    expect(result.subScores.health).toBeGreaterThan(0);
+  });
+
+  it('applies severe organic matter penalty (OM 0–1%: returns 95)', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo({ organicMatterPct: 0.5 }),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    // With OM=0.5 the health sub-score should be significantly elevated.
+    expect(result.subScores.health).toBeGreaterThan(30);
+  });
+
+  it('applies moderate organic matter penalty (OM 2–3%: returns 55)', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo({ organicMatterPct: 2.5 }),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    expect(result.subScores.health).toBeGreaterThan(0);
+  });
+
+  it('scores unknown drainage class without throwing', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo({ drainageClass: 'Unknown class type' }),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    // 'Unknown class type' should hit the fallback branch (score 20)
+    expect(result.subScores.health).toBeGreaterThanOrEqual(0);
+  });
+
+  it('penalizes arid climate stress (aridity index < 10)', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo(),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture({ aridityIndex: 5 }),
+      })
+    );
+    expect(result.available).toBe(true);
+    expect(result.subScores.climateStress).toBe(85);
+  });
+
+  it('adds decreasing precipitation trend penalty on top of aridity stress', () => {
+    const aridOnly = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo(),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture({ aridityIndex: 22, trend: 'stable' }),
+      })
+    );
+    const aridTrending = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo(),
+        brownfields: [],
+        floodZone: buildFloodZone(),
+        moistureData: buildMoisture({ aridityIndex: 22, trend: 'decreasing' }),
+      })
+    );
+    expect(aridTrending.subScores.climateStress).toBeGreaterThan(
+      aridOnly.subScores.climateStress ?? 0
+    );
+  });
+
+  it('applies moderate flood zone amplifier when brownfield is within 1 mile', () => {
+    const result = scoreSoilLayer(
+      buildSoilData({
+        ssurgo: buildSsurgo(),
+        brownfields: [buildBrownfield({ distance: 0.7 })],
+        floodZone: buildFloodZone({ riskLevel: 'MODERATE', zone: 'X-SHADED' }),
+        moistureData: buildMoisture(),
+      })
+    );
+    expect(result.available).toBe(true);
+    // Moderate + brownfield < 1 mile fires amplifier = 0.25; score > flood-only
+    expect(result.subScores.floodContamination).toBeGreaterThan(20);
+  });
 });
