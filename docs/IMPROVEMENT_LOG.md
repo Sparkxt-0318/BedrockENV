@@ -14,6 +14,9 @@
 ### Area 6: Documentation
 - `data/sources/` directory does not exist — prior sessions (PRs #61–64) added it but none of those PRs are merged yet; deferred to avoid duplication with open PRs
 
+### PR
+- [#65](https://github.com/Sparkxt-0318/BedrockENV/pull/65) — draft, targeting `claude/bedrock-exposure-platform-QS2yu`
+
 ### Deferred
 - Live data accuracy audit (3 canonical addresses) — deferred; EPA APIs require network access
 - Market intel update (July 2026) — deferred; browsing required
