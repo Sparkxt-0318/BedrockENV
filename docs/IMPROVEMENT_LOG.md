@@ -1,5 +1,25 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-07-26
+
+### Setup
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent six-area routine spec
+
+### Area 5: Code Health — Test Coverage
+- Ran full test suite: 434/434 passing; coverage at 61% statements
+- **`lib/intelligence/cfci-scorer.ts`** — 0% coverage. Added 21 tests covering `computeCfci` (formula, input clamping, NaN/Infinity guard, max case), `classifyCfci` (all four threshold boundaries), and `assignCfciQuartiles` (order preservation, edge cases, ties). Brings coverage to ~100%.
+- **`lib/scoring/soil-scorer.ts`** — 74.81% statement / 59.57% branch coverage. Added 9 targeted tests hitting 4 uncovered code paths: non-finite brownfield distance guard, low OM penalty (1–2%), severe OM penalty (<1%), unknown drainageClass fallback, arid climate stress (aridity <10), decreasing precipitation trend, moderate flood+brownfield amplifier.
+- Total tests: 434 → 463 (all passing)
+
+### Area 6: Documentation
+- `data/sources/` directory does not exist — prior sessions (PRs #61–64) added it but none of those PRs are merged yet; deferred to avoid duplication with open PRs
+
+### Deferred
+- Live data accuracy audit (3 canonical addresses) — deferred; EPA APIs require network access
+- Market intel update (July 2026) — deferred; browsing required
+- `data/sources/` docs — already in open PRs #61–64 awaiting review
+- `lib/ai/narrator.ts` (0% coverage) — queued for next cycle; complex to mock Anthropic SDK
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
