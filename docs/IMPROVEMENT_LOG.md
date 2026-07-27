@@ -1,5 +1,66 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-27)
+
+### Area 1: Data Accuracy — No New Live Assessments This Cycle
+Live assessments require the Next.js server + API keys (EPA AQS, EJScreen, OpenAQ). No new API-dependent assessments run this cycle. Known persistent issues carried forward from Cycle 2:
+- **Brownfields API 503**: Soil scores remain depressed when EPA Brownfields endpoint returns 503. Caching strategy needed (see PENDING_DECISIONS.md PD-001 context)
+- **EJ layer = 0 across all addresses**: EJScreen API key not provisioned. 15% weight unscored
+- **FRS SEMS timeouts**: Superfund static bundle still pending (see ROADMAP.md In Progress)
+- **Camp Lejeune gap**: Military base Census ACS null + FUDS not integrated = score 10 vs. expected 65-80
+
+### Area 2: Design Quality — Not Run This Cycle
+Lighthouse and axe-core require a live browser. Last audit: 2026-04-20 (SCVI page, 1 color-contrast violation resolved). No design PR this cycle. Next cycle: audit the `/intelligence/flood-contamination` page.
+
+### Area 3: Feature Priority — No Change
+Highest-impact unfinished item: **EJ layer** (15% of composite score, returns 0 for all addresses). Blocked on EJScreen API key registration and CDC SVI integration. Second priority: **Superfund static bundle** (0.5d effort, unblocked). See PENDING_DECISIONS.md PD-001.
+
+### Area 4: Market Intelligence — Update Overdue
+MARKET_INTEL.md last updated June 2026. Today is 2026-07-27. Web search not available in this session. Flagged for refresh next session with browser access. Watch for: First Street contamination layer announcement, EPA UCMR 5 final data release, any state PFAS mandatory disclosure legislation.
+
+### Area 5: Code Health — Files Over 400 Lines
+
+Files over 400 lines threshold (excluding scripts and test files):
+
+| File | Lines | Action |
+|---|---|---|
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | Accept — scrollytelling component, length is structural |
+| `components/report/ContaminationMap.tsx` | 513 | Accept — D3 map component, length is structural |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 | Accept — scrollytelling |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | Flag — refactor fetch vs parse into 2 modules (est. 2h) |
+| `types/exposure.ts` | 426 | Accept — type declarations |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 | Accept — scrollytelling |
+
+Decision recorded in PENDING_DECISIONS.md PD-004.
+
+Files with no tests (lib/ only):
+- `lib/ai/narrator.ts` (196 lines) — highest priority missing test
+- `lib/intelligence/cfci-scorer.ts` (76 lines) — scvi has tests but cfci does not
+- `lib/scoring/normalizer.ts` (51 lines)
+- 5 recommendation template files (36 lines each)
+
+### Area 6: Documentation — data/sources/ Directory Created
+
+**Created `data/sources/` directory** with 10 source documentation files:
+- `epa-ucmr5.md` — PFAS bundle (what it covers, PFOA/PFOS gap, refresh cadence)
+- `epa-sdwis.md` — drinking water violations (PWSID dependency, violation lag)
+- `epa-brownfields.md` — brownfield sites (503 instability documented, caching recommendation)
+- `epa-frs-superfund.md` — Superfund NPL sites (FRS gaps: Tar Creek, Camp Lejeune)
+- `usda-ssurgo.md` — soil data (urban blind spot, no contamination measurement)
+- `epa-ejscreen.md` — EJ screening (currently unavailable, API key required)
+- `fema-nfhl.md` — flood hazard layer (mapping backlog, API latency)
+- `usgs-wqp.md` — water quality portal (monitoring station density gaps)
+- `holc-redlining.md` — HOLC redlining maps (9 CT unmatched tracts, county-level coarseness)
+- `epa-echo-tri.md` — regulated facilities + toxic releases (self-reporting bias, API timeout)
+- `census-acs-lead-proxy.md` — housing age proxy (military base gap, tract resolution)
+
+**Created `docs/AUTONOMOUS_IMPROVEMENT.md`** — permanent routine file per task requirement.
+**Created `docs/PENDING_DECISIONS.md`** — 4 items: EJ vs. Superfund priority, air API keys, batch pricing, large file refactor policy.
+
+No SCORING_VERSION bump this cycle. No methodology changes. No test additions this cycle (deferred; see area 5 for backlog).
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
