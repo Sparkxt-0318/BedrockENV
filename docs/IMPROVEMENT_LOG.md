@@ -1,5 +1,30 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-29)
+
+### Area 1: Data Accuracy
+- Assessed 3 canonical addresses via live API calls (not run this cycle due to no running dev server — deferred to next cycle with active environment).
+- Noted systemic gap: EPA Brownfields API 503 errors persist from prior cycle, depressing soil scores by ~30-50 points for urban addresses.
+
+### Area 5: Code Health — CFCI Scorer Test Coverage
+- Identified `lib/intelligence/cfci-scorer.ts` at 0% coverage via `pnpm test:coverage`.
+- Added 26 unit tests across all three exported functions: `computeCfci`, `classifyCfci`, `assignCfciQuartiles`.
+- Tests cover: typical inputs, boundary conditions (FES=0, CPI=0), clamping (FER>1, FER<0, CPI>100, CPI<0), non-finite inputs (NaN, Infinity), rounding, classification boundaries (14/15, 29/30, 49/50), quartile preservation of original index order.
+- File coverage: 0% → 100%.
+- PR: (see branch `claude/epic-goodall-zemgod`)
+
+### Files over 400 lines (flagged for future refactor PRs)
+- `app/intelligence/redlining/RedliningClient.tsx`: 556 lines
+- `components/report/ContaminationMap.tsx`: 513 lines
+- `app/intelligence/flood-contamination/FloodContaminationClient.tsx`: 491 lines
+- `app/intelligence/soil-crisis/SoilCrisisClient.tsx`: 426 lines
+- `lib/data-sources/usda-ssurgo.ts`: 436 lines
+
+### Area 6: Documentation
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent routine file to be read at session start.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
