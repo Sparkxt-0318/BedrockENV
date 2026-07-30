@@ -1,5 +1,33 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-07-30)
+
+### Area 1: Permanent Routine File
+- **Finding**: `docs/AUTONOMOUS_IMPROVEMENT.md` did not exist; the routine had no permanent specification in the repo.
+- **Action**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` with the full six-area routine definition, hard rules, and reporting format. This file is read at the start of each session before assigned work.
+
+### Area 5: Code Health — Test Coverage
+- **Finding**: `pnpm test:coverage` revealed `lib/intelligence/cfci-scorer.ts` at 0% statement coverage despite being a core scoring module used by the CFCI national intelligence page.
+- **Action**: Added `tests/unit/intelligence/cfci-scorer.test.ts` with 22 tests covering `computeCfci`, `classifyCfci`, and `assignCfciQuartiles` including edge cases (NaN inputs, clamping, integer rounding, large datasets). All 22 pass.
+- **Other gaps identified** (deferred to future cycles): `lib/ai/narrator.ts` (0% — needs AI mock infra), `lib/pdf/templates/exposure-report.tsx` (10% — React PDF components difficult to unit-test), `lib/stripe/client.ts` (0% — external service, needs Stripe mock setup).
+
+### Area 6: Documentation — Data Source Files
+- **Finding**: `data/sources/` directory did not exist. Routine requires every data source to have a `data/sources/<name>.md` documenting coverage, gaps, refresh cadence, and known limitations.
+- **Action**: Created `data/sources/` directory with 6 source documentation files:
+  - `ucmr5-pfas.md` — EPA UCMR 5 PFAS monitoring
+  - `epa-sdwis.md` — Safe Drinking Water Information System
+  - `epa-echo.md` — Enforcement and Compliance History Online
+  - `usda-ssurgo.md` — Soil Survey Geographic Database
+  - `fema-nfhl.md` — National Flood Hazard Layer
+  - `epa-ejscreen.md` — Environmental Justice Screening Tool
+  - `scvi-cfci.md` — Bedrock's derived SCVI/CFCI national indices
+
+### Coverage Summary
+- Overall statement coverage: 61.22% (up from unknown baseline at cycle start)
+- Files under 70% needing attention: `geocoding.ts` (61%), `lib/ai/*` (0%), `lib/pdf/*` (10%), `lib/stripe/*` (5%), `lib/supabase/*` (0%), `lib/net/proxy.ts` (0%), `cfci-scorer.ts` (now fixed: 0%→95%+)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
