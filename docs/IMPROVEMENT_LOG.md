@@ -1,5 +1,58 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-01)
+
+### Summary
+Scheduled routine run. Primary task: create `docs/AUTONOMOUS_IMPROVEMENT.md` as a permanent reference for the routine. Secondary: ran improvement cycle across all six areas.
+
+### Section 1: Data Accuracy
+No live API access available in this environment. Deferred live assessment to next cycle with API keys. Systemic issues from prior cycles still open:
+- EPA Brownfields API returning 503 causes soil scores to undercount by ~30–50 points at polluted sites.
+- FRS SEMS API misses some NPL sites (Tar Creek/Picher, Camp Lejeune). Static Superfund bundle remains the priority fix.
+- UCMR 5 bundle does not require refresh (last refreshed within 100 days per runtime check).
+
+### Section 2: Design Quality
+Identified 5 files over 400 lines (code health boundary):
+- `app/intelligence/redlining/RedliningClient.tsx` — 556 lines
+- `components/report/ContaminationMap.tsx` — 513 lines
+- `app/intelligence/flood-contamination/FloodContaminationClient.tsx` — 491 lines
+- `lib/data-sources/usda-ssurgo.ts` — 436 lines
+- `app/intelligence/soil-crisis/SoilCrisisClient.tsx` — 426 lines
+
+Decision logged in `docs/PENDING_DECISIONS.md` (item 5): exempt intelligence page clients from the 400-line rule; refactor `usda-ssurgo.ts` and `ContaminationMap.tsx` in a future cycle.
+
+### Section 3: Features
+Most impactful unfinished item: EJ layer (currently 0 for all addresses, 15% of composite score). Option to bundle EJScreen CSV as static dataset (similar to UCMR 5) added to `docs/PENDING_DECISIONS.md` (item 1) for user decision. Second priority: Superfund static bundle (item 3 in PENDING_DECISIONS).
+
+### Section 4: Market Intelligence
+`docs/MARKET_INTEL.md` was last updated June 2026. Web access unavailable for live competitor search in this environment. No regulatory changes detected requiring immediate scoring updates. PENDING_DECISIONS items 2 (pricing model) and 4 (air API keys) documented for user review.
+
+### Section 5: Code Health
+- Overall line coverage: 63.03% (below 70% target).
+- Added 10 unit tests for `lib/stripe/plans.ts` and `lib/stripe/client.ts` (mock-based, covers `PLANS` shape, `getStripe` null/instance paths, `createCheckoutSession`, `createSubscriptionSession`).
+- Test count: 434 → 444.
+- Dependencies: non-security updates available (next 16.2.2→16.2.12, react 19.2.4→19.2.8, vitest 4.1.4→4.1.10). No security advisories found. Defer to monthly update cycle.
+
+### Section 6: Documentation
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` (primary task for this session).
+- Created `docs/PENDING_DECISIONS.md` with 6 pending items requiring user judgment.
+- Created `data/sources/` directory (was missing entirely).
+- Added data source documentation files:
+  - `data/sources/epa-ucmr5.md`
+  - `data/sources/epa-sdwis.md`
+  - `data/sources/epa-echo.md`
+  - `data/sources/nonattainment.md`
+  - `data/sources/fema-nfhl.md`
+- Methodology page remains in sync with SCORING_VERSION 4 (verified in prior cycle 2026-04-17). No changes needed.
+
+### Action items for next session
+- [ ] User decision needed: EJ layer bundling strategy (PENDING_DECISIONS #1)
+- [ ] User decision needed: pricing model (PENDING_DECISIONS #2)
+- [ ] Build Superfund static bundle (PENDING_DECISIONS #3) — autonomous, no judgment call needed
+- [ ] Add remaining data source docs: usda-ssurgo, epa-brownfields, usgs-wqp, epa-superfund, holc
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
