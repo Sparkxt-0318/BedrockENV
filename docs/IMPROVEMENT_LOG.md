@@ -1,5 +1,21 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-08-03
+
+### Documentation (Area 6)
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent routine reference file for session agents to read at startup before doing assigned work. Covers six areas with hard rules and reporting format.
+
+### Code Health (Area 5)
+- **cfci-scorer.ts**: 0% → ~100% coverage. Added 28 tests (`tests/unit/intelligence/cfci-scorer.test.ts`) covering `computeCfci` (FER/CPI clamping, formula, real-world examples), `classifyCfci` (all boundaries), `assignCfciQuartiles` (sort, tie distribution, immutability, valid range).
+- **geocoding.ts**: Branch coverage 41% → ~65%. Added 15 tests for `extractCityHint`, `extractZipHint` (previously exported but never imported in tests), and the FCC county-FIPS enrichment fallback path (lines 262–303).
+- Total tests: 434 → 477 (+43).
+
+### Action: PR #72 opened (draft)
+`claude/epic-goodall-dcdhvd` → `claude/bedrock-exposure-platform-QS2yu`
+CI: Vercel preview green, Supabase skipped (no schema changes).
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
