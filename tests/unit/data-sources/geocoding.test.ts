@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { geocodeAddress, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import { geocodeAddress, FIPS_TO_STATE, extractCityHint, extractZipHint } from '@/lib/data-sources/geocoding';
+import type { GeocodedAddress } from '@/types/exposure';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,4 +305,212 @@ describe('geocodeAddress (live network)', () => {
     const result = await geocodeAddress('aslkdjfaslkdjf not a real place 99999');
     expect(result).toBeNull();
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// extractCityHint
+// ---------------------------------------------------------------------------
+
+function makeGeo(normalized: string): GeocodedAddress {
+  return {
+    raw: normalized,
+    normalized,
+    latitude: 0,
+    longitude: 0,
+    fipsState: '',
+    fipsCounty: '',
+    censusTract: '',
+    censusBlockGroup: '',
+    source: 'census',
+  };
+}
+
+describe('extractCityHint', () => {
+  it('extracts city from Census format (street, city, state, zip)', () => {
+    const geo = makeGeo('1000 OCEAN DR, MIAMI BEACH, FL, 33139');
+    expect(extractCityHint(geo)).toBe('MIAMI BEACH');
+  });
+
+  it('extracts city from Census format without zip', () => {
+    const geo = makeGeo('123 MAIN ST, NEWARK, NJ, 07105');
+    expect(extractCityHint(geo)).toBe('NEWARK');
+  });
+
+  it('extracts city from Mapbox format with state+zip suffix', () => {
+    const geo = makeGeo('Newark, New Jersey 07105, United States');
+    expect(extractCityHint(geo)).toBe('Newark');
+  });
+
+  it('strips "United States" before parsing', () => {
+    const geo = makeGeo('Water Street, Hoosick Falls, New York 12090, United States');
+    expect(extractCityHint(geo)).toBe('Hoosick Falls');
+  });
+
+  it('strips "US" suffix', () => {
+    const geo = makeGeo('123 Main St, Gary, IN 46401, US');
+    expect(extractCityHint(geo)).toBe('Gary');
+  });
+
+  it('strips "USA" suffix', () => {
+    const geo = makeGeo('456 Oak Ave, Flint, Michigan 48503, USA');
+    expect(extractCityHint(geo)).toBe('Flint');
+  });
+
+  it('falls back to raw when normalized is absent', () => {
+    const geo: GeocodedAddress = {
+      raw: '100 CONGRESS AVE, AUSTIN, TX, 78701',
+      normalized: '',
+      latitude: 0,
+      longitude: 0,
+      fipsState: '',
+      fipsCounty: '',
+      censusTract: '',
+      censusBlockGroup: '',
+      source: 'census',
+    };
+    // normalized is empty string, so raw is used
+    expect(extractCityHint(geo)).toBe('AUSTIN');
+  });
+
+  it('returns null for a 1-part address string', () => {
+    const geo = makeGeo('NoCity');
+    expect(extractCityHint(geo)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractZipHint
+// ---------------------------------------------------------------------------
+
+describe('extractZipHint', () => {
+  it('extracts a 5-digit ZIP from a Census-format address', () => {
+    const geo = makeGeo('1000 OCEAN DR, MIAMI BEACH, FL, 33139');
+    expect(extractZipHint(geo)).toBe('33139');
+  });
+
+  it('extracts a 5-digit ZIP from a Mapbox-format address', () => {
+    const geo = makeGeo('Newark, New Jersey 07105, United States');
+    expect(extractZipHint(geo)).toBe('07105');
+  });
+
+  it('handles ZIP+4 and returns only the 5-digit base', () => {
+    const geo = makeGeo('1600 PENNSYLVANIA AVE NW, WASHINGTON, DC 20500-0001');
+    expect(extractZipHint(geo)).toBe('20500');
+  });
+
+  it('returns null when no ZIP code is present', () => {
+    const geo = makeGeo('Some Rural Road, Nowhere, WY');
+    expect(extractZipHint(geo)).toBeNull();
+  });
+
+  it('falls back to raw when normalized is empty', () => {
+    const geo: GeocodedAddress = {
+      raw: '100 MAIN ST, AUSTIN, TX, 78701',
+      normalized: '',
+      latitude: 0,
+      longitude: 0,
+      fipsState: '',
+      fipsCounty: '',
+      censusTract: '',
+      censusBlockGroup: '',
+      source: 'census',
+    };
+    expect(extractZipHint(geo)).toBe('78701');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// geocodeAddress — FCC enrichment fallback path
+// ---------------------------------------------------------------------------
+
+describe('geocodeAddress — FCC county FIPS fallback', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    delete process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  });
+
+  it('uses FCC FIPS when Census coordinate lookup returns no fipsState', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Census address geocoder → empty
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // Mapbox → success (state CA)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () =>
+            makeMapboxResponse({ regionCode: 'US-CA', lat: 34.05, lng: -118.24 }),
+        })
+        // Census coordinate lookup → empty geographies (no STATE)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { geographies: {} } }),
+        })
+        // FCC Census → provides county FIPS
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [{ county_fips: '06037' }],
+          }),
+        })
+    );
+
+    const result = await geocodeAddress('123 Test St, Los Angeles, CA');
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    expect(result!.fipsState).toBe('06');
+    expect(result!.fipsCounty).toBe('037');
+  });
+
+  it('handles FCC returning no results gracefully', async () => {
+    process.env.NEXT_PUBLIC_MAPBOX_TOKEN = 'test-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        // Census address geocoder → empty
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { addressMatches: [] } }),
+        })
+        // Mapbox → success
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => makeMapboxResponse({ regionCode: 'US-TX', lat: 29.97, lng: -95.37 }),
+        })
+        // Census coordinate lookup → empty (fipsState missing)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { geographies: {} } }),
+        })
+        // FCC → empty results array
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ results: [] }),
+        })
+    );
+
+    const result = await geocodeAddress('123 Test St, Houston, TX');
+    expect(result).not.toBeNull();
+    expect(result!.source).toBe('mapbox');
+    // No county FIPS enriched but should still return a result
+    expect(result!.fipsState).toBe('48');
+    expect(result!.fipsCounty).toBe('');
+  });
 });
