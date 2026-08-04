@@ -1,5 +1,39 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-04)
+
+### Routine setup
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent record of the six-area improvement routine for future sessions to follow.
+
+### Section 5: Code Health — Test coverage for lib/ai/narrator.ts
+- **Finding**: `lib/ai` directory at 0% test coverage. `narrator.ts` contains `generateNarrative`, `buildNarrativeRequest`, and `buildFallbackNarrative` — all untested.
+- **Action**: Added `tests/unit/ai/narrator.test.ts` with 18 tests covering:
+  - Fallback narrative when no ANTHROPIC_API_KEY (13 tests) — address, score, level labels, PFAS, violations, brownfields, flood zone, ssurgo texture, insufficient-data path, confidence paragraph
+  - API call path (5 tests) — happy path returning Claude text, non-200 fallback, empty response fallback, network error fallback, correct model/version in request
+- **Result**: lib/ai coverage 0% → ~85%
+- **Total tests**: 434 → 452
+
+### Section 6: Documentation — data/sources/ directory
+- **Finding**: `data/sources/` directory did not exist. Routine requires every data source to have a documentation file.
+- **Action**: Created `data/sources/` with 16 files covering all 15+ data sources:
+  - `epa-ucmr5.md`, `epa-sdwis.md`, `epa-echo.md`, `epa-superfund.md`, `epa-brownfields.md`
+  - `epa-tri.md`, `epa-ejscreen.md`, `epa-aqs.md`, `epa-nonattainment.md`
+  - `usda-ssurgo.md`, `usgs-wqp.md`, `nasa-power.md`, `fema-nfhl.md`
+  - `census-acs.md`, `cdc-svi.md`, `openaq.md`
+  - Each file documents: what it covers, what it doesn't, how Bedrock uses it, refresh cadence, known limitations
+- Key gaps documented: EPA Brownfields API 503 outages causing soil under-scoring; FRS SEMS missing Tar Creek and Camp Lejeune; EJ layer (EJScreen + CDC SVI) non-functional without API credentials.
+
+### Section 3: Feature analysis (no PR — documentation only)
+Reviewed ROADMAP.md. Most impactful unfinished item: **Superfund static bundle** (~1,300 NPL sites with coordinates). Fixes known false negatives for Picher OK, Camp Lejeune NC, and likely others. Estimated 0.5 days. Second highest impact: **EJ layer** (requires external API credentials — user must configure). Added both to PENDING_DECISIONS.md.
+
+### Section 1: Data accuracy (no live assessments — API keys not available)
+Confirmed systemic gaps from prior cycles remain: Brownfields API 503, FRS SEMS misses, EJ layer at 0%. No new address tests run (live assessment requires API keys). Issues persist as documented in prior cycles.
+
+### Section 4: Market intelligence (no update — last updated June 2026)
+MARKET_INTEL.md current as of June 2026. No new competitive intelligence gathered this cycle (monthly cadence; last cycle was April).
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
