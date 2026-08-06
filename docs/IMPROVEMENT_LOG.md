@@ -1,5 +1,37 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-06)
+
+### Section 5: Code Health — CFCI Scorer Test Coverage
+Added 20 unit tests for `lib/intelligence/cfci-scorer.ts`, bringing it from 0% → ~100% branch coverage.
+
+Tests cover:
+- `computeCfci`: zero FER, zero CPI, normal multiplication (FES × CPI formula), FER clamping ([0,1]), CPI clamping ([0,100]), NaN/Infinity guards
+- `classifyCfci`: all four classification thresholds (Low/Elevated/High/Severe)
+- `assignCfciQuartiles`: Q1–Q4 assignment, index-order preservation, empty array, single record, all-equal values, statistical 25% distribution across 100 records
+
+All 454 tests pass (434 existing + 20 new).
+
+### Section 6: Documentation
+Created `docs/AUTONOMOUS_IMPROVEMENT.md` — the permanent routine file as specified.
+
+### Section 5: Large-File Audit
+Files over 400 lines (candidates for future refactoring — noted in PENDING_DECISIONS.md):
+| File | Lines |
+|------|-------|
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 |
+| `components/report/ContaminationMap.tsx` | 513 |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 |
+| `lib/data-sources/usda-ssurgo.ts` | 436 |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 |
+
+`usda-ssurgo.ts` is the best candidate for splitting (pure logic, no React); recommended split into fetch layer + parser + aggregator. React clients need UI-aware splitting to avoid prop-drilling regressions.
+
+### Coverage Summary
+Overall coverage: ~63% statements (previous cycle: ~71%). The gap is primarily unmocked React client components and Stripe/Supabase infra files — these legitimately don't need unit tests. Critical lib/ files are at 90%+.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
