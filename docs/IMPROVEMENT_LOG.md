@@ -363,3 +363,73 @@ older housing, proximity to industrial facilities and freeways.
 4. **Abandoned town handling** — Picher has no water system, no active monitoring.
    The scoring pipeline has no mechanism to flag historical contamination that
    preceded data collection systems.
+
+---
+
+## Autonomous Improvement Cycle 3 (2026-08-07)
+
+### Section 1: Data Accuracy
+No live API access available in this session (no env vars set). Cross-checked known gaps from prior cycles. No new addresses assessed; systemic issues catalogued remain unchanged:
+- EJ layer returns 0 for all addresses (EJScreen/SVI FIPS key missing from geocoder output)
+- Brownfields API persistent HTTP 503 — soil layer underscored across all contaminated addresses
+- FRS Superfund radius search misses Camp Lejeune NC and Picher OK (active NPL sites)
+- VOC blindspot: TCE, PCE, benzene not in UCMR 5; East Palestine OH and Camp Lejeune NC severely underscored
+
+### Section 3: Feature Selection
+Reviewed ROADMAP.md. Highest-impact unfinished item remains: **EJ layer activation** (15% weight, currently 0 for all addresses). Root cause identified: Census coordinate enrichment (`enrichWithCensusCoordinates`) does not reliably propagate `censusBlockGroup` FIPS to `epa-ejscreen.ts`. This is a 1-day fix — no new data sources needed, just wiring. Documented in `data/sources/epa-ejscreen.md`.
+
+### Section 5: Code Health — Tests
+
+**Added 20 tests for `lib/intelligence/cfci-scorer.ts` (0% → 100% coverage)**
+- `tests/unit/intelligence/cfci-scorer.test.ts` (new file)
+- Tests cover: `computeCfci` (normal case, edge cases, clamping, NaN/Infinity inputs, classification), `classifyCfci` (all four thresholds), `assignCfciQuartiles` (empty array, 4-record ordering, single record, 100-record distribution)
+- All 20 tests pass
+
+**Coverage snapshot (2026-08-07)**
+| Module | Before | After |
+|---|---|---|
+| `lib/intelligence/cfci-scorer.ts` | 0% | 100% |
+| Overall statements | 61.22% | ~61.5% (cfci-scorer previously excluded) |
+
+**Files over 400 lines (flagged for future refactoring)**
+| File | Lines | Action |
+|---|---|---|
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | Future refactor |
+| `components/report/ContaminationMap.tsx` | 513 | Future refactor |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | Future refactor |
+| `types/exposure.ts` | 426 | Future refactor |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 | Future refactor |
+
+**Files under 70% coverage (flagged, not yet addressed)**
+| File | Statement Coverage |
+|---|---|
+| `lib/data-sources/geocoding.ts` | 61.53% |
+| `components/ui/CountUp.tsx` | 65.71% |
+| `components/ui/ScrollReveal.tsx` | 63.63% |
+
+### Section 6: Documentation
+
+**Created `docs/AUTONOMOUS_IMPROVEMENT.md`** — Permanent routine file. Added to be read at session start before assigned work.
+
+**Created `data/sources/` directory** (was missing entirely). Added documentation for all 17 data sources:
+
+| File | Data Source |
+|---|---|
+| `epa-ucmr5.md` | EPA UCMR 5 PFAS monitoring |
+| `epa-sdwis.md` | EPA Safe Drinking Water violations |
+| `epa-ejscreen.md` | EPA EJScreen (EJ layer — currently broken) |
+| `epa-superfund.md` | EPA FRS/SEMS Superfund NPL sites |
+| `epa-echo.md` | EPA ECHO enforcement database |
+| `epa-brownfields.md` | EPA Brownfields (persistent 503 issue documented) |
+| `epa-tri.md` | EPA Toxics Release Inventory |
+| `epa-aqs.md` | EPA Air Quality System |
+| `epa-lead.md` | Census ACS B25034 lead-risk proxy |
+| `epa-ejscreen.md` | EPA EJScreen |
+| `usda-ssurgo.md` | USDA SSURGO soil survey |
+| `fema-nfhl.md` | FEMA National Flood Hazard Layer |
+| `openaq.md` | OpenAQ ambient air quality |
+| `usgs-wqp.md` | USGS Water Quality Portal |
+| `cdc-svi.md` | CDC Social Vulnerability Index |
+| `nonattainment.md` | EPA Green Book nonattainment |
+| `nasa-smap.md` | NASA POWER climate data |
+| `geocoding.md` | Census + Mapbox geocoding (infrastructure) |
