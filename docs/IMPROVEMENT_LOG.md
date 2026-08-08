@@ -1,5 +1,24 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle (2026-08-08)
+
+### Section 1: Docs — AUTONOMOUS_IMPROVEMENT.md created
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` as a permanent reference for the autonomous improvement routine. File contains all six areas, hard rules, and reporting format. Will be read at session start going forward.
+
+### Section 5: Code Health — Test Coverage (+39 tests)
+
+| File | Before | After | Tests Added |
+|---|---|---|---|
+| `lib/intelligence/cfci-scorer.ts` | 0% | 100% | 21 (computeCfci, classifyCfci, assignCfciQuartiles) |
+| `lib/scoring/normalizer.ts` | 80% | 100% | 18 (linearNormalize, logNormalize, stepNormalize) |
+
+Overall statement coverage: 61.22% → ~63% (estimated after new tests).
+Total tests: 434 → 473.
+
+No regressions. Full suite passes in 34s.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
