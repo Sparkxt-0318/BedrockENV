@@ -1,5 +1,31 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-08-09
+
+### Area 5: Code Health — usda-ssurgo.ts Refactor (436 → 103 lines)
+**Finding**: `lib/data-sources/usda-ssurgo.ts` was 436 lines, exceeding the 400-line threshold.
+**Action**: Extracted into three focused modules:
+- `usda-ssurgo-types.ts` — SdaRow interface, SDA_URL, SDA_QUERY constant, parseSdaResponse()
+- `usda-ssurgo-aggregator.ts` — aggregateRows(), unmappedPlaceholder(), parseNum(), round1(), classifyTexture()
+- `usda-ssurgo.ts` — thin orchestrator: fetchSsurgoData() only (103 lines)
+All public exports unchanged; test file passes with no new errors.
+
+### Area 6: Documentation — data/sources/ Created (15 files)
+**Finding**: `data/sources/` directory did not exist. All 15 data source modules lacked documentation covering what they cover, what they don't, API endpoints, refresh cadence, and known limitations.
+**Action**: Created `data/sources/` with one Markdown file per source:
+epa-ucmr5.md, epa-sdwis.md, epa-echo.md, epa-brownfields.md, epa-superfund.md, epa-tri.md, epa-ejscreen.md, cdc-svi.md, fema-nfhl.md, openaq.md, epa-aqs.md, usgs-wqp.md, nasa-power.md (note: file named nasa-smap.ts but implements POWER), nonattainment.md, epa-lead.md, usda-ssurgo.md.
+Each file documents: what it covers, what it doesn't, how it works (API/endpoint), refresh cadence, known limitations.
+
+### Area 3 / Area 1: Recurring Gaps Noted (no PR — judgment calls)
+Notable limitations surfaced during documentation pass:
+1. **EJScreen non-functional without stable API** — EJ scores return 0 for all addresses; remains highest-priority in-progress item.
+2. **Superfund static bundle** — FRS/SEMS returns non-NPL sites marked as 'listed'; a curated ~1,300-site static bundle would be more reliable (roadmap item).
+3. **TRI hardcoded to 2022** — The module does not auto-advance to the most recent reporting year; will become stale.
+4. **ACS vintage hardcoded to 2022** — epa-lead.ts must be manually updated each year.
+5. **nasa-smap.ts naming inconsistency** — file implements NASA POWER, not SMAP; rename is a cosmetic improvement for clarity.
+
+These items require product decisions before action; documented in PENDING_DECISIONS.md if they cross the judgment threshold.
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
