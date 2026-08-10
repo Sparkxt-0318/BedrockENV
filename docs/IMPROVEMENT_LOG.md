@@ -1,5 +1,47 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — Session Initialization (2026-08-10)
+
+### Area 6: Documentation and Credibility
+
+**Action**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent reference file documenting the six-area improvement routine. To be read at the start of every session.
+
+**Action**: Created `data/sources/` directory with five data source documentation files:
+- `epa-ucmr5.md` — PFAS monitoring coverage, MCLs, known gaps (TCE/PCE/dioxins not covered)
+- `epa-sdwis.md` — SDWA violations, historical aging issue (Flint gap documented)
+- `epa-echo-frs.md` — ECHO/FRS/SEMS facility data, NPL radius gap documented
+- `usda-ssurgo.md` — Soil survey data, urban blind spot quantified
+- `nonattainment.md` — Air quality designations, attainment ≠ clean caveat
+
+**Action**: Created `docs/PENDING_DECISIONS.md` with three open judgment calls:
+- PD-001: Superfund static bundle vs. live SEMS API (recommendation: build static bundle)
+- PD-002: EJ layer API key acquisition (recommendation: register EJScreen EJAM + CDC SVI)
+- PD-003: File size refactor policy for large files (recommendation: 400L for lib/components, 600L for scripts/tests)
+
+### Area 5: Code Health — File Size Audit
+
+Scanned all TypeScript files. Files over 400 lines:
+
+| File | Lines | Type | Action |
+|------|-------|------|--------|
+| `tests/integration/run-all.ts` | 969 | test orchestrator | defer (see PD-003) |
+| `scripts/build-scvi-national.ts` | 803 | data pipeline | defer |
+| `scripts/build-redlining-data.ts` | 613 | data pipeline | defer |
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | page component | PD-003 |
+| `scripts/build-scvi-nj-pilot.ts` | 550 | data pipeline | defer |
+| `components/report/ContaminationMap.tsx` | 513 | report component | PD-003 |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 | page component | PD-003 |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | data source lib | PD-003 |
+| `types/exposure.ts` | 426 | types file | defer |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 | page component | PD-003 |
+
+No code changes made pending PD-003 threshold decision.
+
+### PR Link
+See PR for this cycle: (link TBD — branch `claude/epic-goodall-h2zb5s`)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
