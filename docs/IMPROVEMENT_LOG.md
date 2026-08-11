@@ -1,5 +1,53 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle (2026-08-11)
+
+### Area 1: Data Accuracy
+
+Three-source cross-check not run live (no API keys in environment). Static audit of scoring logic instead:
+
+- **UCMR5 bundle stale** — EPA release date 2026-02-12, 180 days old (threshold: 100 days). `console.warn` actively firing on every cold start. Logged as PD-001 in `docs/PENDING_DECISIONS.md`.
+- **EJ layer**: Confirmed EJ scorer does NOT return 0 unconditionally. Returns `UNAVAILABLE_LAYER` only when both EJScreen and CDC SVI data are null, which redistributes weight proportionally. Prior understanding was incorrect.
+- **Water scorer comment corrected** (PR #83): The inline calibration note claimed 4 ppt MCL ≈ score 50; actual log1p formula gives ~41. Fixed in `lib/scoring/water-scorer.ts`.
+- **Weights confirmed correct**: FULL_WEIGHTS (25/25/20/15/15) match spec. No scoring bugs found in engine.ts beyond a minor defensive concern (silent weight-leakage guard).
+
+### Area 2: Design Quality
+
+Not audited this cycle — no browser access to run axe-core or Lighthouse. Scheduled for next cycle with live environment access.
+
+### Area 3: New Features
+
+Reviewed ROADMAP.md. Most impactful unfinished item within <2 days: **Superfund static bundle** (~1,300 NPL sites with lat/lon). The FRS SEMS radius-search API has confirmed coverage gaps (Picher/Tar Creek, Camp Lejeune misses in ground-truth tests). A static bundle supplements live API and removes timing-dependent failures. Second priority: EJ layer API key configuration.
+
+### Area 4: Market and Competitive Intelligence
+
+MARKET_INTEL.md last updated June 2026 (2 months ago). No new scan run this cycle — next cycle should search for August 2026 competitor updates (First Street, ClimateCheck, EWG, Cotality). Regulatory update: PFAS MCLs (4 ppt PFOA/PFOS) became enforceable April 2024; the recommendation templates and methodology page should note that UCMR5 data predates post-MCL utility responses.
+
+### Area 5: Code Health
+
+- **Removed `MVP_WEIGHTS` dead export** (PR #82): `lib/scoring/weights.ts` — unused since v3 pipeline switch. Confirmed zero import sites.
+- **Added vitest coverage thresholds** (PR #82): 70% lines/functions/statements, 60% branches; added `lcov` reporter. Prior cycle measured 71.22% line coverage. See PD-002 for risk note.
+- Files over 400 lines: `components/report/ContaminationMap.tsx` (513 lines), `lib/data-sources/usda-ssurgo.ts` (436 lines). Refactor deferred to next cycle.
+- `INSUFFICIENT_COVERAGE_THRESHOLD` and `LOW_CONFIDENCE_COVERAGE_THRESHOLD` in `lib/scoring/coverage.ts` are unnecessarily exported (internal constants). Low priority cleanup, deferred.
+
+### Area 6: Documentation and Credibility
+
+- **Created `docs/AUTONOMOUS_IMPROVEMENT.md`** (PR #81): Permanent improvement routine reference.
+- **Created `data/sources/`** (this PR): 8 per-source documentation files covering all bundled datasets and key live-API sources with limitations, refresh cadence, and known gaps.
+- **Created `docs/PENDING_DECISIONS.md`**: UCMR5 staleness (PD-001) and coverage threshold CI risk (PD-002).
+- **Methodology page**: Confirmed weights match SCORING_VERSION 4. Page does not display a version number — low priority to add.
+- **data/README.md**: Exists and documents bundle files. No changes needed.
+
+### PRs opened this cycle
+| PR | Area | Status |
+|---|---|---|
+| #81 | 6 — Documentation | Draft |
+| #82 | 5 — Code health | Draft |
+| #83 | 1 — Data accuracy | Draft |
+| This PR | 6 — Documentation | Draft |
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
