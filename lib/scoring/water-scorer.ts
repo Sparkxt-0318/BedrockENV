@@ -39,7 +39,7 @@ export function scoreWaterLayer(data: WaterLayerData): LayerScore {
   // Primary source: UCMR 5 (utility-reported, system-level).
   // Fallback: WQP ambient PFAS monitoring (bbox-based, area-level).
   if (data.pfas) {
-    // Log normalize: 0 ppt → 0, 4 ppt (MCL) ≈ 50, 50+ ppt → 100.
+    // Log1p normalize: 0 ppt → 0, 4 ppt (MCL) ≈ 41, 20 ppt ≈ 77, 50+ ppt → 100.
     const pfasScore = logNormalize(data.pfas.maxIndividual, 50);
     subScores.pfas = pfasScore;
     activeWeights.pfas = WATER_SUB_WEIGHTS.pfas;
