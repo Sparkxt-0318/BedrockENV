@@ -11,8 +11,14 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     exclude: ['tests/integration/**', 'tests/smoke/**', 'node_modules/**'],
     coverage: {
-      reporter: ['text', 'text-summary'],
+      reporter: ['text', 'text-summary', 'lcov'],
       include: ['lib/**/*.ts', 'components/**/*.tsx'],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
     },
   },
   resolve: {
