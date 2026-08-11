@@ -1,12 +1,6 @@
 import { ExposureLayer } from '@/types/exposure';
 import { LayerWeights } from './types';
 
-// MVP weights (water + soil only)
-export const MVP_WEIGHTS: LayerWeights = {
-  water: 0.55,
-  soil: 0.45,
-};
-
 // Full weights (all five layers)
 export const FULL_WEIGHTS: LayerWeights = {
   water: 0.25,
