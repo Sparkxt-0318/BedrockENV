@@ -1,5 +1,44 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-12)
+
+### Area 6: Documentation — Data Source Files
+
+Created `data/sources/` directory with 12 data source documentation files, one per primary data source. Each file documents: what the source covers, what it doesn't, refresh cadence, and known limitations. Sources documented:
+
+| File | Source |
+|------|--------|
+| `ucmr5.md` | EPA UCMR 5 PFAS occurrence data |
+| `ssurgo.md` | USDA SSURGO soil survey |
+| `sdwis.md` | EPA SDWIS drinking water violations |
+| `echo.md` | EPA ECHO enforcement / compliance |
+| `brownfields.md` | EPA Brownfields (NEPAssist ArcGIS) |
+| `superfund.md` | EPA Superfund NPL sites (FRS/SEMS) |
+| `nonattainment.md` | EPA Green Book nonattainment areas |
+| `fema-nfhl.md` | FEMA National Flood Hazard Layer |
+| `usgs-wqp.md` | USGS Water Quality Portal |
+| `openaq.md` | OpenAQ ambient air quality |
+| `ejscreen.md` | EPA EJScreen (currently non-functional) |
+| `cdc-svi.md` | CDC Social Vulnerability Index |
+
+Key findings surfaced during documentation:
+- **EJScreen + CDC SVI** are both non-functional pending API key configuration. This affects all addresses equally — every address is missing 15% of its potential score.
+- **Brownfields 503 outages** cause recurring soil score crashes. The documentation now explicitly warns this is the #1 transient failure mode.
+- **Superfund static bundle** remains the highest-priority unresolved gap (Picher/Camp Lejeune pattern). Documented in `superfund.md`.
+- **UCMR 5 bundle** was last rebuilt January 2026. EPA quarterly release expected April 2026 — bundle is due for refresh.
+
+### Area 5: Code Health — Files Over 400 Lines
+
+Audited `lib/` for files over 400 lines. One file found: `lib/data-sources/usda-ssurgo.ts` (436 lines). Reviewed the file — the bulk is a well-structured `aggregateRows` function handling soil data parsing logic that is tightly coupled. Refactoring would create artificial separation without reducing complexity. No action taken; complexity is justified by the domain.
+
+### Routine Overhead
+
+- `docs/AUTONOMOUS_IMPROVEMENT.md` created (permanent routine spec file as requested)
+- `data/sources/` directory created with 12 source documentation files (Section 6 requirement)
+- `pnpm test:coverage` could not run — `node_modules` not installed in this environment. Tests deferred.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
