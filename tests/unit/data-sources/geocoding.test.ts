@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { geocodeAddress, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import { geocodeAddress, FIPS_TO_STATE, extractCityHint, extractZipHint } from '@/lib/data-sources/geocoding';
+import type { GeocodedAddress } from '@/types/exposure';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,4 +305,136 @@ describe('geocodeAddress (live network)', () => {
     const result = await geocodeAddress('aslkdjfaslkdjf not a real place 99999');
     expect(result).toBeNull();
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// Helpers for extractCityHint / extractZipHint
+// ---------------------------------------------------------------------------
+
+function makeGeocodedAddress(normalized: string): GeocodedAddress {
+  return {
+    raw: normalized,
+    normalized,
+    latitude: 38.8977,
+    longitude: -77.0365,
+    fipsState: '11',
+    fipsCounty: '001',
+    censusTract: '010100',
+    censusBlockGroup: '1',
+    source: 'census',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// extractCityHint
+// ---------------------------------------------------------------------------
+
+describe('extractCityHint', () => {
+  it('extracts city from Census 4-part format', () => {
+    const addr = makeGeocodedAddress('1600 Pennsylvania Ave NW, Washington, DC, 20500');
+    expect(extractCityHint(addr)).toBe('Washington');
+  });
+
+  it('extracts city from Census 3-part format (street, city, state zip)', () => {
+    const addr = makeGeocodedAddress('123 Main St, Springfield, IL 62701');
+    expect(extractCityHint(addr)).toBe('Springfield');
+  });
+
+  it('extracts city from Mapbox 2-part short format', () => {
+    // "City, State Zip" — city is the first part, no leading digit
+    const addr = makeGeocodedAddress('Portland, OR 97201');
+    expect(extractCityHint(addr)).toBe('Portland');
+  });
+
+  it('returns null for 2-part format where first part starts with a digit', () => {
+    // Would look like a street number, not a city name
+    const addr = makeGeocodedAddress('123 Main St, TX');
+    expect(extractCityHint(addr)).toBeNull();
+  });
+
+  it('strips trailing "United States" before extracting city', () => {
+    const addr = makeGeocodedAddress('100 Market St, San Francisco, CA, United States');
+    expect(extractCityHint(addr)).toBe('San Francisco');
+  });
+
+  it('strips trailing "US" before extracting city', () => {
+    const addr = makeGeocodedAddress('100 Market St, Oakland, CA, US');
+    expect(extractCityHint(addr)).toBe('Oakland');
+  });
+
+  it('strips trailing "USA" before extracting city', () => {
+    const addr = makeGeocodedAddress('100 Market St, Austin, TX, USA');
+    expect(extractCityHint(addr)).toBe('Austin');
+  });
+
+  it('falls back to raw when normalized is empty string', () => {
+    const addr = makeGeocodedAddress('Chicago, IL 60601');
+    addr.normalized = '';
+    expect(extractCityHint(addr)).toBe('Chicago');
+  });
+
+  it('returns null for a single-part address', () => {
+    const addr = makeGeocodedAddress('Nowhere');
+    expect(extractCityHint(addr)).toBeNull();
+  });
+
+  it('strips digits from candidate city name in 3+-part format', () => {
+    // pathological: city part contains only digits
+    const addr = makeGeocodedAddress('123 St, 90210, CA 90210');
+    // parts[1] = '90210' → digits stripped → empty → falls through to parts.length===2 check
+    // parts.length=3 so we don't hit 2-part path; returns null
+    expect(extractCityHint(addr)).toBeNull();
+  });
+
+  it('uses normalized address when available', () => {
+    const addr: GeocodedAddress = {
+      raw: 'bad raw',
+      normalized: '1 Infinite Loop, Cupertino, CA 95014',
+      latitude: 37.3317,
+      longitude: -122.0302,
+      fipsState: '06',
+      fipsCounty: '085',
+      censusTract: '',
+      censusBlockGroup: '',
+      source: 'mapbox',
+    };
+    expect(extractCityHint(addr)).toBe('Cupertino');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractZipHint
+// ---------------------------------------------------------------------------
+
+describe('extractZipHint', () => {
+  it('extracts a 5-digit ZIP from a normalized address', () => {
+    const addr = makeGeocodedAddress('1600 Pennsylvania Ave NW, Washington, DC 20500');
+    expect(extractZipHint(addr)).toBe('20500');
+  });
+
+  it('extracts ZIP from ZIP+4 format', () => {
+    const addr = makeGeocodedAddress('100 Main St, Anytown, OH 44702-1234');
+    expect(extractZipHint(addr)).toBe('44702');
+  });
+
+  it('returns null when no ZIP is present', () => {
+    const addr = makeGeocodedAddress('Washington, DC');
+    expect(extractZipHint(addr)).toBeNull();
+  });
+
+  it('uses raw when normalized is empty', () => {
+    const addr = makeGeocodedAddress('Seattle, WA 98101');
+    addr.normalized = '';
+    expect(extractZipHint(addr)).toBe('98101');
+  });
+
+  it('does not match a 4-digit number', () => {
+    const addr = makeGeocodedAddress('Suite 1234, Portland, OR');
+    expect(extractZipHint(addr)).toBeNull();
+  });
+
+  it('does not match a 6-digit number', () => {
+    const addr = makeGeocodedAddress('123456 somewhere');
+    expect(extractZipHint(addr)).toBeNull();
+  });
 });
