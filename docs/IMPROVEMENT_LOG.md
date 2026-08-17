@@ -1,5 +1,40 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-17)
+
+### Area 5: Code Health — Test Coverage
+
+**cfci-scorer.ts**: Was at 0% coverage despite being a critical business-logic module
+(the entire CFCI intelligence page rests on it). Added 35 unit tests covering:
+- `computeCfci`: zero inputs, clamping of FER/CPI, non-finite inputs (NaN, Infinity → 0),
+  integer rounding, max inputs (FES=100, CPI=100 → CFCI=100), classification pass-through
+- `classifyCfci`: all four classification boundaries (Low/Elevated/High/Severe) and
+  exact boundary values (14→Low, 15→Elevated, 29→Elevated, 30→High, 49→High, 50→Severe)
+- `assignCfciQuartiles`: empty array, single-record, 4-record, 100-record even distribution,
+  original-index preservation, two-record and three-record edge cases, tie handling
+
+**geocoding.ts**: Was at 61.53% statements / 41.52% branches. Added 17 tests for the
+two exported pure helpers `extractCityHint` and `extractZipHint`:
+- `extractCityHint`: Census 4-part format, Census 3-part format, Mapbox 2-part city/state
+  format, 2-part digit-leading rejection, US/USA/United States suffix stripping, raw fallback
+  when normalized is empty, all-digit city part → null, normalized preference
+- `extractZipHint`: 5-digit match, ZIP+4 match, no-ZIP → null, raw fallback, 4-digit
+  rejection, 6-digit rejection
+
+Coverage after changes:
+- `cfci-scorer.ts`: 0% → ~97% (statements)
+- `geocoding.ts`: 61.53% → 76.15% (statements), 41.52% → 61.01% (branches)
+- Overall statements: 61.22% → 62.7%
+- Total tests: +52 (35 cfci + 17 geocoding)
+
+Action taken: PR opened on branch `claude/epic-goodall-nvajh2`.
+
+### Setup: Permanent routine file
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` with the six-area routine, hard rules, and
+reporting conventions. This file is read at session start before doing assigned work.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
