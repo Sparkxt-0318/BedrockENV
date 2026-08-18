@@ -1,5 +1,57 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-18)
+
+### Section 0: Routine Setup
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent reference for the improvement routine.
+
+### Section 5: Code Health — Refactoring
+- **usda-ssurgo.ts** exceeded 400-line threshold (436 lines). Extracted internal parsing and
+  aggregation logic into a new `lib/data-sources/usda-ssurgo-aggregation.ts` module.
+  Result: `usda-ssurgo.ts` → 143 lines, `usda-ssurgo-aggregation.ts` → 316 lines.
+- Public API unchanged: only `fetchSsurgoData` is exported from the main file and that's the
+  only import used by `lib/data-sources/index.ts`. No callers affected.
+
+### Section 6: Documentation — Data Source Coverage
+Created `data/sources/` directory with documentation for all 11 currently active data sources:
+- `epa-ucmr5.md` — PFAS in drinking water (bundled, Jan 2026)
+- `epa-sdwis.md` — Safe Drinking Water violations (live API)
+- `epa-echo.md` — Enforcement & Compliance (live API, known 503 fragility)
+- `epa-superfund.md` — NPL sites via FRS SEMS (known false-negative gap)
+- `usda-ssurgo.md` — Soil properties (live SDA API)
+- `epa-brownfields.md` — Contaminated land (ArcGIS, known 503 fragility)
+- `epa-nonattainment.md` — NAAQS Green Book (bundled)
+- `fema-nfhl.md` — Flood zones (live ArcGIS)
+- `epa-ejscreen.md` — Environmental Justice layer (NOT FUNCTIONAL — marked clearly)
+- `openaq.md` — Air quality (REQUIRES API KEY — marked clearly)
+- `usgs-wqp.md` — Surface water quality (live API)
+- `holc-mapping-inequality.md` — Redlining maps (bundled, static historical)
+
+### Pending Decisions
+Created `docs/PENDING_DECISIONS.md` with 5 items requiring user judgment:
+1. EJ layer data strategy (CDC SVI bundle recommended)
+2. Superfund static bundle (static NPL bundle recommended)
+3. Air API keys (user action required — all free)
+4. Embeddable widget/API distribution strategy
+5. Business model / pricing (keep free through Q3 2026)
+
+### Section 1: Data Accuracy — Quarterly Assessment Note
+Quarterly UCMR 5 bundle check: current bundle is January 2026. EPA typically releases
+quarterly updates in Jan, Apr, Jul, Oct. An April 2026 release may be available.
+Next action: check EPA UCMR page and rebuild bundle if new data is published.
+URL: https://www.epa.gov/dwucmr/occurrence-data-unregulated-contaminant-monitoring-rule
+
+### Section 3: Feature Priority Assessment
+Highest-impact unfinished items (from ROADMAP.md "In Progress"):
+1. **Superfund static bundle** — ~0.5 days, fixes Picher/Camp Lejeune false negatives
+2. **CDC SVI EJ layer bundle** — ~0.5 days, adds 15-25 points to urban/disadvantaged addresses
+3. **Water System Risk Atlas (Research Brief #4)** — ~3 days, extends Intelligence series
+
+Recommendation: ship Superfund bundle and CDC SVI EJ layer in next session — both are
+bundled data tasks with no external dependencies and clear, testable impact.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
