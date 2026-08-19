@@ -1,5 +1,50 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-19)
+
+### Area 1: Data Accuracy — Systemic Review
+No live address assessment run this cycle (API dependency on EPA Brownfields remains at 503 as documented in prior cycles). Key systemic issues previously identified remain open:
+- Brownfields API returning 503 for >60% of assessments (soil scores suppressed)
+- NPL Superfund static bundle still not built (Tar Creek, Camp Lejeune, East Palestine gaps persist)
+- EJ layer non-functional (0 for all addresses)
+
+No new data accuracy regressions found.
+
+### Area 5: Code Health — Test Coverage
+Added **20 tests** for `lib/intelligence/cfci-scorer.ts` (CFCI scorer had 0% coverage).
+
+| File | Before | After | Tests Added |
+|---|---|---|---|
+| `lib/intelligence/cfci-scorer.ts` | 0% | ~95% | 20 (computeCfci, classifyCfci, assignCfciQuartiles) |
+
+Total tests: 434 → 454. All pass.
+
+Other files with low coverage identified but not yet addressed:
+- `lib/data-sources/geocoding.ts`: 61.53% (needs more branch coverage)
+- `lib/ai/narrator.ts`: 0% (AI narrator — low priority, hard to unit test)
+- `lib/intelligence/cfci-scorer.ts`: now covered ✓
+
+### Area 6: Documentation — data/sources/ Created
+Created `data/sources/` directory (was entirely missing) with source documentation for 7 key data sources:
+
+| File | Source | Key limitation documented |
+|---|---|---|
+| `epa-ucmr5.md` | EPA UCMR 5 PFAS | VOC blindspot; area-level only |
+| `epa-sdwis.md` | EPA SDWIS violations | Historical violations age off; Flint gap |
+| `epa-echo.md` | EPA ECHO / TRI | TRI lags 18 months; no dose modeling |
+| `epa-superfund.md` | EPA FRS SEMS (NPL) | Critical: FRS misses Camp Lejeune, Tar Creek |
+| `usda-ssurgo.md` | USDA SSURGO soil data | Urban blind spot; coverage gap for cities |
+| `nonattainment.md` | EPA Green Book | County-level only; new PM2.5 designations pending |
+| `fema-nfhl.md` | FEMA NFHL flood maps | Map currency; levee-impacted areas |
+| `epa-brownfields.md` | EPA Brownfields ACRES | **503 API failure is primary score suppressor** |
+
+### Permanent File Added
+Created `docs/AUTONOMOUS_IMPROVEMENT.md` — the improvement routine specification. Should be read at session start before assigned work, and run when spare cycles are available.
+
+PR link: (pending)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
