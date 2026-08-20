@@ -1,5 +1,26 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-08-20
+
+### Area 5: Code Health — Test Coverage
+
+**Finding:** `pnpm test:coverage` revealed two files below the 70% threshold:
+- `lib/intelligence/cfci-scorer.ts` — **0% coverage** (0 tests existed)
+- `lib/scoring/normalizer.ts` — **80% coverage** (lines 14–28 uncovered)
+
+Also noted: `lib/data-sources/usda-ssurgo.ts` at 436 lines exceeds the 400-line refactor threshold (deferred — functional and low risk).
+
+**Action taken:**
+- Added `tests/unit/intelligence/cfci-scorer.test.ts` — 16 tests covering `computeCfci`, `classifyCfci`, and `assignCfciQuartiles`. All edge cases: NaN inputs, clamping fer/cpi bounds, quartile index preservation.
+- Added `tests/unit/scoring/normalizer.test.ts` — 19 tests covering `linearNormalize`, `logNormalize`, and `stepNormalize`. Covers boundary values, clamping, empty threshold arrays.
+- Total tests: 434 → 469 (+35). All 39 test files pass.
+
+**Also added:** `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent file containing the routine instructions for all future sessions.
+
+**PR:** See branch `claude/epic-goodall-ylyfd9`
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
