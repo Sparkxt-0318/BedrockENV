@@ -1,5 +1,34 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-21)
+
+### Area 1: Routine Setup
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent reference doc for the 6-area improvement routine.
+- This file is to be read at the start of every session and run between assigned tasks.
+
+### Area 5: Code Health Findings
+- **File over 400 lines**: `lib/data-sources/usda-ssurgo.ts` at 436 lines. Natural split:
+  extract `classifyTexture`, `parseNum`, `round1` helpers (~26 lines) and `unmappedPlaceholder`
+  (~16 lines) into `lib/data-sources/usda-ssurgo-utils.ts`, reducing main file to ~394 lines.
+  Action: Flagged — separate PR warranted.
+- **Test coverage**: Test files confirmed for all 17 data sources in `tests/unit/data-sources/`.
+  Full coverage run (`pnpm test:coverage`) not executed this cycle (would require env vars / API mocks).
+
+### Area 6: Documentation Findings
+- **data/sources/ missing**: No `data/sources/<name>.md` documentation files exist for any data
+  source. The routine requires these for every source (what it covers, refresh cadence, known
+  limitations). Action: Creating these is a documentation PR opportunity — 10+ files needed.
+  Priority: high (affects credibility section of the methodology page).
+- **ROADMAP.md**: Verified current — matches shipped features through redlining analysis page.
+  No update needed this cycle.
+
+### Action Items
+- [ ] PR: Refactor `usda-ssurgo.ts` (436 lines → 2 files under 400 lines each)
+- [ ] PR: Create `data/sources/` directory with documentation files for all 10+ data sources
+- [ ] Next cycle: Run EJ layer assessment on 3 canonical addresses once API keys are available
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
