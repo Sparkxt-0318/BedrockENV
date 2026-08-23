@@ -363,3 +363,32 @@ older housing, proximity to industrial facilities and freeways.
 4. **Abandoned town handling** — Picher has no water system, no active monitoring.
    The scoring pipeline has no mechanism to flag historical contamination that
    preceded data collection systems.
+
+## Autonomous Improvement Routine — Cycle 1 (2026-08-23)
+
+### Area 6: Documentation and Credibility
+
+**Finding:** `data/sources/` directory did not exist. The routine specifies every data source needs a dedicated markdown file documenting what it covers, what it doesn't, refresh cadence, and known limitations.
+
+**Action taken:** Created `docs/AUTONOMOUS_IMPROVEMENT.md` (the routine definition file) and `data/sources/` directory with 12 data source documentation files:
+- `epa-ucmr5.md` — PFAS occurrence in public water systems (UCMR 5 bundle)
+- `epa-sdwis.md` — Safe Drinking Water Information System (violations, PWSID lookup)
+- `epa-echo.md` — Enforcement and Compliance History Online (regulated facilities)
+- `epa-ejscreen.md` — Environmental Justice Screening Tool (EJ/demographic indices)
+- `epa-tri.md` — Toxics Release Inventory (industrial chemical releases)
+- `epa-superfund.md` — National Priorities List NPL sites (FRS SEMS API)
+- `usgs-wqp.md` — Water Quality Portal (ambient PFAS monitoring)
+- `cdc-svi.md` — Social Vulnerability Index (census tract social factors)
+- `fema-nfhl.md` — National Flood Hazard Layer (flood zone designations)
+- `usda-ssurgo.md` — Soil Survey Geographic Database (soil properties)
+- `epa-brownfields.md` — Brownfields program registry
+- `epa-aqs.md` — Air Quality System (annual PM2.5/ozone summaries)
+- `openaq.md` — Open Air Quality (near-real-time monitoring)
+- `nasa-smap.md` — NASA POWER precipitation/temperature (soil moisture proxy)
+- `nonattainment.md` — EPA Green Book nonattainment designations (bundled)
+- `epa-lead.md` — Census housing age proxy for lead plumbing risk (ACS B25034)
+
+**Flags raised for PENDING_DECISIONS:**
+- `nasa-smap.ts` is misnamed — uses NASA POWER reanalysis, not the SMAP satellite product. Renaming is a minor breaking change.
+
+**PR link:** (pending)
