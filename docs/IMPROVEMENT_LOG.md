@@ -1,5 +1,40 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Routine — Cycle 1 (2026-08-25)
+
+### Area 1: Data Accuracy
+- No live assessment run (requires external API keys — SDWIS, ECHO, WQP). Deferred to session with API access.
+- UCMR 5 bundle (`data/ucmr5-by-pwsid.json`) is from 2024 Q4 release. EPA UCMR 5 final dataset expected late 2025; check for updates at https://www.epa.gov/dwucmr
+- SCORING_VERSION is at 4. No scoring changes this cycle.
+
+### Area 2: Design Quality
+- No live Lighthouse/axe-core run (no deployed URL with CI). Last known accessibility state: 1 serious violation (color-contrast, 24 instances, per 2026-04-20 log) — resolved in prior session.
+- No viewport verification this cycle (requires browser/Playwright).
+
+### Area 3: New Features
+- Most impactful unfinished item: **EJ layer** — EJScreen API integration is blocked (returns 0 for all addresses). EJ weight (15%) is currently absorbed by re-weighting. This is the highest-impact gap in scoring accuracy.
+- ROADMAP.md reviewed and current.
+
+### Area 4: Market Intelligence
+- No new web searches run this cycle (network access policy). MARKET_INTEL.md last updated 2026-06-xx. Next market sweep due 2026-09.
+
+### Area 5: Code Health
+- All 434 tests pass (vitest run, 2026-08-25)
+- Overall test coverage: 61.22% statements. lib/ package: 90% (healthy). Low aggregate due to uncovered React UI components — acceptable for data-layer-first testing strategy.
+- Files over 400 lines: `RedliningClient.tsx` (556), `ContaminationMap.tsx` (513), `FloodContaminationClient.tsx` (491), `SoilCrisisClient.tsx` (426), `usda-ssurgo.ts` (436), `exposure.ts` (426). These are complex D3/Mapbox UI components and type definitions — refactoring noted for consideration but not urgent.
+- No dependency audit run (pnpm outdated requires network). Deferred.
+
+### Area 6: Documentation
+- **Gap found**: `data/sources/` directory did not exist. Required by routine.
+- **Action taken**: Created `data/sources/` with 7 data source documentation files: `epa-ucmr5.md`, `epa-sdwis.md`, `epa-tri.md`, `usda-ssurgo.md`, `fema-nfhl.md`, `mapping-inequality-holc.md`, `epa-ejscreen.md`
+- **Action taken**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` (permanent routine file)
+- Remaining data sources without docs: `epa-aqs.ts`, `epa-brownfields.ts`, `epa-echo.ts`, `epa-lead.ts`, `epa-superfund.ts`, `nonattainment.ts` (bundled Green Book), `openaq.ts`, `nasa-smap.ts`, `usgs-wqp.ts`, `cdc-svi.ts` — to be documented in subsequent cycles.
+
+### PR
+- TBD (see branch `claude/epic-goodall-124wuj`)
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
