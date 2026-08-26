@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { geocodeAddress, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import { geocodeAddress, FIPS_TO_STATE, extractCityHint, extractZipHint } from '@/lib/data-sources/geocoding';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,4 +304,102 @@ describe('geocodeAddress (live network)', () => {
     const result = await geocodeAddress('aslkdjfaslkdjf not a real place 99999');
     expect(result).toBeNull();
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// extractCityHint
+// ---------------------------------------------------------------------------
+
+function addr(normalized: string): { normalized: string; raw: string; latitude: number; longitude: number; source: 'census' | 'mapbox' } {
+  return { normalized, raw: normalized, latitude: 0, longitude: 0, source: 'census' };
+}
+
+describe('extractCityHint', () => {
+  it('extracts city from Census 4-part format', () => {
+    // "street, city, state, zip"
+    expect(extractCityHint(addr('1600 PENNSYLVANIA AVE NW, WASHINGTON, DC, 20500'))).toBe('WASHINGTON');
+  });
+
+  it('extracts city from Census 3-part format (state+zip merged)', () => {
+    // "street, city, state zip"
+    expect(extractCityHint(addr('100 MAIN ST, NEWARK, NJ 07102'))).toBe('NEWARK');
+  });
+
+  it('extracts city from Mapbox "City, State Zip" short format', () => {
+    expect(extractCityHint(addr('Miami Beach, Florida 33139, United States'))).toBe('Miami Beach');
+  });
+
+  it('strips trailing "United States" before extracting city', () => {
+    expect(extractCityHint(addr('Water Street, Hoosick Falls, New York 12090, United States'))).toBe('Hoosick Falls');
+  });
+
+  it('strips trailing "US" before extracting', () => {
+    expect(extractCityHint(addr('100 Main St, Springfield, IL 62701, US'))).toBe('Springfield');
+  });
+
+  it('strips trailing "USA" before extracting', () => {
+    expect(extractCityHint(addr('5 Oak Ave, Tucson, AZ 85701, USA'))).toBe('Tucson');
+  });
+
+  it('returns null when city candidate is blank after stripping digits', () => {
+    // Only a numeric second element — no city name
+    expect(extractCityHint(addr('100 Main St, 12345, NY'))).toBeNull();
+  });
+
+  it('prefers normalized over raw when both present', () => {
+    const geocoded = {
+      normalized: '1 MARKET ST, SAN FRANCISCO, CA, 94105',
+      raw: 'raw input ignored',
+      latitude: 0,
+      longitude: 0,
+      source: 'census' as const,
+    };
+    expect(extractCityHint(geocoded)).toBe('SAN FRANCISCO');
+  });
+
+  it('falls back to raw when normalized is absent', () => {
+    const geocoded = {
+      raw: '500 MAIN ST, FLINT, MI, 48502',
+      latitude: 0,
+      longitude: 0,
+      source: 'census' as const,
+    } as Parameters<typeof extractCityHint>[0];
+    expect(extractCityHint(geocoded)).toBe('FLINT');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractZipHint
+// ---------------------------------------------------------------------------
+
+describe('extractZipHint', () => {
+  it('extracts 5-digit ZIP from Census address', () => {
+    expect(extractZipHint(addr('1600 PENNSYLVANIA AVE NW, WASHINGTON, DC 20500'))).toBe('20500');
+  });
+
+  it('extracts ZIP from ZIP+4 format, returning only the 5-digit part', () => {
+    expect(extractZipHint(addr('100 MAIN ST, NEWARK, NJ 07102-1234'))).toBe('07102');
+  });
+
+  it('extracts ZIP from Mapbox full_address format', () => {
+    expect(extractZipHint(addr('Miami Beach, Florida 33139, United States'))).toBe('33139');
+  });
+
+  it('returns null when no ZIP present', () => {
+    expect(extractZipHint(addr('Camp Lejeune, North Carolina'))).toBeNull();
+  });
+
+  it('handles leading-zero ZIPs correctly', () => {
+    expect(extractZipHint(addr('100 State St, Boston, MA 02109'))).toBe('02109');
+  });
+
+  it('uses raw when normalized is absent', () => {
+    const geocoded = {
+      raw: '500 Oak Ave, Salinas, CA 93901',
+      latitude: 0,
+      longitude: 0,
+      source: 'census' as const,
+    } as Parameters<typeof extractZipHint>[0];
+    expect(extractZipHint(geocoded)).toBe('93901');
+  });
 });

@@ -1,5 +1,17 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-26)
+
+### Area: Permanent Routine Document
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` with the six-area routine definition, hard rules, and reporting standards. This is now the authoritative reference to read at session start.
+
+### Area 5: Code Health — Test Coverage
+- Overall coverage was 61.22% (down from 71.22% logged in Cycle 2 — drop caused by new CFCI/intelligence pages added without tests)
+- **`lib/intelligence/cfci-scorer.ts`** — 0% → ~100%: added 23 unit tests covering `computeCfci` (boundary clamping, zero-factor semantics, NaN/Infinity handling), `classifyCfci` (all four tiers), and `assignCfciQuartiles` (empty array, single record, order preservation, even quartile distribution)
+- **`lib/data-sources/geocoding.ts`** — 61.53% → higher: added 15 unit tests for previously untested `extractCityHint` (Census 4-part, 3-part, Mapbox short format, "United States/US/USA" suffix stripping, raw fallback) and `extractZipHint` (standard ZIP, ZIP+4, leading-zero ZIPs, null when absent, raw fallback)
+- Total new tests: 38 (23 CFCI + 15 geocoding)
+- Files created: `tests/unit/intelligence/cfci-scorer.test.ts`
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
