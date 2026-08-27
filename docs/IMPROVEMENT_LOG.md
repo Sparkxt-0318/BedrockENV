@@ -1,5 +1,46 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-27)
+
+### Summary
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent routine file installed as instructed
+- Created `data/sources/` directory (was missing); added 4 data source documentation files
+- Code health audit: identified 7 files over 400 lines requiring future refactoring (separate PRs)
+- No SCORING_VERSION bump — no scoring formula changes this cycle
+
+### Area 1: Data Accuracy
+No live assessment run this cycle (no API keys in environment). Systemic gaps from prior cycles remain: EJ layer non-functional, Brownfields API intermittent 503, FRS SEMS misses some NPL sites. No new changes.
+
+### Area 2: Design Quality
+Not audited this cycle (no browser/Playwright session available in scheduled context). Flagged for next user-attended session.
+
+### Area 3: Features
+No new features this cycle. Highest-impact in-progress item remains: **EJ layer** (EJScreen + CDC SVI integration). Next candidate from Considering: **Neighborhood Comparison** (~2 days per existing spec in ROADMAP.md).
+
+### Area 5: Code Health — Files Over 400 Lines (flagged for future PRs)
+| File | Lines | Action |
+|------|-------|--------|
+| `tests/integration/run-all.ts` | 969 | Test orchestrator — acceptable, low priority |
+| `scripts/build-scvi-national.ts` | 803 | Build script — acceptable for scripts |
+| `scripts/build-redlining-data.ts` | 613 | Build script — acceptable for scripts |
+| `app/intelligence/redlining/RedliningClient.tsx` | 556 | **Refactor candidate** — extract chart subcomponents |
+| `scripts/build-scvi-nj-pilot.ts` | 550 | Build script — acceptable |
+| `components/report/ContaminationMap.tsx` | 513 | **Refactor candidate** — extract layer controls + legend |
+| `app/intelligence/flood-contamination/FloodContaminationClient.tsx` | 491 | **Refactor candidate** — extract chart subcomponents |
+| `lib/data-sources/usda-ssurgo.ts` | 436 | **Refactor candidate** — extract SSURGO parsing utilities |
+| `types/exposure.ts` | 426 | **Review** — may be acceptable as a types barrel |
+| `app/intelligence/soil-crisis/SoilCrisisClient.tsx` | 426 | **Refactor candidate** — extract D3 chart components |
+
+### Area 6: Documentation
+- Created `data/sources/` directory (was missing — routine requires every data source to have a doc file)
+- Added: `ucmr5-pfas.md`, `epa-nonattainment.md`, `scvi-national.md`, `cfci-national.md`
+- Remaining sources to document: SSURGO, SDWIS, ECHO/TRI, FRS/SEMS, brownfields, FEMA NFHL, WQP, EJScreen, CDC SVI, ACS demographics, HOLC crosswalk, OpenAQ/AQS
+
+### Action Taken
+- PR: created for `docs/AUTONOMOUS_IMPROVEMENT.md` + `data/sources/` documentation
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
