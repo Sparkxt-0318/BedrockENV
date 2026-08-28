@@ -1,5 +1,32 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-28)
+
+### Permanent Routine File Added
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — stores the six-area improvement routine so it persists across sessions and is readable at session start.
+
+### Section 1: Data Accuracy — Systemic API Issues Persist
+- EPA Brownfields API (503) and FRS SEMS intermittent timeouts continue to depress soil and proximity scores across all addresses.
+- No new canonical address runs performed this cycle (API outages make live scoring unreliable and uninformative without real credentials).
+- Existing ground-truth findings from Cycle 2 remain the reference. Key systemic gaps: NPL Superfund FRS miss, VOC blindspot (UCMR 5 is PFAS-only), federal data latency for acute events, military base Census gap.
+
+### Section 5: Code Health — Test Coverage
+Overall line coverage: 63.03% (target: 70%). Added 38 new tests across 2 files:
+
+| File | Before | After | Tests Added |
+|---|---|---|---|
+| `lib/intelligence/cfci-scorer.ts` | 0% | 100% | 19 (computeCfci, classifyCfci, assignCfciQuartiles) |
+| `lib/scoring/normalizer.ts` | 0% | 100% | 19 (linearNormalize, logNormalize, stepNormalize) |
+
+Remaining zero-coverage files noted for future cycles: `lib/ai/narrator.ts`, `lib/net/proxy.ts`, `lib/stripe/client.ts`, `lib/supabase/*.ts`, `lib/pdf/templates/exposure-report.tsx`, `components/report/showcase/ShowcaseReport.tsx`.
+
+### Section 6: Documentation
+- `docs/AUTONOMOUS_IMPROVEMENT.md` added as permanent session-start reference.
+- ROADMAP and MARKET_INTEL reviewed — no drift from prior cycle; no updates needed.
+- Methodology page not audited this cycle (no scoring changes made).
+
+
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
