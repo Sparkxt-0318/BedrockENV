@@ -1,5 +1,66 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-08-29)
+
+### Area 5: Code Health — cfci-scorer.ts test coverage
+
+**Finding**: `lib/intelligence/cfci-scorer.ts` had 0% test coverage despite being the core computation engine for the CFCI national map (covering 3,131 US counties, ~73M residents in Q4).
+
+**Action**: Added `tests/unit/intelligence/cfci-scorer.test.ts` with 19 tests covering `computeCfci`, `classifyCfci`, and `assignCfciQuartiles` — including boundary conditions, clamping behavior, NaN/Infinity guards, and quartile assignment ordering.
+
+**Result**: 19/19 tests pass. cfci-scorer.ts: 0% → ~100% coverage.
+
+**PR**: (pending)
+
+---
+
+### Area 6: Documentation — data/sources/ directory
+
+**Finding**: No `data/sources/` directory existed. The routine requires every data source to have a source doc covering: what it covers, what it doesn't, refresh cadence, known limitations.
+
+**Action**: Created `data/sources/` with docs for 6 of 15 integrated data sources:
+- `ucmr5.md` — EPA UCMR 5 PFAS monitoring
+- `epa-echo.md` — EPA ECHO enforcement and compliance
+- `fema-nfhl.md` — FEMA National Flood Hazard Layer
+- `epa-sdwis.md` — EPA Safe Drinking Water Information System
+- `nonattainment.md` — EPA Green Book NAAQS nonattainment
+- `usda-ssurgo.md` — USDA SSURGO soil survey
+
+**PR**: (pending, same PR as cfci tests — docs only, no code)
+
+---
+
+### Area 3 & 6: Pending Decisions Document
+
+**Finding**: No `docs/PENDING_DECISIONS.md` existed. Five items requiring human judgment identified from prior cycle analysis and current data gaps.
+
+**Action**: Created `docs/PENDING_DECISIONS.md` with 5 decision items:
+- PD-001: Superfund static bundle (HIGH — directly causes 30–60 point scoring gaps at known contaminated sites)
+- PD-002: EJ layer implementation path (HIGH — 15% of composite score currently returns 0)
+- PD-003: Pro tier pricing strategy (MEDIUM)
+- PD-004: Water System Risk Atlas timing (MEDIUM)
+- PD-005: VOC coverage gap (LOW)
+
+**PR**: (pending)
+
+---
+
+### Area 1: Data Accuracy — Coverage Summary
+
+No live API calls possible in this environment (no API keys for ECHO, AQS, etc.). Systemic findings from prior cycles remain:
+- Brownfields API 503 errors crush soil scores across all urban addresses
+- EJ layer unavailable (all addresses return 0 for 15% weight)
+- FRS SEMS misses large-area Superfund sites (Picher, Camp Lejeune)
+- VOC contamination (TCE, PCE, benzene) not captured in any current source
+
+These are documented in PENDING_DECISIONS.md (PD-001, PD-002, PD-005).
+
+---
+
+### Area 6: Routine Document
+
+**Action**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent file containing the 6-area improvement routine and hard rules. Sessions read this at start before doing assigned work.
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
