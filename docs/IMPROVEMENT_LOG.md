@@ -1,5 +1,26 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-09-02)
+
+### Setup
+Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent specification for the autonomous improvement routine.
+
+### Section 5: Code Health — Test Coverage
+Added 44 tests across 2 new files to cover previously-zero-coverage modules.
+
+| File | Before | After | Tests Added |
+|---|---|---|---|
+| `lib/intelligence/cfci-scorer.ts` | 0% | 100% | 27 (computeCfci, classifyCfci, assignCfciQuartiles) |
+| `lib/scoring/normalizer.ts` | 80%/50%branch | ~100% | 17 (linearNormalize, logNormalize, stepNormalize) |
+
+Overall line coverage: 63.03% → 63.75%. Statements: 61.22% → 62.22%. Total tests: 434 → 478.
+
+### Section 5: Dependency Audit
+Ran `pnpm outdated`. All updates are non-security minor version bumps — deferred to monthly cycle per routine policy. No security advisories found. Packages lagging most: `@react-pdf/renderer` (4.5.1 → 4.9.0), `@supabase/supabase-js` (2.101.1 → 2.112.4), `axe-core` (4.11.3 → 4.13.0).
+
+### PR
+See PR for this cycle's test additions.
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
