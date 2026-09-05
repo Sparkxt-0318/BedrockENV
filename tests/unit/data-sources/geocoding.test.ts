@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { geocodeAddress, FIPS_TO_STATE } from '@/lib/data-sources/geocoding';
+import {
+  geocodeAddress,
+  FIPS_TO_STATE,
+  extractCityHint,
+  extractZipHint,
+} from '@/lib/data-sources/geocoding';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -304,4 +309,90 @@ describe('geocodeAddress (live network)', () => {
     const result = await geocodeAddress('aslkdjfaslkdjf not a real place 99999');
     expect(result).toBeNull();
   }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// extractCityHint
+// ---------------------------------------------------------------------------
+
+type MinimalGeocoded = { raw: string; normalized?: string };
+
+describe('extractCityHint', () => {
+  it('extracts city from Census 4-part format', () => {
+    const geo: MinimalGeocoded = {
+      raw: '1600 PENNSYLVANIA AVE NW, WASHINGTON, DC 20500',
+    };
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBe('WASHINGTON');
+  });
+
+  it('extracts city from Census 4-part format with US suffix', () => {
+    const geo: MinimalGeocoded = {
+      raw: '123 MAIN ST, SPRINGFIELD, IL 62701, UNITED STATES',
+    };
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBe('SPRINGFIELD');
+  });
+
+  it('extracts city from Mapbox short format "City, State Zip"', () => {
+    const geo: MinimalGeocoded = {
+      raw: 'Chicago, IL 60601',
+    };
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBe('Chicago');
+  });
+
+  it('returns null when part starts with a digit (street address, not city)', () => {
+    const geo: MinimalGeocoded = {
+      raw: '1600 PENNSYLVANIA AVE',
+    };
+    // Only two parts, first starts with digit → not a city hint
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBeNull();
+  });
+
+  it('uses normalized over raw when present', () => {
+    const geo = {
+      raw: 'raw value ignored',
+      normalized: '100 MAIN ST, HOUSTON, TX 77002',
+    };
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBe('HOUSTON');
+  });
+
+  it('returns null for a single-segment address', () => {
+    const geo: MinimalGeocoded = { raw: 'NoCommasHere' };
+    expect(extractCityHint(geo as Parameters<typeof extractCityHint>[0])).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractZipHint
+// ---------------------------------------------------------------------------
+
+describe('extractZipHint', () => {
+  it('extracts a 5-digit ZIP from the middle of an address string', () => {
+    const geo: MinimalGeocoded = {
+      raw: '1600 PENNSYLVANIA AVE NW, WASHINGTON, DC 20500',
+    };
+    expect(extractZipHint(geo as Parameters<typeof extractZipHint>[0])).toBe('20500');
+  });
+
+  it('extracts ZIP from normalized field when present', () => {
+    const geo = {
+      raw: 'no zip here',
+      normalized: '500 Main St, Austin, TX 78701',
+    };
+    expect(extractZipHint(geo as Parameters<typeof extractZipHint>[0])).toBe('78701');
+  });
+
+  it('handles ZIP+4 format and returns only the 5-digit part', () => {
+    const geo: MinimalGeocoded = { raw: 'Somewhere, TX 78701-1234' };
+    expect(extractZipHint(geo as Parameters<typeof extractZipHint>[0])).toBe('78701');
+  });
+
+  it('returns null when there is no 5-digit number', () => {
+    const geo: MinimalGeocoded = { raw: 'No zip in this address' };
+    expect(extractZipHint(geo as Parameters<typeof extractZipHint>[0])).toBeNull();
+  });
+
+  it('does not match a 4-digit number', () => {
+    const geo: MinimalGeocoded = { raw: 'Year 2024 test' };
+    expect(extractZipHint(geo as Parameters<typeof extractZipHint>[0])).toBeNull();
+  });
 });
