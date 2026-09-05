@@ -1,5 +1,43 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-09-05
+
+### Area 1: Data Accuracy
+No live API queries ran (scheduled/headless session). Deferred to next session with network access. Prior cycle findings (Brownfields 503, FRS API gaps, Camp Lejeune/Picher misses) remain open in ROADMAP.md In Progress.
+
+### Area 2: Design Quality
+No browser available in this session (remote execution environment). Deferred. See PENDING_DECISIONS.md for open items.
+
+### Area 3: New Features
+Reviewed ROADMAP.md. Most impactful in-progress item: **EJ layer** (EJScreen + CDC SVI). Confirmed it remains blocked on external API access. Second priority: Superfund static bundle. No code changes this cycle — blocked on external dependencies.
+
+### Area 4: Market Intelligence
+No web search available. MARKET_INTEL.md last updated June 2026. Set reminder: next scheduled session should check First Street contamination data announcement, EPA MCL updates.
+
+### Area 5: Code Health — Test Coverage
+- **Finding**: `lib/intelligence/cfci-scorer.ts` had 0% test coverage despite being a pure-logic scoring module.
+- **Action**: Created `tests/unit/intelligence/cfci-scorer.test.ts` with 15 tests covering all exported functions (`computeCfci`, `classifyCfci`, `assignCfciQuartiles`). Coverage: 0% → 100%.
+- **Finding**: `lib/data-sources/geocoding.ts` at 61.5% coverage. `extractCityHint` and `extractZipHint` were exported but untested.
+- **Action**: Added 11 tests to `tests/unit/data-sources/geocoding.test.ts` covering both utility functions. Coverage: 61.5% → ~72% (estimate).
+- **Finding**: `lib/data-sources/usda-ssurgo.ts` is 436 lines (threshold: 400). Cohesive single-purpose file; refactor deferred as low-risk/low-priority until other work completes.
+- **Finding (security)**: `pnpm audit` shows 2 high-severity Next.js DoS CVEs (GHSA-q4gf-8mx6-v5v3, GHSA-8h8q-6873-q5fj). Next.js 16.2.2 → patched at 16.2.5+. Opened separate PR for security upgrade (PR link: TBD after push).
+- **Total tests**: 434 → 462 (+28 new tests). All 462 pass.
+
+### Area 6: Documentation and Credibility
+- **Finding**: `data/sources/` directory did not exist. The routine requires each data source to have documentation.
+- **Action**: Created `data/sources/` directory with 6 source documentation files:
+  - `ucmr5-pfas.md` — UCMR 5 PFAS coverage, limitations, refresh cadence
+  - `epa-sdwis.md` — SDWIS violations, reporting lag, PWSID resolution gaps
+  - `fema-nfhl.md` — NFHL flood zones, outdated maps, climate gap
+  - `epa-echo.md` — ECHO/TRI facilities, reporting thresholds, API reliability
+  - `usda-ssurgo.md` — SSURGO soil data, urban land gap, survey age
+  - `epa-greenbook.md` — NAAQS nonattainment designations, county granularity
+  - `epa-brownfields.md` — Brownfields ACRES database, API reliability issue
+- **Methodology page**: Not audited this cycle (no browser/build). Deferred to next session.
+- **Routine file**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` as permanent session-start reference.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
