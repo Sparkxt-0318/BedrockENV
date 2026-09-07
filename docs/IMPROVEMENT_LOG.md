@@ -1,5 +1,24 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-09-07)
+
+### Area 1: Documentation — AUTONOMOUS_IMPROVEMENT.md
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent file encoding the six-area improvement routine, hard rules, and reporting protocol.
+- Action: Created file and committed to `claude/epic-goodall-bcohi2`.
+
+### Area 5: Code Health — Test Coverage
+- Ran `pnpm test:coverage`. Overall line coverage: 63% (regression from 71% in last cycle).
+- Identified `lib/intelligence/cfci-scorer.ts` at 0% coverage despite being a core scoring module.
+- Added `tests/unit/intelligence/cfci-scorer.test.ts` with 22 tests covering `computeCfci`, `classifyCfci`, and `assignCfciQuartiles`.
+- Action: New test file committed; PR opened.
+
+### Findings for next cycle
+- `lib/ai/narrator.ts` still at 0% coverage — AI narrative generation module, deferred (requires mocking Anthropic SDK).
+- `lib/stripe/client.ts` at 0% — payment client, deferred (requires Stripe mock setup).
+- Coverage regression from 71% → 63% likely due to new component/showcase files added in SCVI build with no tests.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
