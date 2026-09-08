@@ -1,5 +1,45 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle 3 (2026-09-08)
+
+### Section 1: Scheduled Routine Setup
+- Created `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent specification for the autonomous improvement routine. Added to repo so it is read at the start of every session before assigned work.
+
+### Section 5: Code Health — Tests
+- Ran full test suite: **434 tests across 37 files — all passing**.
+- `lib/data-sources/usda-ssurgo.ts` is 436 lines (36 over the 400-line threshold). File is a single coherent module (SDA query builder + response parser + aggregation logic); refactor deferred — fragmentation would harm readability without clear module boundaries.
+
+### Section 6: Documentation — Data Source Files
+- Created `data/sources/` directory (did not exist).
+- Created 12 data source documentation files covering all 15 federal sources used by the scoring engine:
+  - `epa-ucmr5.md` — PFAS bundle coverage, quarterly refresh procedure, private-well gap
+  - `epa-sdwis.md` — violation history, PWSID lookup, historical data aging-off limitation
+  - `epa-echo.md` — ECHO facility proximity, TRI lag, radius timeout limitations
+  - `epa-brownfields.md` — ArcGIS service, documented 503 outage pattern, state-registry gap
+  - `epa-superfund.md` — **Critical: NPL radius query misses Camp Lejeune and Tar Creek. Static bundle needed.**
+  - `fema-nfhl.md` — flood zone query, unmapped-vs-Zone-X ambiguity
+  - `usda-ssurgo.md` — SDA query, WKT lon/lat order gotcha, urban land gap
+  - `epa-nonattainment.md` — Green Book static bundle, NAAQS designation lag
+  - `usgs-wqp.md` — surface/groundwater monitoring, PFAS gap
+  - `openaq.md` — API key requirement, rural coverage gap
+  - `census-acs.md` — B25034 lead proxy, military base null gap
+  - `nasa-power.md` — climate/soil moisture grid data, coarse resolution
+  - `epa-ejscreen.md` — **Currently non-functional** — API key not configured, EJ layer = 0 for all addresses
+  - `cdc-svi.md` — Social Vulnerability Index, 2-year update cadence
+  - `epa-tri.md` — Toxic Release Inventory, 18-month reporting lag
+  - `epa-aqs.md` — EPA air monitoring API, key registration required
+  - `epa-lead.md` — Lead paint proxy via Census ACS B25034
+
+### Key Findings This Cycle
+1. **EJScreen still non-functional** — zero EJ scores for all addresses. Highest-impact gap to address.
+2. **Brownfields API 503 errors** are systemic and recurring (first flagged 2026-04-17, still occurring). A static brownfields bundle (analogous to the nonattainment bundle) would eliminate this reliability gap.
+3. **Superfund static bundle** remains the #1 data accuracy priority — active NPL sites are silently missed by the FRS radius query.
+4. **UCMR 5 bundle** current as of January 2026 release; next quarterly refresh check due ~April 2026.
+
+Action taken: PR opened for data source documentation. No scoring changes in this cycle — no SCORING_VERSION bump needed.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
