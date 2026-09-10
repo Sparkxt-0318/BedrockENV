@@ -363,3 +363,10 @@ older housing, proximity to industrial facilities and freeways.
 4. **Abandoned town handling** — Picher has no water system, no active monitoring.
    The scoring pipeline has no mechanism to flag historical contamination that
    preceded data collection systems.
+
+## Autonomous Improvement Cycle — Session Init (2026-09-10)
+
+### Area: Documentation
+**Finding**: `docs/AUTONOMOUS_IMPROVEMENT.md` did not exist; the routine had no permanent written reference.
+**Action taken**: Created `docs/AUTONOMOUS_IMPROVEMENT.md` with the full six-area routine, hard rules, and reporting instructions per the scheduled task.
+**PR link**: https://github.com/Sparkxt-0318/BedrockENV/pull/111
