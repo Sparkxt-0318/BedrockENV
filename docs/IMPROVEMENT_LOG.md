@@ -1,5 +1,21 @@
 # Scoring Pipeline Improvement Log
 
+## Autonomous Improvement Cycle — 2026-09-11
+
+### Routine Initialized
+- Added `docs/AUTONOMOUS_IMPROVEMENT.md` — permanent specification for all future autonomous improvement cycles.
+
+### Area 5: Code Health — Test Coverage
+- **Finding**: `lib/intelligence/cfci-scorer.ts` at 0% coverage (21 exported functions across `computeCfci`, `classifyCfci`, `assignCfciQuartiles`).
+- **Action**: Added `tests/unit/intelligence/cfci-scorer.test.ts` — 21 tests covering all exported functions including edge cases (NaN/Infinity inputs, clamping, geometric-mean semantics, quartile index preservation, empty array).
+- **Result**: `cfci-scorer.ts` 0% → 100% statement coverage. Total tests: 352 → 373.
+- **Other files below 70%**: `lib/data-sources/geocoding.ts` at 61.53% (uncovered lines are private async network helpers — `enrichWithCensusCoordinates`, `enrichWithFccCensus` — testable only via fetch mocking; deferred to next cycle with dedicated PR).
+
+### Area 3: Roadmap Review
+- ROADMAP.md reviewed. Most impactful in-progress items remain EJ layer and Superfund static bundle. No changes needed this cycle; both still blocked by external API access/data prep work.
+
+---
+
 ## SCVI Intelligence Page Build (2026-04-20)
 
 ### National SCVI Dataset
